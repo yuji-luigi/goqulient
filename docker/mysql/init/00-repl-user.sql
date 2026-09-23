@@ -1,0 +1,2 @@
+CREATE USER IF NOT EXISTS 'repl'@'%' IDENTIFIED BY 'replpass';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
