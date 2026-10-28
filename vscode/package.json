@@ -134,7 +134,7 @@
   "scripts": {
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p webview",
     "test": "node --test 'test/**/*.test.ts'",
     "check": "npm run typecheck && npm test"
   },

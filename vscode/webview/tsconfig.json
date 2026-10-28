@@ -1,0 +1,20 @@
+{
+  // Browser code (DOM lib, no Node or vscode types): `tsc --noEmit -p webview`. The pure modules under lib/ are also
+  // checked by the root tsconfig through the tests, which proves they don't need the DOM.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noImplicitOverride": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["./**/*.ts", "../src/views/protocol.ts"]
+}

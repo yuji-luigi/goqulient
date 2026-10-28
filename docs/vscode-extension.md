@@ -34,6 +34,13 @@ No database access yet. This page is both the PM plan (decisions, milestones, ti
 | `ConnectionStore`: settings + `.env`, watcher, trust, SecretStorage, password prompt, engine validation | `vscode/src/connections/store.ts` |
 | `goku.addConnection`, `goku.forgetPassword`, `goku.openSettings` | `vscode/src/connections/commands.ts` |
 | URI redaction (same rules as `redact::uri`) | `vscode/src/connections/redact.ts` |
+| Webview entry points `openTable` / `openErDiagram` (for the sidebar) | `vscode/src/views/index.ts` |
+| Table panel (paging, cancel, copy to clipboard), ER panel (introspect, `er/layout`, saved positions, export) | `vscode/src/views/{tablePanel,erPanel}.ts` |
+| Panel setup (CSP, `localResourceRoots`), HTML shell + nonce, saved-position merge | `vscode/src/views/{panel,html,layout}.ts` |
+| Message types (both directions) + engine shapes (`QueryResult`, `SchemaModel`) | `vscode/src/views/protocol.ts` |
+| Webview code: grid, ER diagram, DOM helpers, styles (`tsc -p webview`, bundled to `dist/webview/`) | `vscode/webview/{table,er,host}.ts`, `*.css` |
+| Pure webview helpers (grid virtualisation, TSV; ER geometry, crow's foot, pan/zoom) | `vscode/webview/lib/{grid,er}.ts` |
+| Dev harness (fake `acquireVsCodeApi`, fixtures, fake themes) + Playwright screenshots | `vscode/webview-dev/` |
 | Parity fixtures (written by `Tests/GokuCoreTests/ParityFixtureTests.swift`) | `Tests/Parity/` + its `README.md` |
 | CI (Linux/macOS/Windows: fmt, clippy, cargo test, typecheck, build, Node tests against the engine) | `.github/workflows/extension.yml` |
 | Release: engine per target + one VSIX per target, publish | `.github/workflows/extension-release.yml`, `release-please-config.json` |
@@ -191,6 +198,62 @@ Official `mongodb` crate 3.9 with `bson-3`, rustls on **ring** (no aws-lc-rs, no
   rust:1.99.1-bookworm cargo test -p goku-engine --test atlas -- --nocapture`. It prints only the server version and
   creates/drops `rs_atlas_<random>`. Atlas' IP access list must allow your address.
 
+## Webviews (VSX-12, VSX-13)
+Two `WebviewPanel`s, opened by the sidebar through `vscode/src/views/index.ts`. Plain TypeScript + DOM, no framework.
+```
+extension host (src/views/*Panel.ts)            webview (webview/*.ts → dist/webview/*.js)
+  engine.request(…, CancellationToken)  ◄──────  {type:'ready'|'load'|'sizes'|'moved'|…}
+  keeps last page / model / positions   ──────►  {type:'init'|'loading'|'page'|'model'|'layout'|'error'|…}
+```
+- **Table** (`openTable(engine, sessionId, object, readOnly, {extensionUri, pageSize})`, title `name — database`, one
+  panel per session + object): `ready` → `table/page {offset 0, limit pageSize}`. The webview asks for pages with
+  `load {offset, sort?}` (header click cycles asc → desc → none and restarts at offset 0; Prev/Next by `pageSize`, Next
+  only when `truncated`). Every request has its own `CancellationTokenSource`: a newer `load`, the Cancel button
+  (`cancel`) or closing the panel cancels it, and answers carry `requestId` so a stale one is dropped. Grid: rows and
+  columns virtualised (fixed 22 px rows, cells absolutely placed inside the scrolling body; ~370 cells in the DOM for
+  1,000 × 50), header and row numbers follow the scroll by transform, column widths measured on a 200-row sample, drag to
+  resize. NULL is a dim italic `NULL`; a value ending in the engine's clip marker gets a marker badge and a tooltip.
+  Selection (click, shift, drag, row numbers, corner, arrows/Page/Home/End, ⌘/Ctrl+A); ⌘/Ctrl+C and a context menu copy
+  as TSV (`copy {text}` → `vscode.env.clipboard`; one cell = raw value, NULL = empty, RFC 4180 quoting as the app's
+  `RowCopy`). MongoDB pages with `documents` get a Grid / Documents toggle.
+- **ER** (`openErDiagram(engine, sessionId, database, schemas, layoutKey, workspaceState, {extensionUri, title?})`):
+  `schema/introspect` under a cancellable progress notification (+ Cancel in the webview) → `model` (capped at 1,500
+  entities with a warning, like the app) → the webview measures box sizes with the editor font (`entitySize`, the app's
+  `recomputeSizes` formula) → `sizes` → `er/layout` **only for entities without a saved position** → positions. Saved
+  positions (`{version: 1, positions: {id: {x, y}}}` in the Memento under `layoutKey`, decoded tolerantly) win; new
+  entities keep their fresh relative layout and move as one block below the saved ones (`mergeLayout`), so they never
+  overlap a box placed by hand (the app's ⚠). Drag end sends `moved`; Auto Layout re-lays everything out and saves.
+  Rendering mirrors `ERPainter`: header colour from the schema hash, PK/FK/UQ badges, bold = NOT NULL, italic =
+  presence < 1, Béziers anchored at the first FK column's row, crow's foot at the child, `||`/`o|` at the parent,
+  inferred dashed. Only boxes and curves intersecting the viewport (+120 px) are in the DOM; below 40 % rows become bars
+  and below 18 % only the box remains, so 300 tables stay at one frame per vsync in the harness. Hover or selection
+  dims everything but the entity and its neighbours; search (⌘/Ctrl+F, Enter = next) dims non-matches. The inspector
+  shows columns, indexes, relationships (click to jump), or a relationship's FK details; warnings and a legend when
+  nothing is selected. Export SVG/PNG renders the whole diagram in light colours (PNG ≤ 2×, ≤ 16,000 px) and sends it
+  as `export {format, data}`; the extension asks `showSaveDialog` and writes the file.
+- Invariants:
+  - CSP `default-src 'none'`, scripts only with the per-load nonce, styles from `cspSource`, images also `blob:`/`data:`
+    (PNG export); no network. Code never sets `style` attributes or `innerHTML` (CSSOM and `textContent` only).
+  - `localResourceRoots` = `dist/webview`. The HTML shell carries no data (no secrets, no rows): everything arrives by
+    `postMessage` and only engine output is shown; errors are the engine's redacted `message`.
+  - No `retainContextWhenHidden`: the panel keeps the last page / model / sizes / positions and re-sends them on
+    `ready`; the webview keeps view mode, scroll, pan/zoom and selection in `setState`.
+  - Colours only from `--vscode-*` variables (light, dark, high contrast); export uses a fixed light palette.
+  - `webview/lib/*` and `src/views/{protocol,html,layout}.ts` stay free of `vscode` and DOM (Node tests import them).
+- Dev harness: `webview-dev/{table,er}.html` load the bundles with `fake-host.js` (a fake `acquireVsCodeApi` answering
+  from a synthetic 2,500 × 50 table, a Mongo collection, `Tests/Parity/schema/*.json` or 300 synthetic tables, with a stub
+  layout; the real layout comes from the engine) and `themes.css` (`?theme=dark|light|hc`), under the same CSP with
+  `'self'` for the nonce. Screenshots (gitignored, look at them) and frame timings:
+  ```bash
+  docker run --rm --ipc=host -v "$PWD":/w -v goku-node-modules:/w/vscode/node_modules -w /w/vscode \
+    mcr.microsoft.com/playwright:v1.55.0-noble bash -c "npm ci && npm run build && \
+    npm i --no-save playwright@1.55.0 && node webview-dev/snapshot.mjs"   # → webview-dev/snapshots/*.png
+  ```
+  It fails on page errors and CSP violations.
+- ⚠ Known gaps: copies of clipped cells copy the clipped text (no `fullRows` yet); no webview serializer, so panels don't
+  survive a window reload; one editor font measurement per model (a font change needs Reload); the dev harness's layout
+  is a stub, not `er/layout`; panels are not tested in a real VS Code yet (VSX-11's `@vscode/test-electron`).
+
 ## Connections in VS Code
 `ConnectionStore` (`store.ts`) builds the list the tree shows; the merge itself is the pure `mergeConnections` in
 `model.ts` (unit-tested), fed from `inspect('goku.connections')`, the env files and `workspace.isTrusted`.
@@ -310,8 +373,8 @@ Official `mongodb` crate 3.9 with `bson-3`, rustls on **ring** (no aws-lc-rs, no
 | VSX-9 | `er/layout`: port `ERLayout.swift` + parity tests | M1 | VSX-5 | done |
 | VSX-10 | Connections: settings, SecretStorage, `.env` discovery, Workspace Trust, read-only default for env | M1 | VSX-4 | done (no tree yet; Mongo URI password injection waits for VSX-8) |
 | VSX-11 | Sidebar tree + commands (refresh, connect/disconnect, open table, ER diagram) | M1 | VSX-6..8, VSX-10 | |
-| VSX-12 | Table/collection viewer webview (virtualised, paged, copy cells) | M1 | VSX-11 | |
-| VSX-13 | ER diagram webview: SVG, pan/zoom, drag, inspector, saved positions (`workspaceState`), PNG/SVG export | M1 | VSX-9, VSX-11 | |
+| VSX-12 | Table/collection viewer webview (virtualised, paged, copy cells) | M1 | VSX-11 | done (webview + `openTable`; wired by VSX-11) |
+| VSX-13 | ER diagram webview: SVG, pan/zoom, drag, inspector, saved positions (`workspaceState`), PNG/SVG export | M1 | VSX-9, VSX-11 | done (webview + `openErDiagram`; wired by VSX-11) |
 | VSX-14 | Packaging + release: 6 platform VSIXs, Open VSX, release-please package | M1 | VSX-4 | done (untested in CI) |
 | VSX-15 | Docs: this page becomes the agent doc; README for the Marketplace | M1 | all M1 | |
 | – | SSH tunnels, query editor (SQL + Mongo shell, CodeLens Run, results, destructive confirm, cancel) | M2 | M1 | |
