@@ -11,6 +11,7 @@ No database access yet. This page is both the PM plan (decisions, milestones, ti
 | `DbError` (same wording as GokuCore's `DBError`), `display_message()` | `engine/crates/goku-engine/src/error.rs` |
 | `with_deadline` (timeout or cancel → `on_timeout` once) | `engine/crates/goku-engine/src/deadline.rs` |
 | `RowCollector`, `clip`, `Paging`, limits | `engine/crates/goku-engine/src/limits.rs` |
+| ER layout (port of `ERLayout.swift`, checked against `Tests/Parity/er-layout`) | `engine/crates/goku-engine/src/er.rs`, `tests/parity_er_layout.rs` |
 | `secrets` / `uri` redaction (same patterns as `Redaction.swift`) | `engine/crates/goku-engine/src/redact.rs` |
 | `ConnectionProfile` + tolerant decoding, `validate`, `decode_profiles`, `Credentials` (masked `Debug`) | `engine/crates/goku-engine/src/profile.rs` |
 | Framing (LSP `Content-Length`, 16 MiB cap) | `engine/crates/goku-engine-server/src/framing.rs` |
@@ -90,7 +91,7 @@ VS Code (extension host, Node)                         goku-engine-server (Rust,
 | App binding (M4) | `uniffi` |
 
 ### Protocol (`protocolVersion` 1)
-Implemented: `initialize`, `shutdown`, `exit`, `$/cancelRequest`, `profile/validate`, and `debug/wait` in debug builds
+Implemented: `initialize`, `shutdown`, `exit`, `$/cancelRequest`, `profile/validate`, `er/layout`, and `debug/wait` in debug builds
 only (tests). The rest of the table is planned.
 
 | Method | Result |
@@ -102,7 +103,7 @@ only (tests). The rest of the table is planned.
 | `catalog/databases`, `catalog/schemas`, `catalog/objects`, `catalog/columns` | same lists as the app's sidebar |
 | `table/page {sessionId, object, offset, limit, sort?}` | rows, capped; truncated cells flagged |
 | `schema/introspect {sessionId, database, schemas?, sampleSize?}` | `SchemaModel` JSON |
-| `er/layout {entities, sizes, edges, options?}` | rects |
+| `er/layout {entities, sizes, edges?, options?}` | `{rects: {id: {origin: {x, y}, size: {width, height}}}}`; same numbers as `ERLayout.layout` |
 | `query/run` (M2) | results; destructive → `needsConfirmation` |
 | `$/cancelRequest` | cancels on the server (`pg_cancel_backend`, `KILL QUERY`, kill the Mongo op) |
 
@@ -182,7 +183,7 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
 | VSX-6 | PostgreSQL: connect (TLS modes), catalog, `table/page`, read-only session, introspection | M1 MVP | VSX-3 | |
 | VSX-7 | MySQL/MariaDB: same scope as VSX-6 | M1 | VSX-3 | |
 | VSX-8 | MongoDB: connect (single/multi-host/SRV/URI), catalog, documents page, schema inference | M1 | VSX-3 | |
-| VSX-9 | `er/layout`: port `ERLayout.swift` + parity tests | M1 | VSX-5 | |
+| VSX-9 | `er/layout`: port `ERLayout.swift` + parity tests | M1 | VSX-5 | done |
 | VSX-10 | Connections: settings, SecretStorage, `.env` discovery, Workspace Trust, read-only default for env | M1 | VSX-4 | |
 | VSX-11 | Sidebar tree + commands (refresh, connect/disconnect, open table, ER diagram) | M1 | VSX-6..8, VSX-10 | |
 | VSX-12 | Table/collection viewer webview (virtualised, paged, copy cells) | M1 | VSX-11 | |

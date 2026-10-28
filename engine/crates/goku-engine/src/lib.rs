@@ -4,6 +4,7 @@
 //! - secrets never reach a log, an error or an endpoint summary (`redact`);
 //! - no stdout and no runtime of its own: the host (the stdio server, later the app) owns the one tokio runtime.
 pub mod deadline;
+pub mod er;
 pub mod error;
 pub mod limits;
 pub mod profile;

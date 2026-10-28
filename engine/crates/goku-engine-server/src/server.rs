@@ -239,11 +239,12 @@ fn initialize(p: Value) -> Result<Value, RpcError> {
     }))
 }
 
-const METHODS: &[&str] = &["initialize", "shutdown", "profile/validate"];
+const METHODS: &[&str] = &["initialize", "shutdown", "profile/validate", "er/layout"];
 
 async fn request(method: &str, p: Value, cancel: &CancellationToken) -> Result<Value, RpcError> {
     match method {
         "profile/validate" => profile_validate(p),
+        "er/layout" => er_layout(p),
         #[cfg(debug_assertions)]
         "debug/wait" => debug_wait(p, cancel).await,
         _ => {
@@ -251,6 +252,23 @@ async fn request(method: &str, p: Value, cancel: &CancellationToken) -> Result<V
             Err(RpcError::new(code::METHOD_NOT_FOUND, format!("Unknown method “{method}”")))
         }
     }
+}
+
+#[derive(Deserialize)]
+struct LayoutParams {
+    entities: Vec<String>,
+    sizes: std::collections::HashMap<String, goku_engine::er::Size>,
+    #[serde(default)]
+    edges: Vec<goku_engine::er::Edge>,
+    #[serde(default)]
+    options: Option<goku_engine::er::Options>,
+}
+
+/// Positions for the ER webview: it measures the boxes with its own font and the engine lays them out (same as the app).
+fn er_layout(p: Value) -> Result<Value, RpcError> {
+    let p: LayoutParams = params(p)?;
+    let rects = goku_engine::er::layout(&p.entities, &p.sizes, &p.edges, &p.options.unwrap_or_default());
+    Ok(json!({ "rects": rects }))
 }
 
 #[derive(Deserialize)]

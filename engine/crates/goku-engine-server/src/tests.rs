@@ -160,3 +160,21 @@ async fn broken_frame_reports_a_parse_error_and_stops() {
     assert_eq!(c.next().await["error"]["code"], code::PARSE_ERROR);
     assert_eq!(c.server.await.unwrap(), Exit::Abrupt);
 }
+
+#[tokio::test]
+async fn er_layout_places_parents_left() {
+    let mut c = Client::initialized().await;
+    let size = json!({"width": 100, "height": 40});
+    let r = c
+        .call(
+            2,
+            "er/layout",
+            json!({"entities": ["orders", "customers"], "sizes": {"orders": size, "customers": size},
+                   "edges": [{"child": "orders", "parent": "customers"}]}),
+        )
+        .await;
+    let rects = &r["result"]["rects"];
+    assert_eq!(rects["customers"]["origin"]["x"], 0.0);
+    assert_eq!(rects["orders"]["origin"]["x"], 190.0);
+    assert_eq!(c.call(3, "er/layout", json!({"entities": ["a"]})).await["error"]["code"], code::INVALID_PARAMS);
+}
