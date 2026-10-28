@@ -178,3 +178,17 @@ async fn er_layout_places_parents_left() {
     assert_eq!(rects["orders"]["origin"]["x"], 190.0);
     assert_eq!(c.call(3, "er/layout", json!({"entities": ["a"]})).await["error"]["code"], code::INVALID_PARAMS);
 }
+
+#[tokio::test]
+async fn session_methods_need_an_open_session() {
+    let mut c = Client::initialized().await;
+    let r = c.call(2, "catalog/databases", json!({"sessionId": "nope"})).await;
+    assert_eq!(
+        (r["error"]["code"].clone(), r["error"]["data"]["kind"].clone()),
+        (json!(code::ENGINE_ERROR), json!("notConnected"))
+    );
+    // Opening validates first, so a bad profile never reaches a driver.
+    let r = c.call(3, "connection/open", json!({"profile": {"name": "x", "kind": "postgres", "maxRows": 0}})).await;
+    assert_eq!(r["error"]["data"]["kind"], "invalidConfiguration");
+    assert_eq!(c.call(4, "connection/close", json!({"sessionId": "nope"})).await["result"], Value::Null);
+}

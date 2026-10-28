@@ -3,6 +3,7 @@
 //! the extension host.
 mod framing;
 mod server;
+mod sessions;
 
 use std::process::ExitCode;
 

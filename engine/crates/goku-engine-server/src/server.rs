@@ -60,7 +60,7 @@ fn redact_value(v: Value) -> Value {
     }
 }
 
-fn params<T: for<'de> Deserialize<'de>>(p: Value) -> Result<T, RpcError> {
+pub(crate) fn params<T: for<'de> Deserialize<'de>>(p: Value) -> Result<T, RpcError> {
     serde_json::from_value(if p.is_null() { json!({}) } else { p })
         .map_err(|e| RpcError::new(code::INVALID_PARAMS, format!("Invalid parameters: {e}")))
 }
@@ -70,6 +70,7 @@ struct State {
     initialized: bool,
     shutdown: bool,
     in_flight: HashMap<String, CancellationToken>,
+    sessions: crate::sessions::Sessions,
 }
 
 /// What the main loop should do after `exit` or the end of input.
@@ -112,9 +113,14 @@ where
             break exit;
         }
     };
-    for token in state.lock().unwrap().in_flight.values() {
-        token.cancel();
-    }
+    let sessions = {
+        let s = state.lock().unwrap();
+        for token in s.in_flight.values() {
+            token.cancel();
+        }
+        s.sessions.clone()
+    };
+    let _ = tokio::time::timeout(std::time::Duration::from_secs(5), sessions.close_all()).await;
     drop(tx);
     // Cancelled requests answer and drop their senders; one stuck in a driver must not keep the process alive.
     let _ = tokio::time::timeout(std::time::Duration::from_secs(2), writer_task).await;
@@ -183,10 +189,11 @@ fn handle(message: Value, state: &Arc<Mutex<State>>, tx: &mpsc::UnboundedSender<
     }
     let token = CancellationToken::new();
     state.lock().unwrap().in_flight.insert(id_key(&id), token.clone());
+    let sessions = state.lock().unwrap().sessions.clone();
     let (state, tx) = (state.clone(), tx.clone());
     tokio::spawn(async move {
         let result = tokio::select! {
-            r = request(&method, params, &token) => r,
+            r = request(&method, params, &token, &sessions) => r,
             _ = token.cancelled() => Err(DbError::Cancelled.into()),
         };
         state.lock().unwrap().in_flight.remove(&id_key(&id));
@@ -235,13 +242,21 @@ fn initialize(p: Value) -> Result<Value, RpcError> {
     Ok(json!({
         "protocolVersion": PROTOCOL_VERSION,
         "engineVersion": goku_engine::VERSION,
-        "capabilities": {"methods": METHODS},
+        "capabilities": {"methods": METHODS.iter().chain(crate::sessions::Sessions::METHODS).collect::<Vec<_>>()},
     }))
 }
 
 const METHODS: &[&str] = &["initialize", "shutdown", "profile/validate", "er/layout"];
 
-async fn request(method: &str, p: Value, cancel: &CancellationToken) -> Result<Value, RpcError> {
+async fn request(
+    method: &str,
+    p: Value,
+    cancel: &CancellationToken,
+    sessions: &crate::sessions::Sessions,
+) -> Result<Value, RpcError> {
+    if let Some(r) = sessions.request(method, p.clone(), cancel).await {
+        return r;
+    }
     match method {
         "profile/validate" => profile_validate(p),
         "er/layout" => er_layout(p),
