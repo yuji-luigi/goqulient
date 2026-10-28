@@ -1,0 +1,96 @@
+{
+  "name": "goku",
+  "displayName": "Goku",
+  "description": "Browse PostgreSQL, MySQL/MariaDB and MongoDB databases and their ER diagrams, like the Goku app.",
+  "version": "0.1.0",
+  "publisher": "yuji-luigi",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.cjs",
+  "activationEvents": [],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Connections from workspace settings and .env files are only read in trusted workspaces.",
+      "restrictedConfigurations": [
+        "goku.connections",
+        "goku.envFiles"
+      ]
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "goku.engineInfo",
+        "title": "Show Engine Version",
+        "category": "Goku"
+      },
+      {
+        "command": "goku.restartEngine",
+        "title": "Restart Engine",
+        "category": "Goku"
+      },
+      {
+        "command": "goku.showLog",
+        "title": "Show Log",
+        "category": "Goku"
+      }
+    ],
+    "configuration": {
+      "title": "Goku",
+      "properties": {
+        "goku.connections": {
+          "type": "array",
+          "default": [],
+          "markdownDescription": "Connections, in the same shape as the Goku app's profiles (`name`, `kind`, `hosts`, `user`, `database`, `ssl`, `ssh`, `readOnly`, …). Never put passwords here: Goku asks for them and keeps them in VS Code's secret storage.",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "kind"
+            ]
+          }
+        },
+        "goku.envFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            ".env"
+          ],
+          "markdownDescription": "Workspace files searched for `DATABASE_URL`, `MONGODB_URI`, `PG*` and similar variables. Connections found there are read-only by default."
+        },
+        "goku.enginePath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "Path to a `goku-engine-server` to use instead of the bundled one (for engine development). Machine scope only, so a workspace can't point it at another program."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test 'test/**/*.test.ts'",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "vscode-jsonrpc": "^8.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/vscode": "~1.95.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0"
+  }
+}

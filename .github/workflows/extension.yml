@@ -1,0 +1,54 @@
+# VS Code extension + Rust engine (docs/vscode-extension.md). Builds and tests on all three operating systems, because
+# the extension must work on Windows. Database integration tests run on Linux only (they need the Docker databases).
+name: Extension
+
+on:
+  push:
+    branches: [main]
+    paths: ['engine/**', 'vscode/**', '.github/workflows/extension.yml']
+  pull_request:
+    paths: ['engine/**', 'vscode/**', '.github/workflows/extension.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v5
+      # rust-toolchain.toml pins the version; `rustup show` installs it.
+      - run: rustup show
+        working-directory: engine
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: engine
+      - if: runner.os == 'Linux'
+        run: cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings
+        working-directory: engine
+        shell: bash
+      - run: cargo test --workspace
+        working-directory: engine
+      - run: cargo build -p goku-engine-server
+        working-directory: engine
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: vscode
+      - run: npm run typecheck && npm run build
+        working-directory: vscode
+        shell: bash
+      - run: npm test
+        working-directory: vscode
+        env:
+          GOKU_ENGINE_BIN: ${{ github.workspace }}/engine/target/debug/goku-engine-server${{ runner.os == 'Windows' && '.exe' || '' }}
