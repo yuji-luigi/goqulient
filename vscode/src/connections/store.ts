@@ -1,6 +1,6 @@
-// The connections the tree shows: `goku.connections` (user + workspace scope) and `.env` discovery, filtered by Workspace
+// The connections the tree shows: `goqulient.connections` (user + workspace scope) and `.env` discovery, filtered by Workspace
 // Trust, kept current by a file watcher and a configuration listener. Passwords: settings connections use SecretStorage
-// (`goku.password.<id>`), env connections re-read their file at connect time and store nothing (D7, D8).
+// (`goqulient.password.<id>`), env connections re-read their file at connect time and store nothing (D7, D8).
 import { posix } from 'node:path';
 import * as vscode from 'vscode';
 import { parseEnv } from './envParse.ts';
@@ -35,10 +35,10 @@ interface SavedSecret {
 }
 
 const MAX_ENV_BYTES = 1 << 20;
-const SETTINGS = ['goku.connections', 'goku.envFiles', 'goku.envConnections'];
+const SETTINGS = ['goqulient.connections', 'goqulient.envFiles', 'goqulient.envConnections'];
 
 export function passwordKey(id: string): string {
-  return `goku.password.${id}`;
+  return `goqulient.password.${id}`;
 }
 
 export class ConnectionStore implements vscode.Disposable {
@@ -91,7 +91,7 @@ export class ConnectionStore implements vscode.Disposable {
         envById.set(c.id, s);
       }
     }
-    const inspected = vscode.workspace.getConfiguration('goku').inspect<unknown>('connections');
+    const inspected = vscode.workspace.getConfiguration('goqulient').inspect<unknown>('connections');
     const list = mergeConnections({ user: inspected?.globalValue, workspace: inspected?.workspaceValue, env, trusted });
     if (generation !== this.generation) return;
     this.envById = envById;
@@ -176,12 +176,12 @@ export class ConnectionStore implements vscode.Disposable {
     await this.options.secrets.delete(passwordKey(id));
   }
 
-  /** Appends to user-scope `goku.connections`, keeping every existing entry exactly as it is. */
+  /** Appends to user-scope `goqulient.connections`, keeping every existing entry exactly as it is. */
   async addToUserSettings(profile: ProfileJson): Promise<void> {
-    const config = vscode.workspace.getConfiguration('goku');
+    const config = vscode.workspace.getConfiguration('goqulient');
     const current = config.inspect<unknown>('connections')?.globalValue;
     if (current !== undefined && !Array.isArray(current)) {
-      throw new Error('goku.connections in your user settings isn’t a list. Fix it first (Goku: Open Settings).');
+      throw new Error('goqulient.connections in your user settings isn’t a list. Fix it first (GoQulient: Open Settings).');
     }
     await config.update('connections', [...(current ?? []), profile], vscode.ConfigurationTarget.Global);
   }
@@ -195,7 +195,7 @@ export class ConnectionStore implements vscode.Disposable {
   private envSources(): EnvSource[] {
     const folders = vscode.workspace.workspaceFolders ?? [];
     return folders.flatMap((folder) => {
-      const config = vscode.workspace.getConfiguration('goku', folder.uri);
+      const config = vscode.workspace.getConfiguration('goqulient', folder.uri);
       const paths = config.get<unknown>('envFiles');
       const mappings = sanitizeMappings(config.get<unknown>('envConnections'));
       if (!Array.isArray(paths)) return [];

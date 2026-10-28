@@ -74,7 +74,7 @@ export class CrashBudget {
 }
 
 export interface EngineClientOptions {
-  /** Resolved on every start, so a changed `goku.enginePath` applies on restart. */
+  /** Resolved on every start, so a changed `goqulient.enginePath` applies on restart. */
   binary: () => string;
   clientName: string;
   log: Log;
@@ -195,7 +195,7 @@ export class EngineClient {
     const child = spawn(binary, [], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, shell: false });
     const spawned = new Promise<void>((resolve, reject) => {
       child.once('spawn', resolve);
-      child.once('error', (e) => reject(new EngineError(ErrorCode.engine, `Couldn't start the Goku engine: ${e.message}`)));
+      child.once('error', (e) => reject(new EngineError(ErrorCode.engine, `Couldn't start the GoQulient engine: ${e.message}`)));
     });
     child.stderr!.setEncoding('utf8');
     child.stderr!.on('data', (chunk: string) => {
@@ -231,13 +231,13 @@ export class EngineClient {
     }
     if (r.stopping) return;
     const how = signal ? `signal ${signal}` : `exit code ${code}`;
-    this.options.log.error(`The Goku engine stopped unexpectedly (${how}).`);
+    this.options.log.error(`The GoQulient engine stopped unexpectedly (${how}).`);
     this.running = undefined;
     if (this.disposed) return;
     if (this.budget.record()) {
       this.ensure().catch((e) => this.options.log.error(`Restart failed: ${(e as Error).message}`));
     } else {
-      this.options.onGaveUp?.(`The Goku engine crashed repeatedly (last: ${how}). Run “Goku: Restart Engine” to try again.`);
+      this.options.onGaveUp?.(`The GoQulient engine crashed repeatedly (last: ${how}). Run “GoQulient: Restart Engine” to try again.`);
     }
   }
 }
@@ -253,7 +253,7 @@ function toEngineError(e: unknown): EngineError {
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const t = setTimeout(() => reject(new EngineError(ErrorCode.engine, `The Goku engine didn't answer within ${ms / 1000}s.`)), ms);
+    const t = setTimeout(() => reject(new EngineError(ErrorCode.engine, `The GoQulient engine didn't answer within ${ms / 1000}s.`)), ms);
     p.then(
       (v) => (clearTimeout(t), resolve(v)),
       (e) => (clearTimeout(t), reject(e)),

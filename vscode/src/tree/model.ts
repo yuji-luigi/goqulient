@@ -45,7 +45,7 @@ export function groupObjects(objects: readonly ObjectRef[]): KindGroup[] {
 
 /** The Memento key the ER panel saves positions under: one per connection, database and schema selection. */
 export function erLayoutKey(connectionId: string, database: string, schemas: readonly string[]): string {
-  return `er:${connectionId}:${database}:${[...schemas].join(',')}`;
+  return `goqulient.er:${connectionId}:${database}:${[...schemas].join(',')}`;
 }
 
 /**

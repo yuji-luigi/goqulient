@@ -23,47 +23,47 @@ export function registerTreeCommands(c: TreeCommandContext): vscode.Disposable[]
   const selected = (node?: Node) => node ?? view.selection[0];
   let lastClick: { path: string; at: number } | undefined;
   return [
-    vscode.commands.registerCommand('goku.refresh', () => tree.refreshAll()),
-    vscode.commands.registerCommand('goku.refreshNode', (node?: Node) => {
+    vscode.commands.registerCommand('goqulient.refresh', () => tree.refreshAll()),
+    vscode.commands.registerCommand('goqulient.refreshNode', (node?: Node) => {
       const n = selected(node);
       if (n) tree.refresh(n);
       else void tree.refreshAll();
     }),
-    vscode.commands.registerCommand('goku.retry', (node?: Node) => {
+    vscode.commands.registerCommand('goqulient.retry', (node?: Node) => {
       const n = selected(node);
       if (n) tree.refresh(n);
     }),
-    vscode.commands.registerCommand('goku.disconnect', async (node?: Node) => {
+    vscode.commands.registerCommand('goqulient.disconnect', async (node?: Node) => {
       const conn = connectionOf(selected(node));
       if (conn) await sessions.disconnect(conn.conn.id);
     }),
-    vscode.commands.registerCommand('goku.cancelConnecting', (node?: Node) => {
+    vscode.commands.registerCommand('goqulient.cancelConnecting', (node?: Node) => {
       const conn = connectionOf(selected(node));
       if (conn) sessions.cancel(conn.conn.id);
     }),
-    vscode.commands.registerCommand('goku.openTable', (node?: Node) => {
+    vscode.commands.registerCommand('goqulient.openTable', (node?: Node) => {
       const n = selected(node);
       if (n?.type === 'object') return openObject(c, n);
     }),
     // A tree item's command runs on every click: open on the second click of a double-click, or at once for Enter.
-    vscode.commands.registerCommand('goku.tree.activate', (node: ObjectNode) => {
+    vscode.commands.registerCommand('goqulient.tree.activate', (node: ObjectNode) => {
       const now = Date.now();
       const path = tree.path(node);
       const double = lastClick?.path === path && now - lastClick.at < DOUBLE_CLICK_MS;
       lastClick = double ? undefined : { path, at: now };
       if (double) return openObject(c, node);
     }),
-    vscode.commands.registerCommand('goku.tree.enter', () => {
+    vscode.commands.registerCommand('goqulient.tree.enter', () => {
       const n = view.selection[0];
       if (n?.type === 'object') return openObject(c, n);
       return vscode.commands.executeCommand('list.select'); // everything else keeps the list's own Enter (expand)
     }),
-    vscode.commands.registerCommand('goku.openErDiagram', (node?: Node) => {
+    vscode.commands.registerCommand('goqulient.openErDiagram', (node?: Node) => {
       const n = selected(node);
       if (n?.type === 'database') return openEr(c, n.conn, n.database, []);
       if (n?.type === 'schema') return openEr(c, n.conn, n.database, [n.schema]);
     }),
-    vscode.commands.registerCommand('goku.copyName', async (node?: Node) => {
+    vscode.commands.registerCommand('goqulient.copyName', async (node?: Node) => {
       const name = nameOf(selected(node));
       if (name !== undefined) await vscode.env.clipboard.writeText(name);
     }),

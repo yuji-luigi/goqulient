@@ -1,6 +1,6 @@
 {
-  "name": "goku",
-  "displayName": "Goku",
+  "name": "goqulient",
+  "displayName": "GoQulient",
   "description": "Browse PostgreSQL, MySQL/MariaDB and MongoDB databases and their ER diagrams, like the Goku app.",
   "version": "0.1.0",
   "publisher": "yuji-luigi",
@@ -20,111 +20,111 @@
       "supported": "limited",
       "description": "Connections from workspace settings and .env files are only read in trusted workspaces.",
       "restrictedConfigurations": [
-        "goku.connections",
-        "goku.envFiles",
-        "goku.envConnections"
+        "goqulient.connections",
+        "goqulient.envFiles",
+        "goqulient.envConnections"
       ]
     }
   },
   "contributes": {
     "commands": [
       {
-        "command": "goku.engineInfo",
+        "command": "goqulient.engineInfo",
         "title": "Show Engine Version",
-        "category": "Goku"
+        "category": "GoQulient"
       },
       {
-        "command": "goku.restartEngine",
+        "command": "goqulient.restartEngine",
         "title": "Restart Engine",
-        "category": "Goku"
+        "category": "GoQulient"
       },
       {
-        "command": "goku.showLog",
+        "command": "goqulient.showLog",
         "title": "Show Log",
-        "category": "Goku"
+        "category": "GoQulient"
       },
       {
-        "command": "goku.addConnection",
+        "command": "goqulient.addConnection",
         "title": "Add Connection",
-        "category": "Goku",
+        "category": "GoQulient",
         "icon": "$(add)"
       },
       {
-        "command": "goku.forgetPassword",
+        "command": "goqulient.forgetPassword",
         "title": "Forget Saved Password",
-        "category": "Goku"
+        "category": "GoQulient"
       },
       {
-        "command": "goku.openSettings",
+        "command": "goqulient.openSettings",
         "title": "Open Settings",
-        "category": "Goku",
+        "category": "GoQulient",
         "icon": "$(gear)"
       },
       {
-        "command": "goku.refresh",
+        "command": "goqulient.refresh",
         "title": "Refresh Connections",
-        "category": "Goku",
+        "category": "GoQulient",
         "icon": "$(refresh)"
       },
       {
-        "command": "goku.refreshNode",
+        "command": "goqulient.refreshNode",
         "title": "Refresh",
-        "category": "Goku",
+        "category": "GoQulient",
         "icon": "$(refresh)"
       },
       {
-        "command": "goku.retry",
+        "command": "goqulient.retry",
         "title": "Retry",
-        "category": "Goku",
+        "category": "GoQulient",
         "icon": "$(debug-restart)"
       },
       {
-        "command": "goku.disconnect",
+        "command": "goqulient.disconnect",
         "title": "Disconnect",
-        "category": "Goku",
+        "category": "GoQulient",
         "icon": "$(debug-disconnect)"
       },
       {
-        "command": "goku.cancelConnecting",
+        "command": "goqulient.cancelConnecting",
         "title": "Cancel Connecting",
-        "category": "Goku",
+        "category": "GoQulient",
         "icon": "$(close)"
       },
       {
-        "command": "goku.openTable",
+        "command": "goqulient.openTable",
         "title": "Open Table",
-        "category": "Goku",
+        "category": "GoQulient",
         "icon": "$(table)"
       },
       {
-        "command": "goku.openErDiagram",
+        "command": "goqulient.openErDiagram",
         "title": "Open ER Diagram",
-        "category": "Goku",
+        "category": "GoQulient",
         "icon": "$(type-hierarchy)"
       },
       {
-        "command": "goku.copyName",
+        "command": "goqulient.copyName",
         "title": "Copy Name",
-        "category": "Goku"
+        "category": "GoQulient"
       },
       {
-        "command": "goku.tree.activate",
+        "command": "goqulient.tree.activate",
         "title": "Open",
-        "category": "Goku"
+        "category": "GoQulient"
       },
       {
-        "command": "goku.tree.enter",
+        "command": "goqulient.tree.enter",
         "title": "Open Selected",
-        "category": "Goku"
+        "category": "GoQulient"
       }
     ],
     "configuration": {
-      "title": "Goku",
+      "title": "GoQulient",
       "properties": {
-        "goku.connections": {
+        "goqulient.connections": {
           "type": "array",
           "default": [],
-          "markdownDescription": "Connections, in the same shape as the Goku app's profiles (`name`, `kind`, `hosts`, `user`, `database`, `ssl`, `ssh`, `readOnly`, …). Never put passwords here: Goku asks for them and keeps them in VS Code's secret storage.",
+          "markdownDescription": "Connections, in the same shape as the Goku app's profiles (`name`, `kind`, `hosts`, `user`, `database`, `ssl`, `ssh`, `readOnly`, …). Never put passwords here: GoQulient asks for them and keeps them in VS Code's secret storage.",
           "items": {
             "type": "object",
             "required": [
@@ -133,7 +133,7 @@
             ]
           }
         },
-        "goku.envFiles": {
+        "goqulient.envFiles": {
           "type": "array",
           "items": {
             "type": "string"
@@ -144,11 +144,11 @@
           "scope": "resource",
           "markdownDescription": "Files, relative to each workspace folder, searched for `DATABASE_URL`, `POSTGRES_URL`, `MYSQL_URL`, `MONGODB_URI`, `PGHOST`/`PGDATABASE`, `MYSQL_HOST`/`MYSQL_DATABASE` and similar variables. Connections found there are read-only by default, read their password from the file when connecting, and are ignored in untrusted workspaces."
         },
-        "goku.envConnections": {
+        "goqulient.envConnections": {
           "type": "array",
           "default": [],
           "scope": "resource",
-          "markdownDescription": "More connection URLs in the env files, e.g. `{\"url\": \"ANALYTICS_DB_URL\", \"name\": \"Analytics\", \"readOnly\": false}`. `url` is the variable's name; `file` limits the entry to one of `goku.envFiles`; `kind` is for URLs whose scheme doesn't say. An entry for a well-known variable such as `DATABASE_URL` overrides its name and read-only default.",
+          "markdownDescription": "More connection URLs in the env files, e.g. `{\"url\": \"ANALYTICS_DB_URL\", \"name\": \"Analytics\", \"readOnly\": false}`. `url` is the variable's name; `file` limits the entry to one of `goqulient.envFiles`; `kind` is for URLs whose scheme doesn't say. An entry for a well-known variable such as `DATABASE_URL` overrides its name and read-only default.",
           "items": {
             "type": "object",
             "required": [
@@ -164,7 +164,7 @@
               },
               "file": {
                 "type": "string",
-                "description": "Only in this env file (as written in goku.envFiles)."
+                "description": "Only in this env file (as written in goqulient.envFiles)."
               },
               "kind": {
                 "type": "string",
@@ -181,7 +181,7 @@
             }
           }
         },
-        "goku.enginePath": {
+        "goqulient.enginePath": {
           "type": "string",
           "default": "",
           "scope": "machine",
@@ -192,146 +192,146 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "goku",
-          "title": "Goku",
+          "id": "goqulient",
+          "title": "GoQulient",
           "icon": "media/activitybar.svg"
         }
       ]
     },
     "views": {
-      "goku": [
+      "goqulient": [
         {
-          "id": "goku.connections",
+          "id": "goqulient.connections",
           "name": "Connections",
           "icon": "media/activitybar.svg",
-          "contextualTitle": "Goku"
+          "contextualTitle": "GoQulient"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "goku.connections",
-        "contents": "No database connections yet.\n[Add Connection](command:goku.addConnection)\n[Open Settings](command:goku.openSettings)\nGoku also reads DATABASE_URL, POSTGRES_URL, MYSQL_URL, MONGODB_URI, PG* and MYSQL_* variables from the workspace .env file (read-only by default).",
+        "view": "goqulient.connections",
+        "contents": "No database connections yet.\n[Add Connection](command:goqulient.addConnection)\n[Open Settings](command:goqulient.openSettings)\nGoQulient also reads DATABASE_URL, POSTGRES_URL, MYSQL_URL, MONGODB_URI, PG* and MYSQL_* variables from the workspace .env file (read-only by default).",
         "when": "isWorkspaceTrusted"
       },
       {
-        "view": "goku.connections",
-        "contents": "No database connections yet.\n[Add Connection](command:goku.addConnection)\n[Open Settings](command:goku.openSettings)\nThis workspace isn’t trusted, so Goku ignores its .env files and workspace settings. [Manage Workspace Trust](command:workbench.trust.manage)",
+        "view": "goqulient.connections",
+        "contents": "No database connections yet.\n[Add Connection](command:goqulient.addConnection)\n[Open Settings](command:goqulient.openSettings)\nThis workspace isn’t trusted, so GoQulient ignores its .env files and workspace settings. [Manage Workspace Trust](command:workbench.trust.manage)",
         "when": "!isWorkspaceTrusted"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "goku.addConnection",
-          "when": "view == goku.connections",
+          "command": "goqulient.addConnection",
+          "when": "view == goqulient.connections",
           "group": "navigation@1"
         },
         {
-          "command": "goku.refresh",
-          "when": "view == goku.connections",
+          "command": "goqulient.refresh",
+          "when": "view == goqulient.connections",
           "group": "navigation@2"
         },
         {
-          "command": "goku.openSettings",
-          "when": "view == goku.connections",
+          "command": "goqulient.openSettings",
+          "when": "view == goqulient.connections",
           "group": "navigation@3"
         }
       ],
       "view/item/context": [
         {
-          "command": "goku.cancelConnecting",
-          "when": "view == goku.connections && viewItem =~ /^goku\\.connection connecting\\b/",
+          "command": "goqulient.cancelConnecting",
+          "when": "view == goqulient.connections && viewItem =~ /^goqulient\\.connection connecting\\b/",
           "group": "inline"
         },
         {
-          "command": "goku.cancelConnecting",
-          "when": "view == goku.connections && viewItem =~ /^goku\\.connection connecting\\b/",
+          "command": "goqulient.cancelConnecting",
+          "when": "view == goqulient.connections && viewItem =~ /^goqulient\\.connection connecting\\b/",
           "group": "1_connection@1"
         },
         {
-          "command": "goku.disconnect",
-          "when": "view == goku.connections && viewItem =~ /^goku\\.connection connected\\b/",
+          "command": "goqulient.disconnect",
+          "when": "view == goqulient.connections && viewItem =~ /^goqulient\\.connection connected\\b/",
           "group": "1_connection@2"
         },
         {
-          "command": "goku.refreshNode",
-          "when": "view == goku.connections && viewItem =~ /^goku\\.(connection (connected|failed|idle)|database|schema|group|object)\\b/",
+          "command": "goqulient.refreshNode",
+          "when": "view == goqulient.connections && viewItem =~ /^goqulient\\.(connection (connected|failed|idle)|database|schema|group|object)\\b/",
           "group": "1_connection@3"
         },
         {
-          "command": "goku.forgetPassword",
-          "when": "view == goku.connections && viewItem =~ /^goku\\.connection .*\\bsettings\\b/",
+          "command": "goqulient.forgetPassword",
+          "when": "view == goqulient.connections && viewItem =~ /^goqulient\\.connection .*\\bsettings\\b/",
           "group": "1_connection@4"
         },
         {
-          "command": "goku.openTable",
-          "when": "view == goku.connections && viewItem == goku.object",
+          "command": "goqulient.openTable",
+          "when": "view == goqulient.connections && viewItem == goqulient.object",
           "group": "inline"
         },
         {
-          "command": "goku.openTable",
-          "when": "view == goku.connections && viewItem == goku.object",
+          "command": "goqulient.openTable",
+          "when": "view == goqulient.connections && viewItem == goqulient.object",
           "group": "0_open@1"
         },
         {
-          "command": "goku.openErDiagram",
-          "when": "view == goku.connections && viewItem =~ /^goku\\.(database|schema)$/",
+          "command": "goqulient.openErDiagram",
+          "when": "view == goqulient.connections && viewItem =~ /^goqulient\\.(database|schema)$/",
           "group": "inline"
         },
         {
-          "command": "goku.openErDiagram",
-          "when": "view == goku.connections && viewItem =~ /^goku\\.(database|schema)$/",
+          "command": "goqulient.openErDiagram",
+          "when": "view == goqulient.connections && viewItem =~ /^goqulient\\.(database|schema)$/",
           "group": "0_open@2"
         },
         {
-          "command": "goku.retry",
-          "when": "view == goku.connections && viewItem == goku.error",
+          "command": "goqulient.retry",
+          "when": "view == goqulient.connections && viewItem == goqulient.error",
           "group": "inline"
         },
         {
-          "command": "goku.retry",
-          "when": "view == goku.connections && viewItem == goku.error",
+          "command": "goqulient.retry",
+          "when": "view == goqulient.connections && viewItem == goqulient.error",
           "group": "1_connection@1"
         },
         {
-          "command": "goku.copyName",
-          "when": "view == goku.connections && viewItem =~ /^goku\\.(connection|database|schema|object|routine|column|error)\\b/",
+          "command": "goqulient.copyName",
+          "when": "view == goqulient.connections && viewItem =~ /^goqulient\\.(connection|database|schema|object|routine|column|error)\\b/",
           "group": "9_copy@1"
         }
       ],
       "commandPalette": [
         {
-          "command": "goku.tree.activate",
+          "command": "goqulient.tree.activate",
           "when": "false"
         },
         {
-          "command": "goku.tree.enter",
+          "command": "goqulient.tree.enter",
           "when": "false"
         },
         {
-          "command": "goku.retry",
+          "command": "goqulient.retry",
           "when": "false"
         },
         {
-          "command": "goku.copyName",
+          "command": "goqulient.copyName",
           "when": "false"
         },
         {
-          "command": "goku.refreshNode",
+          "command": "goqulient.refreshNode",
           "when": "false"
         },
         {
-          "command": "goku.cancelConnecting",
+          "command": "goqulient.cancelConnecting",
           "when": "false"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "goku.tree.enter",
+        "command": "goqulient.tree.enter",
         "key": "enter",
-        "when": "focusedView == goku.connections && listFocus && !inputFocus"
+        "when": "focusedView == goqulient.connections && listFocus && !inputFocus"
       }
     ]
   },

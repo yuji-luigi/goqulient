@@ -12,7 +12,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const engine = process.env.GOKU_ENGINE_BIN;
 if (!engine) throw new Error('Set GOKU_ENGINE_BIN to a goku-engine-server build.');
 
-const scratch = mkdtempSync(join(tmpdir(), 'goku-e2e-'));
+const scratch = mkdtempSync(join(tmpdir(), 'goqulient-e2e-'));
 const workspace = join(scratch, 'workspace');
 mkdirSync(workspace);
 // Test databases only (docker-compose.yml); the passwords are the throwaway ones from there.

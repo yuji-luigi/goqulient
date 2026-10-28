@@ -31,14 +31,14 @@ function screenshot(name) {
 }
 
 exports.run = async function run() {
-  const ext = vscode.extensions.all.find((e) => e.packageJSON.name === 'goku' && e.extensionPath);
+  const ext = vscode.extensions.all.find((e) => e.packageJSON.name === 'goqulient' && e.extensionPath);
   assert.ok(ext, 'extension found');
   const api = await ext.activate();
   assert.ok(api?.tree, 'test API (extension runs in test mode)');
   const { tree, view, sessions, store, engine, answered } = api;
   assert.equal(engine.isRunning, false, 'listing connections does not start the engine');
 
-  await vscode.commands.executeCommand('workbench.view.extension.goku');
+  await vscode.commands.executeCommand('workbench.view.extension.goqulient');
   await until('3 connections', () => store.list().length >= 3);
   const items = [];
   const item = (node) => {
@@ -90,7 +90,7 @@ exports.run = async function run() {
   // Table viewer: the webview loads, says `ready`, and the panel asks the engine for the first page.
   for (const obj of [pgTable, myTable, mongoColl]) {
     const before = answered.filter((m) => m === 'table/page').length;
-    const panel = await vscode.commands.executeCommand('goku.openTable', obj);
+    const panel = await vscode.commands.executeCommand('goqulient.openTable', obj);
     assert.ok(panel, `panel for ${obj.ref.name}`);
     await until(`a page of ${obj.ref.name}`, () => answered.filter((m) => m === 'table/page').length > before);
   }
@@ -101,14 +101,14 @@ exports.run = async function run() {
     await vscode.commands.executeCommand('notifications.hideToasts');
     await view.reveal(pgTable, { expand: true, select: true });
   }
-  await vscode.commands.executeCommand('goku.openTable', pgTable);
+  await vscode.commands.executeCommand('goqulient.openTable', pgTable);
   await sleep(1500);
   await screenshot('table');
 
   // ER diagram: introspection, then the webview measures the boxes and the engine lays them out.
   const pgDb = pgTable.parent.parent.parent;
   assert.equal(pgDb.type, 'database');
-  await vscode.commands.executeCommand('goku.openErDiagram', pgDb);
+  await vscode.commands.executeCommand('goqulient.openErDiagram', pgDb);
   await until('schema/introspect', () => answered.includes('schema/introspect'));
   await until('er/layout', () => answered.includes('er/layout'));
   console.log('  ER diagram: model and layout arrived');
@@ -118,9 +118,9 @@ exports.run = async function run() {
   await screenshot('er');
 
   // Disconnect, then an engine restart: connections go idle (no error) and reconnect on the next expand.
-  await vscode.commands.executeCommand('goku.disconnect', mongo);
+  await vscode.commands.executeCommand('goqulient.disconnect', mongo);
   assert.equal(sessions.state(mongo.conn.id).status, 'idle');
-  await vscode.commands.executeCommand('goku.restartEngine');
+  await vscode.commands.executeCommand('goqulient.restartEngine');
   for (const n of roots) assert.equal(sessions.state(n.conn.id).status, 'idle', `${n.conn.name} idle after restart`);
   const again = await settled(pg);
   named(again, 'shop');

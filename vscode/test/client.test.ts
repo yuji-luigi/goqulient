@@ -133,6 +133,6 @@ describe('with the real engine', { skip: bin ? false : 'GOKU_ENGINE_BIN not set'
 
   test('a missing binary is a readable error', async () => {
     const c = new EngineClient({ binary: () => '/nonexistent/goku-engine-server', clientName: 't', log: collect() });
-    await assert.rejects(c.info(), /Couldn't start the Goku engine/);
+    await assert.rejects(c.info(), /Couldn't start the GoQulient engine/);
   });
 });

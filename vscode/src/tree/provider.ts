@@ -1,4 +1,4 @@
-// The "Goku" sidebar (VSX-11): source → connection → database → schema (PostgreSQL) → kind group → object → columns.
+// The "GoQulient" sidebar (VSX-11): source → connection → database → schema (PostgreSQL) → kind group → object → columns.
 // Connecting is lazy (first expand), catalog lists are cached per session until Refresh, and node objects are kept
 // stable so `onDidChangeTreeData` can refresh one node (VS Code matches elements by identity).
 import * as vscode from 'vscode';
@@ -18,7 +18,7 @@ import {
 } from './model.ts';
 import type { Sessions, Target } from './sessions.ts';
 
-export const VIEW_ID = 'goku.connections';
+export const VIEW_ID = 'goqulient.connections';
 
 export type Node =
   | { type: 'source'; key: string; label: string; connections: ConnectionNode[] }
@@ -114,7 +114,7 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
         const item = new vscode.TreeItem(node.label, C.Expanded);
         item.id = `source:${node.key}`;
         item.iconPath = new vscode.ThemeIcon(node.key.startsWith('env:') ? 'file' : 'settings-gear');
-        item.contextValue = 'goku.source';
+        item.contextValue = 'goqulient.source';
         return item;
       }
       case 'connection':
@@ -123,7 +123,7 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
         const item = new vscode.TreeItem(node.database, C.Collapsed);
         item.id = this.path(node);
         item.iconPath = new vscode.ThemeIcon('database');
-        item.contextValue = 'goku.database';
+        item.contextValue = 'goqulient.database';
         item.tooltip = `Database ${node.database}`;
         return item;
       }
@@ -131,7 +131,7 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
         const item = new vscode.TreeItem(node.schema, C.Collapsed);
         item.id = this.path(node);
         item.iconPath = new vscode.ThemeIcon('symbol-namespace');
-        item.contextValue = 'goku.schema';
+        item.contextValue = 'goqulient.schema';
         item.tooltip = `Schema ${node.schema} in ${node.database}`;
         return item;
       }
@@ -140,7 +140,7 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
         item.id = this.path(node);
         item.description = String(node.group.objects.length);
         item.iconPath = new vscode.ThemeIcon('folder');
-        item.contextValue = 'goku.group';
+        item.contextValue = 'goqulient.group';
         return item;
       }
       case 'object': {
@@ -149,9 +149,9 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
         const item = new vscode.TreeItem(ref.name, browsable ? C.Collapsed : C.None);
         item.id = this.path(node);
         item.iconPath = new vscode.ThemeIcon(OBJECT_ICON[ref.kind] ?? 'symbol-misc');
-        item.contextValue = browsable ? 'goku.object' : 'goku.routine';
+        item.contextValue = browsable ? 'goqulient.object' : 'goqulient.routine';
         item.tooltip = `${KIND_SINGULAR[ref.kind]} ${ref.schema ? `${ref.schema}.` : ''}${ref.name}`;
-        if (browsable) item.command = { command: 'goku.tree.activate', title: 'Open', arguments: [node] };
+        if (browsable) item.command = { command: 'goqulient.tree.activate', title: 'Open', arguments: [node] };
         return item;
       }
       case 'column': {
@@ -160,7 +160,7 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
         item.id = this.path(node);
         item.description = columnDescription(column);
         item.iconPath = new vscode.ThemeIcon(column.isPrimaryKey ? 'key' : column.isForeignKey ? 'references' : 'symbol-field');
-        item.contextValue = 'goku.column';
+        item.contextValue = 'goqulient.column';
         item.tooltip = [column.name, column.type, column.defaultValue && `Default: ${column.defaultValue}`, column.comment]
           .filter(Boolean)
           .join('\n');
@@ -173,8 +173,8 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
         if (node.tone === 'loading') item.iconPath = new vscode.ThemeIcon('loading~spin');
         if (node.tone === 'error') {
           item.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('errorForeground'));
-          item.contextValue = 'goku.error';
-          item.command = { command: 'goku.retry', title: 'Retry', arguments: [node] };
+          item.contextValue = 'goqulient.error';
+          item.command = { command: 'goqulient.retry', title: 'Retry', arguments: [node] };
           item.tooltip = `${node.text}\n\nClick to retry.`;
         }
         return item;
@@ -230,7 +230,7 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
             ? new vscode.ThemeIcon('database', new vscode.ThemeColor('errorForeground'))
             : new vscode.ThemeIcon('database');
     // Space-separated tokens, matched with `viewItem =~ /\bconnected\b/` in package.json menus.
-    item.contextValue = ['goku.connection', c.invalid ? 'invalid' : state.status, c.source === 'env' ? 'env' : 'settings'].join(' ');
+    item.contextValue = ['goqulient.connection', c.invalid ? 'invalid' : state.status, c.source === 'env' ? 'env' : 'settings'].join(' ');
     return item;
   }
 

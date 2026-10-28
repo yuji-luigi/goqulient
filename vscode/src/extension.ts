@@ -22,7 +22,7 @@ export interface TestApi {
 }
 
 export function activate(context: vscode.ExtensionContext): TestApi | undefined {
-  const log = vscode.window.createOutputChannel('Goku', { log: true });
+  const log = vscode.window.createOutputChannel('GoQulient', { log: true });
   // Development and test hosts may point at an engine build through the environment (`scripts/dev.sh vscode run`, the
   // e2e test); an installed extension only takes the machine-scope setting.
   const devEngine = context.extensionMode !== vscode.ExtensionMode.Production ? process.env.GOKU_ENGINE_PATH : undefined;
@@ -30,7 +30,7 @@ export function activate(context: vscode.ExtensionContext): TestApi | undefined 
     binary: () =>
       resolveBinary({
         extensionPath: context.extensionPath,
-        override: vscode.workspace.getConfiguration('goku').get<string>('enginePath') || devEngine,
+        override: vscode.workspace.getConfiguration('goqulient').get<string>('enginePath') || devEngine,
       }),
     clientName: `${vscode.env.appName} ${vscode.version}`,
     log,
@@ -77,17 +77,17 @@ export function activate(context: vscode.ExtensionContext): TestApi | undefined 
     { dispose: () => sessions.dispose() },
     ...registerConnectionCommands(context, store),
     ...registerTreeCommands({ context, tree, view, sessions, engine: views }),
-    vscode.commands.registerCommand('goku.showLog', () => log.show()),
-    vscode.commands.registerCommand('goku.engineInfo', () =>
+    vscode.commands.registerCommand('goqulient.showLog', () => log.show()),
+    vscode.commands.registerCommand('goqulient.engineInfo', () =>
       report(log, async () => {
         const info = await client.info();
-        void vscode.window.showInformationMessage(`Goku engine ${info.engineVersion} (protocol ${info.protocolVersion})`);
+        void vscode.window.showInformationMessage(`GoQulient engine ${info.engineVersion} (protocol ${info.protocolVersion})`);
       }),
     ),
-    vscode.commands.registerCommand('goku.restartEngine', () =>
+    vscode.commands.registerCommand('goqulient.restartEngine', () =>
       report(log, async () => {
         const info = await client.restart();
-        void vscode.window.showInformationMessage(`Goku engine ${info.engineVersion} restarted.`);
+        void vscode.window.showInformationMessage(`GoQulient engine ${info.engineVersion} restarted.`);
       }),
     ),
   );

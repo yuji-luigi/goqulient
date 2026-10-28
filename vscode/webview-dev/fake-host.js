@@ -9,11 +9,11 @@ const delay = Number(params.get('delay') ?? 120);
 
 const send = (data) => setTimeout(() => window.dispatchEvent(new MessageEvent('message', { data })), 0);
 let state;
-window.__goku = { sent: [], received: [], copied: [], exports: [] };
+window.__goqulient = { sent: [], received: [], copied: [], exports: [] };
 
 window.acquireVsCodeApi = () => ({
   postMessage(m) {
-    window.__goku.received.push(m);
+    window.__goqulient.received.push(m);
     (view === 'er' ? er : table)(m);
   },
   getState: () => state,
@@ -21,7 +21,7 @@ window.acquireVsCodeApi = () => ({
 });
 
 const reply = (m) => {
-  window.__goku.sent.push(m);
+  window.__goqulient.sent.push(m);
   send(m);
 };
 
@@ -71,7 +71,7 @@ const MONGO = Array.from({ length: 120 }, (_, i) => {
 
 let seq = 0;
 function table(m) {
-  if (m.type === 'copy') return void window.__goku.copied.push(m.text);
+  if (m.type === 'copy') return void window.__goqulient.copied.push(m.text);
   if (m.type === 'cancel') return reply({ type: 'cancelled', requestId: seq });
   if (m.type === 'ready') {
     const mongo = fixture === 'mongo';
@@ -187,11 +187,11 @@ async function er(m) {
       break;
     case 'sizes':
     case 'autoLayout':
-      if (m.sizes) window.__goku.sizes = m.sizes;
-      setTimeout(() => reply({ type: 'layout', positions: stubLayout(window.__goku.sizes) }), 30);
+      if (m.sizes) window.__goqulient.sizes = m.sizes;
+      setTimeout(() => reply({ type: 'layout', positions: stubLayout(window.__goqulient.sizes) }), 30);
       break;
     case 'export':
-      window.__goku.exports.push(m);
+      window.__goqulient.exports.push(m);
       reply({ type: 'exported', path: `/tmp/shop-er.${m.format}` });
       break;
     case 'reload':

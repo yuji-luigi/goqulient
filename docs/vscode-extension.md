@@ -1,4 +1,4 @@
-# VS Code extension + Rust engine
+# VS Code extension (GoQulient) + Rust engine
 
 Status (2026-10-28): **M1 done** on the branches (not released): PostgreSQL, MySQL/MariaDB and MongoDB drivers, sidebar
 tree, table viewer, ER diagrams, connections from settings and `.env`, an end-to-end test in a real VS Code. No SSH
@@ -33,13 +33,13 @@ what exists (file map, protocol, invariants, commands, checklists), like the pag
 | Pure tree helpers: kind groups in app order, source groups, descriptions, `erLayoutKey`, `isAuthFailure` | `vscode/src/tree/model.ts` |
 | Activity bar icon | `vscode/media/activitybar.svg` |
 | End-to-end test in a real VS Code (`@vscode/test-electron`): launcher + suite, Docker image (xvfb) | `vscode/test-e2e/{run.mjs,suite.cjs}`, `docker/vscode-e2e/Dockerfile` |
-| Engine binary lookup (`bin/<platform>-<arch>/`, `goku.enginePath`) | `vscode/src/engine/binary.ts` |
+| Engine binary lookup (`bin/<platform>-<arch>/`, `goqulient.enginePath`) | `vscode/src/engine/binary.ts` |
 | Profile JSON types, `endpointSummary`, `splitUrl`, `needsPassword`, `secretFingerprint` | `vscode/src/connections/profile.ts` |
 | dotenv parser (no expansion) | `vscode/src/connections/envParse.ts` |
-| URL → profile + credentials, `.env` discovery, `goku.envConnections` | `vscode/src/connections/envProfiles.ts` |
+| URL → profile + credentials, `.env` discovery, `goqulient.envConnections` | `vscode/src/connections/envProfiles.ts` |
 | Settings decoding (invalid entries kept), merge, trust filter, duplicate ids | `vscode/src/connections/model.ts` |
 | `ConnectionStore`: settings + `.env`, watcher, trust, SecretStorage, password prompt, engine validation | `vscode/src/connections/store.ts` |
-| `goku.addConnection`, `goku.forgetPassword` (also from a tree node), `goku.openSettings` | `vscode/src/connections/commands.ts` |
+| `goqulient.addConnection`, `goqulient.forgetPassword` (also from a tree node), `goqulient.openSettings` | `vscode/src/connections/commands.ts` |
 | URI redaction (same rules as `redact::uri`) | `vscode/src/connections/redact.ts` |
 | Webview entry points `openTable` / `openErDiagram` (for the sidebar) | `vscode/src/views/index.ts` |
 | Table panel (paging, cancel, copy to clipboard), ER panel (introspect, `er/layout`, saved positions, export) | `vscode/src/views/{tablePanel,erPanel}.ts` |
@@ -71,7 +71,7 @@ Nothing Rust or Node is installed on the Mac; native macOS and Windows builds ha
 container: the output is plain JavaScript) and runs `code --new-window --extensionDevelopmentPath=vscode <folder>` with
 `GOKU_ENGINE_PATH` set. That variable is only read in development and test hosts (`ExtensionMode`), never by an installed
 extension. If your `code` hands the window to an already running VS Code that doesn't pass the variable on, set
-`goku.enginePath` in your user settings instead. Without cargo the command prints the two options: install Rust with
+`goqulient.enginePath` in your user settings instead. Without cargo the command prints the two options: install Rust with
 rustup, or download a VSIX from the "Extension release" workflow's artifacts and `code --install-extension` it.
 
 ## Goal
@@ -153,12 +153,12 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
 `-32700/-32600/-32601/-32602`. The extension sees them as `EngineError` (`code`, `kind`, `cancelled`).
 
 ### Invariants (don't break)
-- stdout carries only protocol frames; logs go to stderr (the extension prints them in the "Goku" output channel).
+- stdout carries only protocol frames; logs go to stderr (the extension prints them in the "GoQulient" output channel).
 - The library never creates a runtime or prints; the server builds exactly one multi-thread runtime.
 - Every request runs in its own task with a `CancellationToken`; `$/cancelRequest` and the end of stdin cancel it. When
   stdin ends the server exits within ~2 s even if a request is stuck, so it never outlives the extension host.
 - Requests before `initialize` and after `shutdown` are refused. A broken frame ends the server (the stream can't resync).
-- `goku.enginePath` is machine scope (a workspace can't point it at another program); the engine is spawned without a shell
+- `goqulient.enginePath` is machine scope (a workspace can't point it at another program); the engine is spawned without a shell
   and without secrets in argv or env.
 - `ConnectionProfile` decoding mirrors Swift exactly (AGENTS.md rule 6); a new field needs a default in `from_fields`
   and a test, on both sides.
@@ -276,7 +276,7 @@ extension host (src/views/*Panel.ts)            webview (webview/*.ts → dist/w
   connections' `categories — shop` tabs look the same.
 
 ## Sidebar tree (VSX-11)
-View `goku.connections` in the "Goku" activity bar container. `ConnectionTree` (`tree/provider.ts`) shows the store's list;
+View `goqulient.connections` in the "GoQulient" activity bar container. `ConnectionTree` (`tree/provider.ts`) shows the store's list;
 `Sessions` (`tree/sessions.ts`) owns the engine sessions; `tree/commands.ts` registers the node commands.
 ```
 [User Settings | Workspace Settings | <env file>]   only when connections come from more than one source
@@ -306,13 +306,13 @@ View `goku.connections` in the "Goku" activity bar container. `ConnectionTree` (
   identity for `onDidChangeTreeData(node)`), and `Sessions.sync` closes sessions whose connection is gone or whose
   profile JSON changed.
 - **Actions**: Open Table (inline, context menu, double-click = two activations of the item command within 500 ms,
-  Enter = keybinding `goku.tree.enter` when the view has focus; other nodes keep the list's Enter) → `openTable` with
+  Enter = keybinding `goqulient.tree.enter` when the view has focus; other nodes keep the list's Enter) → `openTable` with
   `maxRows` (default 1,000) as page size and the connection's read-only flag. ER Diagram (database = all schemas,
-  schema = that one) → `openErDiagram` with `erLayoutKey` = `er:<connId>:<db>:<schemas,>`. Refresh, Disconnect, Copy
+  schema = that one) → `openErDiagram` with `erLayoutKey` = `goqulient.er:<connId>:<db>:<schemas,>`. Refresh, Disconnect, Copy
   Name, Forget Saved Password (settings connections). View title: Add Connection, Refresh Connections, Open Settings.
   Welcome content when the list is empty (trusted and untrusted variants).
-- `contextValue`: `goku.connection <idle|connecting|connected|failed|invalid> <settings|env>`, `goku.database`,
-  `goku.schema`, `goku.group`, `goku.object`, `goku.routine`, `goku.column`, `goku.error`; menus match them with
+- `contextValue`: `goqulient.connection <idle|connecting|connected|failed|invalid> <settings|env>`, `goqulient.database`,
+  `goqulient.schema`, `goqulient.group`, `goqulient.object`, `goqulient.routine`, `goqulient.column`, `goqulient.error`; menus match them with
   `viewItem =~ /…/`.
 - Secrets: labels, descriptions and tooltips only use names, the redacted endpoint and engine messages (the e2e checks
   every item it sees for the test password).
@@ -323,7 +323,7 @@ View `goku.connections` in the "Goku" activity bar container. `ConnectionTree` (
 **Add a tree node type**
 1. Add it to `Node` in `tree/provider.ts` with `conn` and `parent` (for `getParent`/`reveal`).
 2. Give it a path in `path()` that extends its parent's path (Refresh and the cache depend on prefixes).
-3. `getTreeItem`: id = path, codicon, `contextValue` `goku.<type>`, tooltip without secrets.
+3. `getTreeItem`: id = path, codicon, `contextValue` `goqulient.<type>`, tooltip without secrets.
 4. Produce it in `catalog()` (cached through `cached(node, method, params)`), with a message node for empty lists.
 5. Menus in `package.json` (`view/item/context`, `viewItem` regex) and, if needed, `nameOf`/`connectionOf` in
    `tree/commands.ts`.
@@ -339,18 +339,18 @@ View `goku.connections` in the "Goku" activity bar container. `ConnectionTree` (
 
 ## Connections in VS Code
 `ConnectionStore` (`store.ts`) builds the list the tree shows; the merge itself is the pure `mergeConnections` in
-`model.ts` (unit-tested), fed from `inspect('goku.connections')`, the env files and `workspace.isTrusted`.
-- **Settings** `goku.connections`: array of profiles, same JSON as `ConnectionProfile` (`name`, `kind`, `hosts`, `user`,
+`model.ts` (unit-tested), fed from `inspect('goqulient.connections')`, the env files and `workspace.isTrusted`.
+- **Settings** `goqulient.connections`: array of profiles, same JSON as `ConnectionProfile` (`name`, `kind`, `hosts`, `user`,
   `database`, `ssl`, `ssh`, `readOnly`, ...). User **and** workspace entries are both listed (user first), not one
   overriding the other.
   - Decoded tolerantly without the engine: only `name` and `kind` are checked locally. An entry that fails (not an object,
     no name, unknown kind, or `profile/validate` says no) stays in the list with `invalid` = the reason; nothing is
-    dropped, and `goku.addConnection` appends to the user list without touching the existing entries.
+    dropped, and `goqulient.addConnection` appends to the user list without touching the existing entries.
   - `id`: the profile's `id`, else a hash of scope + name + kind. A repeated id keeps the first entry and marks the others
     invalid, so a workspace entry can't borrow a user entry's saved password.
   - Validation through the engine runs in the background after each refresh (cached by profile JSON), but only while the
     engine runs (`canValidate`): listing connections never starts it. When the engine starts, `revalidate()` runs.
-- **`.env` discovery** `goku.envFiles` (resource scope, default `[".env"]`, relative to each workspace folder; multi-root
+- **`.env` discovery** `goqulient.envFiles` (resource scope, default `[".env"]`, relative to each workspace folder; multi-root
   labels are `<folder>/<path>`):
   - URL variables: `DATABASE_URL`, `POSTGRES_URL`, `POSTGRESQL_URL`, `MYSQL_URL`, `MONGODB_URI`, `MONGO_URL`,
     `MONGODB_URL`. A `DATABASE_URL` with another scheme (sqlite, redis, ...) is skipped silently; the others are listed
@@ -361,7 +361,7 @@ View `goku.connections` in the "Goku" activity bar container. `ConnectionTree` (
     localhost:5432) are a separate `POSTGRES_* (<file>)` connection with the image's defaults (user `postgres`, database
     = user); `MYSQL_ROOT_PASSWORD` without `MYSQL_USER` makes the `MYSQL_*` connection connect as root (and is enough on
     its own).
-  - `goku.envConnections` `[{url: "VAR", name?, file?, kind?, readOnly?}]` adds variables; an entry for a well-known
+  - `goqulient.envConnections` `[{url: "VAR", name?, file?, kind?, readOnly?}]` adds variables; an entry for a well-known
     variable replaces its default name/read-only. `file` limits it to one env file; `kind` is for schemes that don't say.
   - Schemes: `postgres(ql)[+driver]://` (`sslmode`, `sslrootcert`/`sslcert`/`sslkey`, `target_session_attrs`,
     `connect_timeout`, multi-host, `host`/`user`/`password`/`dbname` query params), `mysql`/`mariadb`/`mysql2[+driver]://`
@@ -370,7 +370,7 @@ View `goku.connections` in the "Goku" activity bar container. `ConnectionTree` (
     → `verifyFull`, unknown → `verifyFull` (same fallback as the engine).
   - Name `<VAR> (<file>)` (`PG* (<file>)`, `MYSQL_* (<file>)` for parts); id `env-` + sha256(folder URI | path, variable),
     so it survives restarts and doesn't change with the value.
-  - Read-only by default (D8), `goku.envConnections[].readOnly: false` overrides it.
+  - Read-only by default (D8), `goqulient.envConnections[].readOnly: false` overrides it.
   - A watcher on each env file and a configuration listener refresh the list (`onDidChange`). The file is parsed again at
     connect time (`openParams`), so the password is never kept or stored.
   - Parser (`envParse.ts`): `export`, `#` lines, ` #` comments after unquoted values (a `#` without whitespace before it is
@@ -380,12 +380,12 @@ View `goku.connections` in the "Goku" activity bar container. `ConnectionTree` (
   `connection/open` receives. For Mongo URI mode the password is cut out of the URI (`mongodb://user@host/...`) and sent as
   `credentials.password`, percent-decoded; the engine puts it back into `scheme://user@host`, percent-encoded, like
   `MongoSession.connectionString` (`inject_password` in the Mongo driver). Settings
-  connections keep it in SecretStorage under `goku.password.<id>` as `{fingerprint, password}`; the fingerprint
+  connections keep it in SecretStorage under `goqulient.password.<id>` as `{fingerprint, password}`; the fingerprint
   (`secretFingerprint`: kind, servers, user) must still match, otherwise the user is asked again, so a changed host or a
   copied id never receives a saved password. The prompt (`showInputBox({password: true})`) offers "save" or "until VS Code
-  closes" (kept in memory only). `goku.forgetPassword` removes both.
-- **Workspace Trust**: untrusted → workspace `goku.connections` and every env file are ignored (user settings still
-  apply); `goku.connections`, `goku.envFiles`, `goku.envConnections` are `restrictedConfigurations`.
+  closes" (kept in memory only). `goqulient.forgetPassword` removes both.
+- **Workspace Trust**: untrusted → workspace `goqulient.connections` and every env file are ignored (user settings still
+  apply); `goqulient.connections`, `goqulient.envFiles`, `goqulient.envConnections` are `restrictedConfigurations`.
   `onDidGrantWorkspaceTrust` refreshes.
 - **Logs** never contain a password or a full URI: endpoints go through `redactUri` (`redact.ts`, the engine's URI rules,
   tests mirror `redact.rs`), errors name the variable and file, never the value.
@@ -393,7 +393,7 @@ View `goku.connections` in the "Goku" activity bar container. `ConnectionTree` (
   reading the app's Keychain directly.
 - ⚠ Not handled yet: SSH passwords/passphrases are never prompted (SSH is M2); a `tlsCertificateKeyFilePassword` in a Mongo
   URI stays in the URI (redacted when shown); `PG*`/`MYSQL_*` part connections can't be renamed or made writable through
-  `goku.envConnections`; Unix-socket hosts are rejected.
+  `goqulient.envConnections`; Unix-socket hosts are rejected.
 
 ## Safety requirements for the engine (from AGENTS.md rule 4 and README "Safety")
 1. Every network wait goes through one `with_deadline(dur, fut, on_timeout)` helper whose `on_timeout` closes the socket
@@ -429,13 +429,13 @@ View `goku.connections` in the "Goku" activity bar container. `ConnectionTree` (
   and `MONGODB_URI`, and `GOKU_ENGINE_PATH` = the Linux debug engine. `test-e2e/suite.cjs` uses the test API that
   `activate` returns in `ExtensionMode.Test` (`tree`, `view`, `sessions`, `store`, `engine`, `answered`) and checks:
   the engine isn't started by activation; three read-only connections; each expands to `shop` and its tables/collections
-  and columns; `goku.openTable` gets a `table/page` answer for each engine; the ER diagram gets `schema/introspect` and
+  and columns; `goqulient.openTable` gets a `table/page` answer for each engine; the ER diagram gets `schema/introspect` and
   `er/layout` (so the webview measured the boxes); Disconnect and Restart Engine leave connections idle and the next
   expand reconnects; no item shows the password. Reads only. Set `GOKU_E2E_SCREENSHOTS` to keep `table.png`/`er.png`
   of the window and look at them. Not in CI yet.
 
 ## Release
-- release-please has a second package `vscode` (release type `node`, tag `vscode-vX.Y.Z`, own PR via
+- release-please has a second package `vscode` (package-name `goqulient`, release type `node`, tag `vscode-vX.Y.Z`, own PR via
   `separate-pull-requests`); the root package has `exclude-paths: ["engine", "vscode"]` and
   `include-component-in-tag: false`, so app tags stay `vX.Y.Z` and engine/extension commits never bump the app. The
   extension release also bumps `engine/Cargo.toml`'s workspace version (the engine ships inside the VSIX).
@@ -444,16 +444,22 @@ View `goku.connections` in the "Goku" activity bar container. `ConnectionTree` (
   VSIXs as an artifact without publishing.
 - `extension-release.yml`: engine per target (Linux: static musl via `cargo-zigbuild`, so any distro and Alpine work;
   macOS: arm64 + x64 on one runner; Windows: x64 + arm64 MSVC), the native ones run `--version`; then one
-  `vsce package --target` per target with the binary in `bin/<target>/`. The extension restores a lost exec bit before
-  spawning.
+  `vsce package --target` per target with the binary in `bin/<target>/` → `goqulient-<target>.vsix`. The extension
+  restores a lost exec bit before spawning. Input `prerelease` (default true; `release.yml` passes true until the user
+  says 1.0) adds `--pre-release` to `vsce package`/`vsce publish` and `ovsx publish`.
 - Publishing needs the `VSCE_PAT` (Marketplace) and `OVSX_PAT` (Open VSX) secrets and the Marketplace publisher
   `yuji-luigi` (`vscode/package.json`; create it, or change the field, before the first publish). Without the secrets
   the job only warns.
 - ⚠ Untested until the branch is pushed: the release workflows (in particular the arm64 cross builds once the drivers
   add TLS crates) and release-please's root-path outputs with two packages. Check the first release PR before merging.
 - macOS binaries are not signed or notarized (VS Code extracts the VSIX itself, so no quarantine flag is set).
-- Name: **Goku** (user decision 2026-10-28). Marketplace extension ids are permanent, so the extension keeps it even if
-  the app is renamed later; settings use the `goku.*` prefix.
+- Name: **GoQulient** (pronounced “go-kyu-lient”; user decision 2026-10-28, replacing “Goku” before anything was
+  published, so there is no migration): package `goqulient`, display name `GoQulient`, every contributed id
+  (settings, commands, view container `goqulient`, view `goqulient.connections`, webview view types, context values)
+  under `goqulient.*`, SecretStorage `goqulient.password.<id>`, output channel “GoQulient”, ER layout keys
+  `goqulient.er:…`. Marketplace extension ids are permanent, so it keeps this name even if the app is renamed. Internal
+  names stay: the engine crates, `goku-engine-server`, `engine/`, the `GOKU_*` environment variables of the dev and test
+  tooling.
 
 ## Milestones and tickets
 | Ticket | Title | Milestone | Depends on | Status |

@@ -6,15 +6,15 @@ import type { Connection } from './model.ts';
 import { DEFAULT_PORT, DEFAULT_USER, KINDS, KIND_LABEL, endpointSummary, needsPassword, type Kind, type ProfileJson } from './profile.ts';
 import type { ConnectionStore } from './store.ts';
 
-const TITLE = 'Add Goku Connection';
+const TITLE = 'Add GoQulient Connection';
 
 export function registerConnectionCommands(context: vscode.ExtensionContext, store: ConnectionStore): vscode.Disposable[] {
   return [
-    vscode.commands.registerCommand('goku.addConnection', () => addConnection(store)),
-    vscode.commands.registerCommand('goku.forgetPassword', (arg?: Connection | string | { conn: Connection }) =>
+    vscode.commands.registerCommand('goqulient.addConnection', () => addConnection(store)),
+    vscode.commands.registerCommand('goqulient.forgetPassword', (arg?: Connection | string | { conn: Connection }) =>
       forgetPassword(store, arg && typeof arg === 'object' && 'conn' in arg ? arg.conn : arg),
     ),
-    vscode.commands.registerCommand('goku.openSettings', () =>
+    vscode.commands.registerCommand('goqulient.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', `@ext:${context.extension.id}`),
     ),
   ];
@@ -89,7 +89,7 @@ async function addConnection(store: ConnectionStore): Promise<void> {
   }
   if (password !== undefined) await store.savePassword(profile.id!, profile, password);
   const action = await vscode.window.showInformationMessage(`Added “${profile.name}” to your user settings.`, 'Open Settings');
-  if (action) await vscode.commands.executeCommand('goku.openSettings');
+  if (action) await vscode.commands.executeCommand('goqulient.openSettings');
 }
 
 async function forgetPassword(store: ConnectionStore, arg?: Connection | string): Promise<void> {

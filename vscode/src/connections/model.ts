@@ -28,12 +28,12 @@ function hashId(prefix: string, ...parts: string[]): string {
   return `${prefix}-${createHash('sha256').update(parts.join('\n')).digest('hex').slice(0, 16)}`;
 }
 
-/** Decodes `goku.connections` from one scope. Only `name` and `kind` are checked here; the engine checks the rest. */
+/** Decodes `goqulient.connections` from one scope. Only `name` and `kind` are checked here; the engine checks the rest. */
 export function decodeSettingsConnections(raw: unknown, source: 'user' | 'workspace'): Connection[] {
   if (raw === undefined || raw === null) return [];
   const where = source === 'user' ? 'user settings' : 'workspace settings';
   if (!Array.isArray(raw)) {
-    return [{ id: `${source}-not-a-list`, name: `goku.connections (${where})`, source, endpoint: '', readOnly: true, invalid: 'goku.connections must be a list.' }];
+    return [{ id: `${source}-not-a-list`, name: `goqulient.connections (${where})`, source, endpoint: '', readOnly: true, invalid: 'goqulient.connections must be a list.' }];
   }
   return raw.map((entry: unknown, i): Connection => {
     const fallbackName = `Connection ${i + 1} (${where})`;
@@ -63,7 +63,7 @@ export function fromEnv(c: EnvConnection): Connection {
 }
 
 export interface MergeInput {
-  /** `goku.connections` as `inspect()` reports it per scope. */
+  /** `goqulient.connections` as `inspect()` reports it per scope. */
   user: unknown;
   workspace: unknown;
   env: readonly EnvConnection[];

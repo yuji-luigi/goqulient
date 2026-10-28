@@ -29,8 +29,8 @@ describe('tree model', () => {
   });
 
   test('ER layout key per connection, database and schemas', () => {
-    assert.equal(erLayoutKey('c1', 'shop', []), 'er:c1:shop:');
-    assert.equal(erLayoutKey('c1', 'shop', ['public', 'audit']), 'er:c1:shop:public,audit');
+    assert.equal(erLayoutKey('c1', 'shop', []), 'goqulient.er:c1:shop:');
+    assert.equal(erLayoutKey('c1', 'shop', ['public', 'audit']), 'goqulient.er:c1:shop:public,audit');
   });
 
   test('wrong-password messages of the three drivers, and not other access errors', () => {

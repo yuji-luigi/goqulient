@@ -32,7 +32,7 @@ export function openTable(
     return existing;
   }
   const title = tableTitle(object);
-  const panel = createPanel('goku.table', title, options.extensionUri, 'table');
+  const panel = createPanel('goqulient.table', title, options.extensionUri, 'table');
   panels.set(key, panel);
   const post = poster<TableToWebview>(panel);
   const pageSize = Math.max(1, Math.floor(options.pageSize));

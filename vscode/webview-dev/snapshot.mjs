@@ -85,11 +85,11 @@ async function frameTimes(page, frames, step) {
   await cell(2, 1).click();
   await cell(3, 2).click({ modifiers: ['Shift'] });
   await page.keyboard.press('Control+c');
-  const copied = await page.evaluate(() => window.__goku.copied.at(-1));
+  const copied = await page.evaluate(() => window.__goqulient.copied.at(-1));
   report.push(`table copy of 2×2 selection: ${JSON.stringify(copied)}`);
   // Sort by a numeric column, then page forward.
   await page.locator('.hcell', { has: page.locator('.hname', { hasText: /^amount_2$/ }) }).click();
-  await page.waitForFunction(() => window.__goku.received.some((m) => m.type === 'load' && m.sort?.column === 'amount_2'));
+  await page.waitForFunction(() => window.__goqulient.received.some((m) => m.type === 'load' && m.sort?.column === 'amount_2'));
   await page.waitForSelector('.hcell.sorted');
   await page.getByRole('button', { name: 'Next ›' }).click();
   await page.waitForFunction(() => document.querySelector('.status').textContent.startsWith('Rows 1,001'));
@@ -146,10 +146,10 @@ async function clickEntity(page, id) {
   const page = await openEr('er-postgres-dark', 'er.html?theme=dark&fixture=postgres');
   await shot(page, 'er-postgres-dark.png');
   await page.getByRole('button', { name: 'PNG' }).click();
-  await page.waitForFunction(() => window.__goku.exports.length === 1);
+  await page.waitForFunction(() => window.__goqulient.exports.length === 1);
   await page.getByRole('button', { name: 'SVG' }).click();
-  await page.waitForFunction(() => window.__goku.exports.length === 2);
-  const [png, svgExport] = await page.evaluate(() => window.__goku.exports.map((e) => e.data));
+  await page.waitForFunction(() => window.__goqulient.exports.length === 2);
+  const [png, svgExport] = await page.evaluate(() => window.__goqulient.exports.map((e) => e.data));
   await writeFile(join(out, 'er-export-postgres.png'), Buffer.from(png, 'base64'));
   await writeFile(join(out, 'er-export-postgres.svg'), svgExport);
   // Drag a box: the extension must get its new position.
@@ -158,7 +158,7 @@ async function clickEntity(page, id) {
   await page.mouse.down();
   await page.mouse.move(head.x + 80, head.y + 160, { steps: 8 });
   await page.mouse.up();
-  const moved = await page.evaluate(() => window.__goku.received.filter((m) => m.type === 'moved').at(-1));
+  const moved = await page.evaluate(() => window.__goqulient.received.filter((m) => m.type === 'moved').at(-1));
   report.push(`er drag → ${JSON.stringify(moved)}`);
   await page.close();
 }

@@ -1,7 +1,8 @@
 # Builds goku-engine-server for the six VS Code targets and packages one VSIX per target (VSX-14,
 # docs/vscode-extension.md). release.yml calls it when release-please creates a vscode-vX.Y.Z release (a tag pushed with
 # GITHUB_TOKEN wouldn't trigger a workflow on its own); run it by hand to get the VSIXs as workflow artifacts.
-# Publishing needs VSCE_PAT (Marketplace) / OVSX_PAT (Open VSX); without them it only builds.
+# Publishing needs VSCE_PAT (Marketplace) / OVSX_PAT (Open VSX); without them it only builds. `prerelease` packages and
+# publishes as a pre-release (release.yml passes true until 1.0).
 name: Extension release
 
 on:
@@ -9,7 +10,10 @@ on:
     inputs:
       ref: { type: string, required: true }
       publish: { type: boolean, default: false }
+      prerelease: { type: boolean, default: true }
   workflow_dispatch:
+    inputs:
+      prerelease: { type: boolean, default: true, description: Package as a pre-release }
 
 permissions:
   contents: read
@@ -79,6 +83,8 @@ jobs:
           path: engines
       - name: Package one VSIX per target
         working-directory: vscode
+        env:
+          PRE: ${{ inputs.prerelease && '--pre-release' || '' }}
         run: |
           npm ci --no-audit --no-fund
           npm run typecheck
@@ -86,7 +92,7 @@ jobs:
           for dir in ../engines/engine-*; do
             target=${dir##*/engine-}
             rm -rf bin && mkdir -p bin/$target && cp $dir/* bin/$target/ && chmod +x bin/$target/* || true
-            npx --yes @vscode/vsce@3 package --target $target --skip-license --allow-missing-repository -o ../dist/goku-$target.vsix
+            npx --yes @vscode/vsce@3 package --target $target $PRE --skip-license --allow-missing-repository -o ../dist/goqulient-$target.vsix
           done
           ls -la ../dist
       - uses: actions/upload-artifact@v4
@@ -99,6 +105,7 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          PRE: ${{ inputs.prerelease && '--pre-release' || '' }}
         run: |
-          if [ -n "$VSCE_PAT" ]; then npx --yes @vscode/vsce@3 publish --packagePath dist/*.vsix; else echo "::warning::VSCE_PAT not set: not published to the Marketplace"; fi
-          if [ -n "$OVSX_PAT" ]; then for f in dist/*.vsix; do npx --yes ovsx@0 publish "$f" -p "$OVSX_PAT"; done; else echo "::warning::OVSX_PAT not set: not published to Open VSX"; fi
+          if [ -n "$VSCE_PAT" ]; then npx --yes @vscode/vsce@3 publish $PRE --packagePath dist/*.vsix; else echo "::warning::VSCE_PAT not set: not published to the Marketplace"; fi
+          if [ -n "$OVSX_PAT" ]; then for f in dist/*.vsix; do npx --yes ovsx@0 publish "$f" $PRE -p "$OVSX_PAT"; done; else echo "::warning::OVSX_PAT not set: not published to Open VSX"; fi

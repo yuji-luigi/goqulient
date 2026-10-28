@@ -36,7 +36,7 @@ export function openErDiagram(
     return existing;
   }
   const title = options.title ?? erTitle(database, schemas);
-  const panel = createPanel('goku.er', title, options.extensionUri, 'er');
+  const panel = createPanel('goqulient.er', title, options.extensionUri, 'er');
   panels.set(key, panel);
   const post = poster<ErToWebview>(panel);
   let model: SchemaModel | undefined;

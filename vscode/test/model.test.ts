@@ -39,7 +39,7 @@ test('entries that can’t be read stay in the list with the reason', () => {
   );
   assert.ok(list.slice(1).every((c) => c.profile === undefined));
   assert.equal(new Set(list.map((c) => c.id)).size, list.length, 'invalid entries get distinct ids');
-  assert.deepEqual(decodeSettingsConnections({ name: 'x' }, 'user').map((c) => c.invalid), ['goku.connections must be a list.']);
+  assert.deepEqual(decodeSettingsConnections({ name: 'x' }, 'user').map((c) => c.invalid), ['goqulient.connections must be a list.']);
   assert.deepEqual(decodeSettingsConnections(undefined, 'user'), []);
 });
 

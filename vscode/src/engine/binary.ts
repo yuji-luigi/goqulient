@@ -6,7 +6,7 @@ export const SUPPORTED_TARGETS = ['win32-x64', 'win32-arm64', 'darwin-x64', 'dar
 
 export interface BinaryLookup {
   extensionPath: string;
-  /** `goku.enginePath` (machine scope): an engine build to use instead of the bundled one. */
+  /** `goqulient.enginePath` (machine scope): an engine build to use instead of the bundled one. */
   override?: string;
   platform?: NodeJS.Platform;
   arch?: string;
@@ -34,7 +34,7 @@ export function resolveBinary(o: BinaryLookup): string {
   const exists = o.exists ?? existsSync;
   const override = o.override?.trim();
   if (override) {
-    if (!exists(override)) throw new Error(`goku.enginePath points to “${override}”, which doesn't exist.`);
+    if (!exists(override)) throw new Error(`goqulient.enginePath points to “${override}”, which doesn't exist.`);
     return override;
   }
   const platform = o.platform ?? process.platform;
@@ -47,7 +47,7 @@ export function resolveBinary(o: BinaryLookup): string {
   const target = `${platform}-${arch}`;
   throw new Error(
     (SUPPORTED_TARGETS as readonly string[]).includes(target)
-      ? `The Goku engine for ${target} is missing from this installation. Reinstall the extension.`
-      : `Goku has no engine for ${target}. Supported: ${SUPPORTED_TARGETS.join(', ')}.`,
+      ? `The GoQulient engine for ${target} is missing from this installation. Reinstall the extension.`
+      : `GoQulient has no engine for ${target}. Supported: ${SUPPORTED_TARGETS.join(', ')}.`,
   );
 }

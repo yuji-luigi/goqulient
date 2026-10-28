@@ -17,10 +17,10 @@ import {
 
 export const URL_VARS = ['DATABASE_URL', 'POSTGRES_URL', 'POSTGRESQL_URL', 'MYSQL_URL', 'MONGODB_URI', 'MONGO_URL', 'MONGODB_URL'];
 
-/** One `goku.envConnections` entry: a custom variable that holds a connection URL. */
+/** One `goqulient.envConnections` entry: a custom variable that holds a connection URL. */
 export interface EnvMapping {
   name?: string;
-  /** Only in this env file (as written in `goku.envFiles`); every file when missing. */
+  /** Only in this env file (as written in `goqulient.envFiles`); every file when missing. */
   file?: string;
   url?: string;
   /** For URLs whose scheme doesn't say (e.g. `tcp://`); must agree with the scheme when it does. */
@@ -33,7 +33,7 @@ export interface EnvFile {
   key: string;
   /** Shown in names, e.g. `.env` or `api/.env` in a multi-root workspace. */
   label: string;
-  /** The path as written in `goku.envFiles`, matched against `EnvMapping.file`. */
+  /** The path as written in `goqulient.envFiles`, matched against `EnvMapping.file`. */
   path: string;
 }
 
@@ -216,7 +216,7 @@ function dockerPostgresProfile(vars: Map<string, string>): { profile: ProfileJso
   return { profile, credentials: password === undefined ? {} : { password } };
 }
 
-/** `goku.envConnections` as written by hand: entries without a variable name and fields of the wrong type are dropped. */
+/** `goqulient.envConnections` as written by hand: entries without a variable name and fields of the wrong type are dropped. */
 export function sanitizeMappings(raw: unknown): EnvMapping[] {
   if (!Array.isArray(raw)) return [];
   const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
@@ -241,7 +241,7 @@ function sameFile(a: string, b: string): boolean {
 
 /**
  * The connections one env file describes: the well-known URL variables, `PG*` / `MYSQL_*` parts and the
- * `goku.envConnections` mappings (a mapping for a well-known variable replaces its default handling). Read-only unless a
+ * `goqulient.envConnections` mappings (a mapping for a well-known variable replaces its default handling). Read-only unless a
  * mapping says otherwise (D8).
  */
 export function envConnections(vars: Map<string, string>, file: EnvFile, mappings: readonly EnvMapping[] = []): EnvConnection[] {
@@ -264,7 +264,7 @@ export function envConnections(vars: Map<string, string>, file: EnvFile, mapping
   for (const variable of URL_VARS) {
     const value = vars.get(variable)?.trim();
     if (!value || mapped.has(variable)) continue;
-    // DATABASE_URL is generic (sqlite:, redis://…): skip what isn't a database Goku knows instead of flagging it.
+    // DATABASE_URL is generic (sqlite:, redis://…): skip what isn't a database GoQulient knows instead of flagging it.
     if (variable === 'DATABASE_URL' && !kindOfScheme(splitUrl(value)?.scheme ?? '')) continue;
     add(variable, () => profileFromUrl(value));
   }

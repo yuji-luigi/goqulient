@@ -217,7 +217,7 @@ describe('envConnections', () => {
     assert.equal(env('MYSQL_ROOT_PASSWORD=r\nMYSQL_USER=dbc')[0], undefined, 'MYSQL_USER without host or database: not enough');
   });
 
-  test('goku.envConnections: custom variables, overrides, file filter, kind', () => {
+  test('goqulient.envConnections: custom variables, overrides, file filter, kind', () => {
     const text = 'ANALYTICS=postgres://u:an-pass@a/stats\nDATABASE_URL=mysql://h/x\nLEGACY=tcp://h:5000/old';
     const list = env(text, [
       { url: 'ANALYTICS', name: 'Analytics', readOnly: false },
