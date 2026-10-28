@@ -21,6 +21,9 @@ tokio-util = "0.7"
 uuid = { version = "1", features = ["v4"] }
 fancy-regex = "0.14"
 unicode-segmentation = "1"
+# MySQL/MariaDB over rustls with ring (no C toolchain needed on Windows); `rustls` only to install that provider.
+mysql_async = { version = "0.37", default-features = false, features = ["minimal-rust", "rustls-tls", "tls12", "ring"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 
 [profile.release]
 lto = "thin"
