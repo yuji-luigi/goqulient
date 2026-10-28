@@ -1,4 +1,4 @@
-// The sidebar's pure parts (VSX-11): kind groups in the app's order, labels, ER layout keys, source groups and the
+// The sidebar's pure parts: kind groups in the app's order, labels, ER layout keys, source groups and the
 // wrong-password check. No `vscode` import, so the Node tests cover them.
 import type { Connection, Source } from '../connections/model.ts';
 import type { Attribute, ObjectKind, ObjectRef } from '../views/protocol.ts';

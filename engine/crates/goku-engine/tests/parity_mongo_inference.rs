@@ -1,4 +1,4 @@
-//! Mongo inference must match GokuCore: every Tests/Parity/mongo-inference/*.json (written by ParityFixtureTests.swift).
+//! Mongo inference must match GokuCore: every parity/mongo-inference/*.json (written by ParityFixtureTests.swift).
 //! Each fixture's database is dropped, filled with its documents (in order) and indexes, introspected (three times, to
 //! catch order-dependent results), normalized like parity_schema.rs and dropped again.
 #[path = "support/mongo.rs"]
@@ -72,7 +72,7 @@ async fn inference_matches_gokucore() {
         eprintln!("skipped: GOKU_IT not set");
         return;
     }
-    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../Tests/Parity/mongo-inference");
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../parity/mongo-inference");
     let mut files: Vec<_> = std::fs::read_dir(&dir)
         .unwrap()
         .map(|e| e.unwrap().path())

@@ -1,5 +1,5 @@
 //! Port of GokuCore's `Redaction`: secrets never reach logs, errors or endpoint summaries. Keep the patterns identical to
-//! `Sources/GokuCore/Support/Redaction.swift` (fancy-regex, because the dollar-quote rule needs a backreference).
+//! the Goku app's `Redaction.swift` (fancy-regex, because the dollar-quote rule needs a backreference).
 use fancy_regex::Regex;
 use std::sync::LazyLock;
 

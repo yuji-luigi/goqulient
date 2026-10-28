@@ -1,4 +1,4 @@
-// The "GoQulient" sidebar (VSX-11): source → connection → database → schema (PostgreSQL) → kind group → object → columns.
+// The "GoQulient" sidebar: source → connection → database → schema (PostgreSQL) → kind group → object → columns.
 // Connecting is lazy (first expand), catalog lists are cached per session until Refresh, and node objects are kept
 // stable so `onDidChangeTreeData` can refresh one node (VS Code matches elements by identity).
 import * as vscode from 'vscode';

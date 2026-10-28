@@ -1,4 +1,4 @@
-//! ER layout must match GokuCore exactly: every case in Tests/Parity/er-layout (written by ParityFixtureTests.swift).
+//! ER layout must match GokuCore exactly: every case in parity/er-layout (written by ParityFixtureTests.swift).
 use goku_engine::er::{Edge, Options, Rect, Size, layout};
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap};
@@ -19,13 +19,13 @@ struct Fixture {
 }
 
 fn parity_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../Tests/Parity/er-layout")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../parity/er-layout")
 }
 
 #[test]
 fn every_er_layout_fixture_matches_swift() {
     let mut cases: Vec<_> = std::fs::read_dir(parity_dir())
-        .expect("Tests/Parity/er-layout is missing")
+        .expect("parity/er-layout is missing")
         .map(|e| e.unwrap().path())
         .filter(|p| p.extension().is_some_and(|x| x == "json"))
         .collect();

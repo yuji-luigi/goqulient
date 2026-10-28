@@ -1,6 +1,6 @@
-//! Port of GokuCore's `ERLayout` (Sources/GokuCore/ER/ERLayout.swift): deterministic layered ("Sugiyama-lite") layout.
+//! Port of GokuCore's `ERLayout` (`ERLayout.swift` in the Goku app): deterministic layered ("Sugiyama-lite") layout.
 //! Parents go in the left-most layer and children to the right, per connected component; components are then
-//! shelf-packed. It must give exactly the same numbers as Swift (Tests/Parity/er-layout), so keep the arithmetic in the
+//! shelf-packed. It must give exactly the same numbers as Swift (parity/er-layout), so keep the arithmetic in the
 //! same order as the Swift code when changing either.
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};

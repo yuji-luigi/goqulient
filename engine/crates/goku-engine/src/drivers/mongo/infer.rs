@@ -1,4 +1,4 @@
-//! Port of GokuCore's `MongoSchemaInferrer` + `MongoSession.introspect` (docs/features/er-diagrams.md): fields from sampled
+//! Port of GokuCore's `MongoSchemaInferrer` + `MongoSession.introspect`: fields from sampled
 //! documents, relationships from DBRefs, name matches (`customerId` → `customers`) and bounded value probes.
 use super::MongoSession;
 use super::format::type_name;

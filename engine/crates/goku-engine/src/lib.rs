@@ -1,4 +1,4 @@
-//! The Goku database engine (docs/vscode-extension.md). Rules that hold for everything in this crate:
+//! The Goku database engine (docs/ARCHITECTURE.md). Rules that hold for everything in this crate:
 //! - every network wait goes through `deadline::with_deadline`, whose `on_timeout` closes the socket or cancels the query;
 //! - results go through `limits::RowCollector` (row cap + cell clipping);
 //! - secrets never reach a log, an error or an endpoint summary (`redact`);

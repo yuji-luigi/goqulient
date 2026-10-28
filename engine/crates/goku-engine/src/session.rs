@@ -1,4 +1,4 @@
-//! The driver contract (the Rust counterpart of GokuCore's `DatabaseSession`, docs/features/connections-and-drivers.md).
+//! The driver contract (the Rust counterpart of GokuCore's `DatabaseSession`).
 //! Every method that waits on the network bounds itself with `with_deadline` (connect: `connect_timeout_seconds`,
 //! everything else: `query_timeout_seconds`) and stops early when `cancel` fires, cancelling the server-side work too.
 use crate::drivers;

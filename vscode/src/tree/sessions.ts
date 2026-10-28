@@ -1,4 +1,4 @@
-// Engine sessions by connection id, for the sidebar (VSX-11). Connecting is lazy and cancellable (`$/cancelRequest`
+// Engine sessions by connection id, for the sidebar. Connecting is lazy and cancellable (`$/cancelRequest`
 // cancels it in the engine too); a rejected password is asked for once more; an engine stop or an unknown session id
 // makes the connection idle again without an error, and the next expand reconnects. No `vscode` import (Node tests).
 import { CancellationTokenSource } from 'vscode-jsonrpc/node.js';

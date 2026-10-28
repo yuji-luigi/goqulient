@@ -1,4 +1,4 @@
-// The extension's side of the engine protocol (docs/vscode-extension.md): spawns goku-engine-server, speaks JSON-RPC
+// The extension's side of the engine protocol (docs/ARCHITECTURE.md): spawns goku-engine-server, speaks JSON-RPC
 // over its stdio, restarts it after a crash (within a budget) and forwards its stderr to the log. No `vscode` import,
 // so the Node tests can run it against the real binary.
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -191,7 +191,7 @@ export class EngineClient {
     const { log } = this.options;
     const binary = this.options.binary();
     log.info(`Starting ${binary}`);
-    // No shell and no secrets in argv or env (AGENTS.md rule 5): connection secrets only travel over stdin.
+    // No shell and no secrets in argv or env (AGENTS.md, "Safety"): connection secrets only travel over stdin.
     const child = spawn(binary, [], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, shell: false });
     const spawned = new Promise<void>((resolve, reject) => {
       child.once('spawn', resolve);

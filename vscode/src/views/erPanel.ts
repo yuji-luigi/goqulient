@@ -1,4 +1,4 @@
-// VSX-13: ER diagram. Flow: introspect (progress + cancel) → model to the webview → it measures the boxes with the
+// ER diagram. Flow: introspect (progress + cancel) → model to the webview → it measures the boxes with the
 // editor font → `er/layout` in the engine (only for entities without a saved position) → positions to the webview.
 // Dragged positions are saved in workspaceState under `layoutKey`.
 import * as vscode from 'vscode';

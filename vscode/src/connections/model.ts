@@ -1,6 +1,6 @@
 // The connection list the tree shows, as a pure function of settings, env discovery and Workspace Trust (store.ts feeds
-// it from VS Code). Decoding is as tolerant as the engine's (AGENTS.md rule 6): an entry that can't be read stays in
-// the list as invalid, with the reason, and is never dropped or rewritten.
+// it from VS Code). Decoding is as tolerant as the engine's (AGENTS.md, "Profiles"): an entry that can't be read
+// stays in the list as invalid, with the reason, and is never dropped or rewritten.
 import { createHash } from 'node:crypto';
 import type { EnvConnection } from './envProfiles.ts';
 import { endpointSummary, isKind, type Kind, type ProfileJson } from './profile.ts';

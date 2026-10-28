@@ -13,7 +13,7 @@ use tokio_util::sync::CancellationToken;
 
 pub const PROTOCOL_VERSION: u32 = 1;
 
-/// JSON-RPC / LSP error codes, plus the engine's own (documented in docs/vscode-extension.md).
+/// JSON-RPC / LSP error codes, plus the engine's own (documented in docs/ARCHITECTURE.md).
 pub mod code {
     pub const PARSE_ERROR: i64 = -32700;
     pub const INVALID_REQUEST: i64 = -32600;

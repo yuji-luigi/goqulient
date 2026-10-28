@@ -1,5 +1,5 @@
-//! Introspection must match GokuCore: every Tests/Parity/schema/*.json (written by ParityFixtureTests.swift), after the
-//! normalization in Tests/Parity/README.md. An engine whose driver isn't implemented yet (`Unsupported`) is skipped.
+//! Introspection must match GokuCore: every parity/schema/*.json (written by ParityFixtureTests.swift), after the
+//! normalization in parity/README.md. An engine whose driver isn't implemented yet (`Unsupported`) is skipped.
 #[path = "support/parity.rs"]
 mod parity;
 mod support;
@@ -36,7 +36,7 @@ async fn introspection_matches_gokucore() {
         eprintln!("skipped: GOKU_IT not set");
         return;
     }
-    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../Tests/Parity/schema");
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../parity/schema");
     let mut files: Vec<_> = std::fs::read_dir(&dir)
         .unwrap()
         .map(|e| e.unwrap().path())

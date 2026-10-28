@@ -1,4 +1,4 @@
-// VSX-12 webview: virtualised read-only grid (rows and columns), sticky header + row numbers, sort, paging, copy as
+// Webview: virtualised read-only grid (rows and columns), sticky header + row numbers, sort, paging, copy as
 // TSV, and a documents view for MongoDB. The extension owns the data; this only renders the page it was sent.
 import './table.css';
 import type { QueryResult, Sort, TableFromWebview, TableToWebview } from '../src/views/protocol.ts';

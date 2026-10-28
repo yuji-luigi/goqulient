@@ -1,6 +1,6 @@
-//! Port of GokuCore's `ConnectionProfile` (Sources/GokuCore/Model/ConnectionProfile.swift). Same JSON field names, and
-//! the same tolerant decoding (AGENTS.md rule 6): only `name` and `kind` are required, missing or null fields get their
-//! defaults, unknown enum cases a safe fallback (an unknown SSL mode becomes the strictest), malformed values fail.
+//! Port of GokuCore's `ConnectionProfile` (`ConnectionProfile.swift` in the Goku app). Same JSON field names,
+//! and the same tolerant decoding (AGENTS.md, "Profiles"): only `name` and `kind` are required, missing or null
+//! fields get their defaults, unknown enum cases a safe fallback (an unknown SSL mode becomes the strictest), malformed values fail.
 use crate::error::DbError;
 use crate::limits::{DEFAULT_MAX_ROWS, HARD_MAX_ROWS};
 use serde::de::{DeserializeOwned, Error as _};

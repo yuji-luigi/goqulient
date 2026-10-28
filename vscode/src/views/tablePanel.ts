@@ -1,4 +1,4 @@
-// VSX-12: read-only table/collection viewer. One panel per (session, object); every `table/page` carries a
+// read-only table/collection viewer. One panel per (session, object); every `table/page` carries a
 // CancellationToken that a newer page, the Cancel button or closing the panel cancels.
 import * as vscode from 'vscode';
 import { EngineError } from '../engine/client.ts';

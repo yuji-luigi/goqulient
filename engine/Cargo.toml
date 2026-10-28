@@ -1,4 +1,4 @@
-# Rust engine for the VS Code extension (docs/vscode-extension.md). `goku-engine` is the library (no I/O on stdout, no
+# Rust engine for the VS Code extension (docs/ARCHITECTURE.md). `goku-engine` is the library (no I/O on stdout, no
 # VS Code specifics, so the Mac app can link it later); `goku-engine-server` is the stdio JSON-RPC process the extension spawns.
 [workspace]
 resolver = "3"

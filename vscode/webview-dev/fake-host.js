@@ -1,5 +1,5 @@
 // Dev harness: stands in for VS Code. Defines `acquireVsCodeApi` and answers the webview's messages from fixture data,
-// so dist/webview/*.js runs in a plain browser (docs/vscode-extension.md, "Webviews"). Query string: `theme=dark|light|hc`, and for
+// so dist/webview/*.js runs in a plain browser (docs/ARCHITECTURE.md, "Webviews"). Query string: `theme=dark|light|hc`, and for
 // er.html `fixture=postgres|mysql|mongodb|synthetic300`, for table.html `fixture=rows|mongo|error|empty`, `delay=<ms>`.
 const params = new URLSearchParams(location.search);
 document.documentElement.dataset.theme = params.get('theme') ?? 'dark';
@@ -122,7 +122,7 @@ function table(m) {
 let model;
 async function loadModel() {
   if (fixture === 'synthetic300') return synthetic(300);
-  const res = await fetch(`/Tests/Parity/schema/${fixture}.json`);
+  const res = await fetch(`/parity/schema/${fixture}.json`);
   return (await res.json()).output;
 }
 

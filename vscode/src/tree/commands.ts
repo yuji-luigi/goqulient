@@ -1,4 +1,4 @@
-// Sidebar commands (VSX-11): open a table (button, double-click, Enter), ER diagram, refresh, disconnect, cancel
+// Sidebar commands: open a table (button, double-click, Enter), ER diagram, refresh, disconnect, cancel
 // connecting, retry, copy name. Commands that take a node also work from the palette on the tree's selection.
 import * as vscode from 'vscode';
 import type { Engine } from '../views/index.ts';

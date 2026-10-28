@@ -1,4 +1,4 @@
-// VSX-13 webview: ER diagram in SVG. Measures boxes with the editor font, lets the engine lay them out (through the
+// Webview: ER diagram in SVG. Measures boxes with the editor font, lets the engine lay them out (through the
 // extension), then draws only what's in view: boxes and relationship curves outside the viewport aren't in the DOM, and
 // far out rows become bars (or disappear), so ~300 tables stay smooth. Pan, zoom, drag, hover, search, inspector,
 // export.

@@ -1,6 +1,6 @@
-// Screenshots of both webviews in the dev harness, plus rough frame timings. Runs in the Playwright image (docs/vscode-extension.md, "Webviews"):
+// Screenshots of both webviews in the dev harness, plus rough frame timings. Runs in the Playwright image (docs/ARCHITECTURE.md, "Webviews"):
 //   node webview-dev/snapshot.mjs   → webview-dev/snapshots/*.png (gitignored)
-// Serves the repo root (the ER fixtures live in Tests/Parity). Fails on page errors and CSP violations.
+// Serves the repo root (the ER fixtures live in parity/). Fails on page errors and CSP violations.
 import { createServer } from 'node:http';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';

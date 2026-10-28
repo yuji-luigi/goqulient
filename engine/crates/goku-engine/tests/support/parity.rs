@@ -1,4 +1,4 @@
-//! Parity helpers shared by the parity tests (included with `#[path]`): the normalization in Tests/Parity/README.md.
+//! Parity helpers shared by the parity tests (included with `#[path]`): the normalization in parity/README.md.
 #![allow(dead_code)]
 use serde_json::{Map, Value};
 use std::collections::HashSet;

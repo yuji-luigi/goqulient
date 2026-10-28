@@ -148,7 +148,7 @@ test('header colour matches the app hash; search, neighbours, ellipsis', () => {
 
 test('every parity schema measures and routes without NaN', () => {
   for (const name of ['postgres', 'mysql', 'mongodb']) {
-    const model = (JSON.parse(readFileSync(new URL(`../../Tests/Parity/schema/${name}.json`, import.meta.url), 'utf8')) as { output: SchemaModel }).output;
+    const model = (JSON.parse(readFileSync(new URL(`../../parity/schema/${name}.json`, import.meta.url), 'utf8')) as { output: SchemaModel }).output;
     const byId = new Map(model.entities.map((e) => [e.id, e]));
     const rects = new Map(model.entities.map((e, i) => [e.id, { x: (i % 4) * 500, y: Math.floor(i / 4) * 400, ...entitySize(e, measure) }]));
     for (const r of model.relationships) {

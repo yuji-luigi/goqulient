@@ -1,4 +1,5 @@
-//! Port of GokuCore's `withDeadline` (AGENTS.md rule 4): every network wait in the engine goes through `with_deadline`.
+//! Port of GokuCore's `withDeadline` (AGENTS.md, "Safety"): every network wait in the engine goes through
+//! `with_deadline`.
 //! Dropping a Rust future stops it, but the socket or server query it started may live on (a spawned connection task, a
 //! running statement), so `on_timeout` must close the socket or cancel the server query.
 use crate::error::{DbError, Result};
