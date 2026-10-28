@@ -1,0 +1,37 @@
+# push to main -> release-please keeps a release PR open (docs/RELEASING.md). Merging it tags vX.Y.Z, creates the
+# GitHub release and calls extension-release.yml, which builds the engine for six targets, packages one VSIX per
+# target and publishes them. A tag pushed with GITHUB_TOKEN wouldn't start a workflow by itself, hence the call.
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      created: ${{ steps.rp.outputs.release_created }}
+      tag: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      - id: rp
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  extension:
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    uses: ./.github/workflows/extension-release.yml
+    with:
+      ref: ${{ needs.release-please.outputs.tag }}
+      publish: true
+      prerelease: true   # until 1.0
+    secrets: inherit

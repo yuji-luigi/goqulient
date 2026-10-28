@@ -1,8 +1,7 @@
-# Builds goku-engine-server for the six VS Code targets and packages one VSIX per target (VSX-14,
-# docs/vscode-extension.md). release.yml calls it when release-please creates a vscode-vX.Y.Z release (a tag pushed with
-# GITHUB_TOKEN wouldn't trigger a workflow on its own); run it by hand to get the VSIXs as workflow artifacts.
-# Publishing needs VSCE_PAT (Marketplace) / OVSX_PAT (Open VSX); without them it only builds. `prerelease` packages and
-# publishes as a pre-release (release.yml passes true until 1.0).
+# Builds goku-engine-server for the six VS Code targets and packages one VSIX per target (docs/RELEASING.md).
+# release.yml calls it when release-please creates a vX.Y.Z release; run it by hand to get the VSIXs as workflow
+# artifacts without publishing. Publishing needs VSCE_PAT (Marketplace) / OVSX_PAT (Open VSX); without them it only
+# warns. `prerelease` (default true) packages and publishes as a pre-release.
 name: Extension release
 
 on:
@@ -85,6 +84,10 @@ jobs:
         working-directory: vscode
         env:
           PRE: ${{ inputs.prerelease && '--pre-release' || '' }}
+          # vsce ignores repository.directory: point README links and images at vscode/ explicitly.
+          BASE: >-
+            --baseContentUrl https://github.com/yuji-luigi/goqulient/blob/HEAD/vscode
+            --baseImagesUrl https://github.com/yuji-luigi/goqulient/raw/HEAD/vscode
         run: |
           npm ci --no-audit --no-fund
           npm run typecheck
@@ -92,7 +95,7 @@ jobs:
           for dir in ../engines/engine-*; do
             target=${dir##*/engine-}
             rm -rf bin && mkdir -p bin/$target && cp $dir/* bin/$target/ && chmod +x bin/$target/* || true
-            npx --yes @vscode/vsce@3 package --target $target $PRE --skip-license --allow-missing-repository -o ../dist/goqulient-$target.vsix
+            npx --yes @vscode/vsce@3 package --target $target $PRE $BASE -o ../dist/goqulient-$target.vsix
           done
           ls -la ../dist
       - uses: actions/upload-artifact@v4

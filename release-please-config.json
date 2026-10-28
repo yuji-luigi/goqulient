@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "goqulient",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "include-component-in-tag": false,
+      "extra-files": [
+        { "type": "json", "path": "vscode/package.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "vscode/package-lock.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "vscode/package-lock.json", "jsonpath": "$.packages[''].version" },
+        { "type": "toml", "path": "engine/Cargo.toml", "jsonpath": "$.workspace.package.version" },
+        { "type": "toml", "path": "engine/Cargo.lock", "jsonpath": "$.package[?(@.name.value==='goku-engine')].version" },
+        { "type": "toml", "path": "engine/Cargo.lock", "jsonpath": "$.package[?(@.name.value==='goku-engine-server')].version" }
+      ]
+    }
+  }
+}

@@ -1,25 +1,29 @@
-# VS Code extension + Rust engine (docs/vscode-extension.md). Builds and tests on all three operating systems, because
-# the extension must work on Windows. Database integration tests run on Linux only (they need the Docker databases).
-name: Extension
+# Build and test (docs/TESTING.md). `build` runs on all three operating systems, because the extension must work on
+# Windows; `integration` runs the database integration tests, the parity tests and the end-to-end test on Linux, in the
+# same Docker setup as scripts/dev.sh on a developer machine.
+name: CI
 
 on:
   push:
     branches: [main]
-    paths: ['engine/**', 'vscode/**', '.github/workflows/extension.yml']
   pull_request:
-    paths: ['engine/**', 'vscode/**', '.github/workflows/extension.yml']
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  test:
+  build:
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -34,9 +38,10 @@ jobs:
         run: cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings
         working-directory: engine
         shell: bash
-      - run: cargo test --workspace
+      # Without GOKU_IT the database integration tests skip themselves; `integration` runs them.
+      - run: cargo test --workspace --locked
         working-directory: engine
-      - run: cargo build -p goku-engine-server
+      - run: cargo build -p goku-engine-server --locked
         working-directory: engine
       - uses: actions/setup-node@v5
         with:
@@ -52,3 +57,20 @@ jobs:
         working-directory: vscode
         env:
           GOKU_ENGINE_BIN: ${{ github.workspace }}/engine/target/debug/goku-engine-server${{ runner.os == 'Windows' && '.exe' || '' }}
+
+  # The databases come from docker-compose.yml, not `services:`: service containers start before the checkout, so they
+  # couldn't mount the seed scripts in docker/*/init.
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - run: scripts/dev.sh up
+      - name: Engine tests (integration + parity, GOKU_IT=1)
+        run: scripts/dev.sh engine test
+      - name: End-to-end test in VS Code
+        run: scripts/dev.sh vscode e2e
+      - if: failure()
+        run: docker compose logs --no-color pg-primary mysql-primary mongo
+      - if: always()
+        run: scripts/dev.sh down
