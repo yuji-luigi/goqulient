@@ -1,5 +1,5 @@
-// Pure ER geometry for the diagram webview, ported from the app's `ERMetrics` / `ERPainter` (Sources/GokuClient/Views/
-// ERDiagram.swift): box sizes, column row positions, Bézier relationship curves, crow's-foot marks, culling, pan/zoom.
+// Pure ER geometry for the diagram webview, ported from the Goku app's `ERMetrics` / `ERPainter` (`ERDiagram.swift`):
+// box sizes, column row positions, Bézier relationship curves, crow's-foot marks, culling, pan/zoom.
 // No DOM, so the Node tests run them directly.
 import type { Attribute, Entity, Point, Relationship, Size } from '../../src/views/protocol.ts';
 
