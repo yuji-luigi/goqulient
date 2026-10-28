@@ -1,0 +1,19 @@
+# Build output
+target/
+node_modules/
+dist/
+bin/
+*.vsix
+.vscode-test/
+
+# Webview harness and e2e screenshots
+snapshots/
+
+# Copied from the repo root when the extension is packaged (vscode:prepublish)
+/vscode/LICENSE
+
+# Local environment files (credentials for optional tests live here); only the example is tracked
+.env*
+!.env.example
+
+.DS_Store

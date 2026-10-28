@@ -4,6 +4,7 @@ description = "JSON-RPC (LSP framing) over stdio around goku-engine, spawned by 
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 publish.workspace = true
 
 [dependencies]

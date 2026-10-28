@@ -1,6 +1,0 @@
-node_modules/
-dist/
-bin/
-*.vsix
-webview-dev/snapshots/
-.vscode-test/

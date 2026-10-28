@@ -5,7 +5,16 @@
   "version": "0.1.0",
   "publisher": "yuji-luigi",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yuji-luigi/goqulient.git",
+    "directory": "vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/yuji-luigi/goqulient/issues"
+  },
+  "homepage": "https://github.com/yuji-luigi/goqulient#readme",
   "type": "module",
   "engines": {
     "vscode": "^1.95.0"
@@ -369,6 +378,7 @@
     ]
   },
   "scripts": {
+    "vscode:prepublish": "node -e \"require('node:fs').copyFileSync('../LICENSE', 'LICENSE')\"",
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc --noEmit && tsc --noEmit -p webview",

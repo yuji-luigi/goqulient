@@ -7,7 +7,8 @@ members = ["crates/goku-engine", "crates/goku-engine-server"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-license = "UNLICENSED"
+license = "MIT"
+repository = "https://github.com/yuji-luigi/goqulient"
 publish = false
 
 [workspace.dependencies]
