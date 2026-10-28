@@ -1,0 +1,131 @@
+# Dev + test environment. Everything lives in the "goqulient" compose project (scripts/dev.sh wraps it):
+#   docker compose up -d --wait   -> test databases + the `engine` (Rust) and `vscode` (Node) tool containers
+#   docker compose down -v        -> removes everything (containers, volumes)
+# The databases are throwaway (seeded from docker/*/init, passwords below are test-only). They are published on
+# 127.0.0.1 only, on unusual ports (25432, 23306, 27217), so a native VS Code can reach them without colliding with
+# other local databases. Inside the network the tests use the service names and default ports.
+name: goqulient
+
+x-limits: &limits
+  restart: "no"
+  pids_limit: 512
+
+services:
+  # Rust engine (engine/): cargo build, test, fmt, clippy. GOKU_IT=1 turns the database integration tests on.
+  engine:
+    <<: *limits
+    image: rust:1.99.1-bookworm
+    working_dir: /work/engine
+    command: sleep infinity
+    init: true
+    volumes:
+      - ./:/work
+      - engine-target:/work/engine/target   # Linux build output stays inside Docker
+      - engine-cargo:/usr/local/cargo/registry
+    mem_limit: 5g
+    cpus: 4
+    pids_limit: 4096
+    environment:
+      GOKU_IT: "1"
+      PG_HOST: pg-primary
+      MYSQL_HOST: mysql-primary
+      MONGO_HOST: mongo
+
+  # VS Code extension (vscode/): type check and Node tests, with the engine's Linux debug build mounted read-only.
+  vscode:
+    <<: *limits
+    image: node:24-bookworm
+    working_dir: /work/vscode
+    command: sleep infinity
+    init: true
+    volumes:
+      - ./:/work
+      - vscode-node-modules:/work/vscode/node_modules   # Linux node_modules stay inside Docker
+      - engine-target:/engine-target:ro
+    mem_limit: 2g
+    cpus: 2
+    environment:
+      GOKU_ENGINE_BIN: /engine-target/debug/goku-engine-server
+
+  # The extension inside a real VS Code on a virtual display (scripts/dev.sh vscode e2e); only started on demand.
+  vscode-e2e:
+    <<: *limits
+    build: ./docker/vscode-e2e
+    image: goqulient-vscode-e2e:latest
+    profiles: ["e2e"]
+    working_dir: /work/vscode
+    init: true
+    ipc: host
+    volumes:
+      - ./:/work
+      - vscode-node-modules:/work/vscode/node_modules
+      - engine-target:/engine-target:ro
+      - vscode-test:/vscode-test                        # downloaded VS Code builds
+    mem_limit: 3g
+    cpus: 2
+    environment:
+      GOKU_ENGINE_BIN: /engine-target/debug/goku-engine-server
+      GOKU_E2E_CACHE: /vscode-test
+
+  # Healthchecks use TCP on purpose: the images run their init scripts on a temporary server that only listens
+  # locally (socket / 127.0.0.1), so "healthy" means seeded and restarted.
+  pg-primary:
+    <<: *limits
+    image: postgres:17
+    ports: ["127.0.0.1:25432:5432"]
+    mem_limit: 384m
+    cpus: 1
+    environment:
+      POSTGRES_USER: dbc
+      POSTGRES_PASSWORD: dbcpass
+      POSTGRES_DB: shop
+    command: ["postgres", "-c", "shared_buffers=64MB"]
+    volumes:
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U dbc -d shop"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+
+  # MySQL 8.4 generates a self-signed certificate at first start, so TLS (ssl-mode=REQUIRED) works out of the box.
+  mysql-primary:
+    <<: *limits
+    image: mysql:8.4
+    ports: ["127.0.0.1:23306:3306"]
+    mem_limit: 640m
+    cpus: 1
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: shop
+      MYSQL_USER: dbc
+      MYSQL_PASSWORD: dbcpass
+    command: ["--innodb-buffer-pool-size=64M", "--performance-schema=OFF"]
+    volumes:
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -udbc -pdbcpass --silent"]
+      interval: 2s
+      timeout: 5s
+      retries: 90
+
+  mongo:
+    <<: *limits
+    image: mongo:7
+    ports: ["127.0.0.1:27217:27017"]
+    mem_limit: 512m
+    cpus: 1
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.25", "--bind_ip_all"]
+    volumes:
+      - ./docker/mongo/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --host \"$$(hostname)\" --eval 'db.runCommand({ping: 1}).ok' | grep -q 1"]
+      interval: 2s
+      timeout: 10s
+      retries: 60
+
+volumes:
+  engine-target:
+  engine-cargo:
+  vscode-node-modules:
+  vscode-test:
