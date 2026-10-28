@@ -190,6 +190,33 @@ describe('envConnections', () => {
     assert.deepEqual(env('PGHOST=a,b\nPGPORT=1,2')[0]!.profile?.hosts, [{ host: 'a', port: 1 }, { host: 'b', port: 2 }]);
   });
 
+  test('Docker-style POSTGRES_* and MYSQL_* variables', () => {
+    const [pg] = env('POSTGRES_USER=dbc\nPOSTGRES_PASSWORD=pg-docker\nPOSTGRES_DB=shop');
+    assert.deepEqual(pg!.profile, {
+      name: 'POSTGRES_* (.env)',
+      kind: 'postgres',
+      mode: 'single',
+      hosts: [{ host: 'localhost', port: 5432 }],
+      user: 'dbc',
+      database: 'shop',
+      id: envId(FILE.key, 'POSTGRES_*'),
+      readOnly: true,
+    });
+    assert.deepEqual(pg!.credentials, { password: 'pg-docker' });
+    assertNoSecret(pg!.profile, 'pg-docker');
+    const [only] = env('POSTGRES_PASSWORD=x\nPOSTGRES_HOST=db\nPOSTGRES_PORT=6543');
+    assert.deepEqual([only!.profile?.hosts, only!.profile?.user, only!.profile?.database], [[{ host: 'db', port: 6543 }], 'postgres', 'postgres'], 'the image defaults');
+    assert.deepEqual(env('POSTGRES_URL_NON_POOLING=x'), [], 'no Docker variable, no connection');
+    // mysql image: the app user when MYSQL_USER is set, root with MYSQL_ROOT_PASSWORD otherwise.
+    const [app] = env('MYSQL_ROOT_PASSWORD=root-secret\nMYSQL_DATABASE=shop\nMYSQL_USER=dbc\nMYSQL_PASSWORD=my-docker');
+    assert.deepEqual([app!.name, app!.profile?.hosts, app!.profile?.user, app!.profile?.database], ['MYSQL_* (.env)', [{ host: 'localhost', port: 3306 }], 'dbc', 'shop']);
+    assert.deepEqual(app!.credentials, { password: 'my-docker' });
+    const [root] = env('MYSQL_ROOT_PASSWORD=root-secret');
+    assert.deepEqual([root!.profile?.user, root!.profile?.database, root!.credentials], ['root', undefined, { password: 'root-secret' }]);
+    assertNoSecret([app!.profile, root!.profile], 'root-secret', 'my-docker');
+    assert.equal(env('MYSQL_ROOT_PASSWORD=r\nMYSQL_USER=dbc')[0], undefined, 'MYSQL_USER without host or database: not enough');
+  });
+
   test('goku.envConnections: custom variables, overrides, file filter, kind', () => {
     const text = 'ANALYTICS=postgres://u:an-pass@a/stats\nDATABASE_URL=mysql://h/x\nLEGACY=tcp://h:5000/old';
     const list = env(text, [

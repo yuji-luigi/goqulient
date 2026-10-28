@@ -179,7 +179,9 @@ function partsProfile(vars: Map<string, string>, kind: Kind): { profile: Profile
   const p = kind === 'postgres' ? 'PG' : 'MYSQL_';
   const host = v(`${p}HOST`);
   const database = v(`${p}DATABASE`);
-  if (!host && !database) return undefined;
+  // The mysql image's MYSQL_ROOT_PASSWORD alone also describes a server (as root, see below).
+  const rootPassword = kind === 'mysql' && !v('MYSQL_USER') ? vars.get('MYSQL_ROOT_PASSWORD') : undefined;
+  if (!host && !database && rootPassword === undefined) return undefined;
   // libpq accepts a host list with one port for all or one port per host.
   const ports = (v(`${p}PORT`) ?? '').split(',');
   const list = (host ?? 'localhost').split(',').map((raw, i) => {
@@ -189,12 +191,28 @@ function partsProfile(vars: Map<string, string>, kind: Kind): { profile: Profile
   });
   const hosts = parseHosts(list.join(','), DEFAULT_PORT[kind]);
   const profile: ProfileJson = { name: KIND_LABEL[kind], kind, mode: hosts.length > 1 ? 'multiHost' : 'single', hosts };
-  const user = v(`${p}USER`);
+  const user = v(`${p}USER`) ?? (rootPassword !== undefined ? 'root' : undefined);
   if (user) profile.user = user;
   if (database) profile.database = database;
   const sslmode = kind === 'postgres' ? v('PGSSLMODE') : undefined;
   if (sslmode) profile.ssl = { mode: sslModeOf(sslmode) };
-  const password = vars.get(`${p}PASSWORD`);
+  const password = vars.get(`${p}PASSWORD`) ?? rootPassword;
+  return { profile, credentials: password === undefined ? {} : { password } };
+}
+
+/**
+ * The postgres image's `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` (+ `POSTGRES_HOST` / `POSTGRES_PORT`, else
+ * localhost and 5432). Like the image, the user defaults to `postgres` and the database to the user.
+ */
+function dockerPostgresProfile(vars: Map<string, string>): { profile: ProfileJson; credentials: Credentials } | undefined {
+  const v = (k: string) => vars.get(k)?.trim() || undefined;
+  const password = vars.get('POSTGRES_PASSWORD');
+  if (!v('POSTGRES_USER') && !v('POSTGRES_DB') && !v('POSTGRES_HOST') && password === undefined) return undefined;
+  const port = v('POSTGRES_PORT');
+  const host = v('POSTGRES_HOST') ?? 'localhost';
+  const hosts = parseHosts(port ? `${host.includes(':') ? `[${host}]` : host}:${port}` : host, DEFAULT_PORT.postgres);
+  const user = v('POSTGRES_USER') ?? 'postgres';
+  const profile: ProfileJson = { name: KIND_LABEL.postgres, kind: 'postgres', mode: hosts.length > 1 ? 'multiHost' : 'single', hosts, user, database: v('POSTGRES_DB') ?? user };
   return { profile, credentials: password === undefined ? {} : { password } };
 }
 
@@ -251,6 +269,7 @@ export function envConnections(vars: Map<string, string>, file: EnvFile, mapping
     add(variable, () => profileFromUrl(value));
   }
   add('PG*', () => partsProfile(vars, 'postgres'));
+  add('POSTGRES_*', () => dockerPostgresProfile(vars));
   add('MYSQL_*', () => partsProfile(vars, 'mysql'));
   for (const m of mine) {
     const variable = m.url!.trim();
