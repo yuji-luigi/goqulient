@@ -53,7 +53,7 @@ export function activate(context: vscode.ExtensionContext): TestApi | undefined 
     },
   });
   const sessions = new Sessions(client, connectHooks(store));
-  const tree = new ConnectionTree(store, sessions, () =>
+  const tree = new ConnectionTree(store, sessions, context.workspaceState, () =>
     // The tree was shown: start the engine now, so expanding a connection doesn't wait for it.
     void client.info().catch((e) => log.warn(`Couldn't start the engine: ${e instanceof Error ? e.message : String(e)}`)),
   );

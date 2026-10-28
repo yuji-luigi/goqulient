@@ -116,6 +116,16 @@
         "command": "goqulient.tree.enter",
         "title": "Open Selected",
         "category": "GoQulient"
+      },
+      {
+        "command": "goqulient.showAllDatabases",
+        "title": "Show All Databases",
+        "category": "GoQulient"
+      },
+      {
+        "command": "goqulient.showConnectionDatabase",
+        "title": "Show Only the Connection's Database",
+        "category": "GoQulient"
       }
     ],
     "configuration": {
@@ -180,6 +190,11 @@
               }
             }
           }
+        },
+        "goqulient.showAllDatabases": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "List every database on the server for connections that name a database. By default such a connection shows only its own database; the connection's context menu (**Show All Databases**) changes it for one connection in this workspace."
         },
         "goqulient.enginePath": {
           "type": "string",
@@ -265,6 +280,16 @@
           "group": "1_connection@4"
         },
         {
+          "command": "goqulient.showAllDatabases",
+          "when": "view == goqulient.connections && viewItem =~ /^goqulient\\.connection .*\\bdbfilter\\b/",
+          "group": "2_databases@1"
+        },
+        {
+          "command": "goqulient.showConnectionDatabase",
+          "when": "view == goqulient.connections && viewItem =~ /^goqulient\\.connection .*\\bdball\\b/",
+          "group": "2_databases@1"
+        },
+        {
           "command": "goqulient.openTable",
           "when": "view == goqulient.connections && viewItem == goqulient.object",
           "group": "inline"
@@ -323,6 +348,14 @@
         },
         {
           "command": "goqulient.cancelConnecting",
+          "when": "false"
+        },
+        {
+          "command": "goqulient.showAllDatabases",
+          "when": "false"
+        },
+        {
+          "command": "goqulient.showConnectionDatabase",
           "when": "false"
         }
       ]

@@ -2,8 +2,8 @@
 // connecting, retry, copy name. Commands that take a node also work from the palette on the tree's selection.
 import * as vscode from 'vscode';
 import type { Engine } from '../views/index.ts';
-import { openErDiagram, openTable } from '../views/index.ts';
-import { erLayoutKey } from './model.ts';
+import { erTitle, openErDiagram, openTable, tableTitle } from '../views/index.ts';
+import { erLayoutKey, shortConnectionName, withConnection } from './model.ts';
 import type { ConnectionNode, ConnectionTree, Node, ObjectNode } from './provider.ts';
 import type { Sessions } from './sessions.ts';
 
@@ -63,6 +63,14 @@ export function registerTreeCommands(c: TreeCommandContext): vscode.Disposable[]
       if (n?.type === 'database') return openEr(c, n.conn, n.database, []);
       if (n?.type === 'schema') return openEr(c, n.conn, n.database, [n.schema]);
     }),
+    vscode.commands.registerCommand('goqulient.showAllDatabases', (node?: Node) => {
+      const conn = connectionOf(selected(node));
+      if (conn) return tree.setShowAllDatabases(conn, true);
+    }),
+    vscode.commands.registerCommand('goqulient.showConnectionDatabase', (node?: Node) => {
+      const conn = connectionOf(selected(node));
+      if (conn) return tree.setShowAllDatabases(conn, false);
+    }),
     vscode.commands.registerCommand('goqulient.copyName', async (node?: Node) => {
       const name = nameOf(selected(node));
       if (name !== undefined) await vscode.env.clipboard.writeText(name);
@@ -101,7 +109,8 @@ function openObject(c: TreeCommandContext, node: ObjectNode): vscode.WebviewPane
   const conn = node.conn.conn;
   const maxRows = conn.profile?.maxRows;
   const pageSize = typeof maxRows === 'number' && maxRows >= 1 ? maxRows : DEFAULT_PAGE_SIZE;
-  return openTable(c.engine, sessionId, node.ref, conn.readOnly, { extensionUri: c.context.extensionUri, pageSize });
+  const title = withConnection(tableTitle(node.ref), shortConnectionName(conn));
+  return openTable(c.engine, sessionId, node.ref, conn.readOnly, { extensionUri: c.context.extensionUri, pageSize, title });
 }
 
 function openEr(c: TreeCommandContext, conn: ConnectionNode, database: string, schemas: string[]): vscode.WebviewPanel | undefined {
@@ -110,5 +119,6 @@ function openEr(c: TreeCommandContext, conn: ConnectionNode, database: string, s
   const key = erLayoutKey(conn.conn.id, database, schemas);
   return openErDiagram(c.engine, sessionId, database, schemas, key, c.context.workspaceState, {
     extensionUri: c.context.extensionUri,
+    title: withConnection(erTitle(database, schemas), shortConnectionName(conn.conn)),
   });
 }

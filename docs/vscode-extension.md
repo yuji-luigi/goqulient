@@ -272,8 +272,8 @@ extension host (src/views/*Panel.ts)            webview (webview/*.ts → dist/w
 - ⚠ Known gaps: copies of clipped cells copy the clipped text (no `fullRows` yet); no webview serializer, so panels don't
   survive a window reload; one editor font measurement per model (a font change needs Reload); the dev harness's layout
   is a stub, not `er/layout`. In a real VS Code the e2e test checks that each engine's first page and the ER model +
-  `er/layout` arrive (not what is drawn: look at its screenshots). Panel titles don't name the connection, so two
-  connections' `categories — shop` tabs look the same.
+  `er/layout` arrive (not what is drawn: look at its screenshots). The sidebar passes titles that name the connection
+  (see the tree section).
 
 ## Sidebar tree (VSX-11)
 View `goqulient.connections` in the "GoQulient" activity bar container. `ConnectionTree` (`tree/provider.ts`) shows the store's list;
@@ -281,7 +281,7 @@ View `goqulient.connections` in the "GoQulient" activity bar container. `Connect
 ```
 [User Settings | Workspace Settings | <env file>]   only when connections come from more than one source
   connection            database icon; description "connecting… · read-only · <redacted endpoint>" or why it's invalid
-    database            catalog/databases (every database the server lists)
+    database            the profile's database only, or catalog/databases with "Show All Databases" (see below)
       schema            PostgreSQL only: catalog/schemas
         Tables (n) …    catalog/objects grouped in DBObjectKind.allCases order (app's ObjectGroups), empty kinds hidden
           object        table/view/materialized view/collection: double-click or Enter opens it; functions/sequences don't
@@ -311,13 +311,21 @@ View `goqulient.connections` in the "GoQulient" activity bar container. `Connect
   schema = that one) → `openErDiagram` with `erLayoutKey` = `goqulient.er:<connId>:<db>:<schemas,>`. Refresh, Disconnect, Copy
   Name, Forget Saved Password (settings connections). View title: Add Connection, Refresh Connections, Open Settings.
   Welcome content when the list is empty (trusted and untrusted variants).
-- `contextValue`: `goqulient.connection <idle|connecting|connected|failed|invalid> <settings|env>`, `goqulient.database`,
+- `contextValue`: `goqulient.connection <idle|connecting|connected|failed|invalid> <settings|env> [dbfilter|dball]`, `goqulient.database`,
   `goqulient.schema`, `goqulient.group`, `goqulient.object`, `goqulient.routine`, `goqulient.column`, `goqulient.error`; menus match them with
   `viewItem =~ /…/`.
 - Secrets: labels, descriptions and tooltips only use names, the redacted endpoint and engine messages (the e2e checks
   every item it sees for the test password).
-- ⚠ Known gaps: all databases on the server are listed even when the profile names one (the app does the same); no
-  filter box; no "connected" indicator per database for PostgreSQL's per-database pools; double-click relies on timing.
+- **Databases shown**: a profile that names a database shows only that one (no `catalog/databases` call, so it also works
+  without the right to list databases); a profile without one lists every database. "Show All Databases" / "Show Only the
+  Connection's Database" in the connection's context menu (`contextValue` token `dbfilter` / `dball`) is remembered per
+  connection in `workspaceState` (`goqulient.showAllDatabases.<id>`) and wins over the `goqulient.showAllDatabases`
+  setting (default false). `databaseFilter` in `tree/model.ts`.
+- **Panel titles** name the connection: `categories — shop (DATABASE_URL)`, `shop — ER diagram (DATABASE_URL)`.
+  `shortConnectionName` uses the variable for an env connection with its default name, else the connection name;
+  `withConnection` cuts the name with `…` to keep the title within 60 characters (never below 12). The panels take it as
+  `TableOptions.title` / `ErOptions.title`.
+- ⚠ Known gaps: no filter box; no "connected" indicator per database for PostgreSQL's per-database pools; double-click relies on timing.
 
 ### Checklists
 **Add a tree node type**
@@ -428,8 +436,9 @@ View `goqulient.connections` in the "GoQulient" activity bar container. `Connect
   test network, with a scratch workspace whose `.env` has `DATABASE_URL` (pg-primary), `MYSQL_URL` (`ssl-mode=REQUIRED`)
   and `MONGODB_URI`, and `GOKU_ENGINE_PATH` = the Linux debug engine. `test-e2e/suite.cjs` uses the test API that
   `activate` returns in `ExtensionMode.Test` (`tree`, `view`, `sessions`, `store`, `engine`, `answered`) and checks:
-  the engine isn't started by activation; three read-only connections; each expands to `shop` and its tables/collections
-  and columns; `goqulient.openTable` gets a `table/page` answer for each engine; the ER diagram gets `schema/introspect` and
+  the engine isn't started by activation; three read-only connections; each shows only `shop` until Show All Databases
+  (then `postgres` too, and back); each expands to its tables/collections and columns; `goqulient.openTable` gets a
+  `table/page` answer for each engine and its title names the connection; the ER diagram gets `schema/introspect` and
   `er/layout` (so the webview measured the boxes); Disconnect and Restart Engine leave connections idle and the next
   expand reconnects; no item shows the password. Reads only. Set `GOKU_E2E_SCREENSHOTS` to keep `table.png`/`er.png`
   of the window and look at them. Not in CI yet.

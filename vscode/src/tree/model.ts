@@ -112,3 +112,28 @@ export function columnDescription(c: Attribute): string {
     .filter(Boolean)
     .join(' · ');
 }
+
+/**
+ * The only database a connection's tree shows, or undefined for all of them: a profile that names a database shows just
+ * that one unless "Show All Databases" is on (per connection, else the `goqulient.showAllDatabases` setting).
+ */
+export function databaseFilter(profileDatabase: string | undefined, override: boolean | undefined, showAllSetting: boolean): string | undefined {
+  const db = profileDatabase?.trim();
+  if (!db) return undefined;
+  return (override ?? showAllSetting) ? undefined : db;
+}
+
+/** How panel titles name a connection: an env connection with its default name by its variable, others by name. */
+export function shortConnectionName(c: Pick<Connection, 'name' | 'source' | 'variable' | 'file'>): string {
+  if (c.source === 'env' && c.variable && c.name === `${c.variable} (${c.file})`) return c.variable;
+  return c.name;
+}
+
+const MIN_CONNECTION = 12;
+
+/** `base (connection)`, with the connection name cut to keep the title within `max` characters (never below 12). */
+export function withConnection(base: string, connection: string, max = 60): string {
+  const room = Math.max(MIN_CONNECTION, max - base.length - 3);
+  const name = [...connection].length > room ? `${[...connection].slice(0, room - 1).join('').trimEnd()}…` : connection;
+  return `${base} (${name})`;
+}

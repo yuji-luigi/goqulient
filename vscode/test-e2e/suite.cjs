@@ -81,6 +81,19 @@ exports.run = async function run() {
     results[conn.conn.name] = `${path.join(' › ')} › ${obj.ref.name} (${objects.length} objects, ${columns.length} columns)`;
     return obj;
   };
+  // The profiles name `shop`: only it is listed until Show All Databases (remembered per connection).
+  for (const n of roots) {
+    assert.deepEqual((await settled(n)).map((k) => item(k).label), ['shop'], `${n.conn.name}: only its database`);
+    assert.match(String(item(n).contextValue), /\bdbfilter\b/);
+  }
+  await vscode.commands.executeCommand('goqulient.showAllDatabases', pg);
+  const all = (await settled(pg)).map((k) => item(k).label);
+  assert.ok(all.includes('shop') && all.includes('postgres'), `all databases: ${all.join(', ')}`);
+  assert.match(String(item(pg).contextValue), /\bdball\b/);
+  await vscode.commands.executeCommand('goqulient.showConnectionDatabase', pg);
+  assert.deepEqual((await settled(pg)).map((k) => item(k).label), ['shop']);
+  console.log(`  database filter: shop only; Show All Databases lists ${all.length}`);
+
   const pgTable = await firstTable(pg, ['shop', 'public', 'Tables']);
   const myTable = await firstTable(my, ['shop', 'Tables']);
   const mongoColl = await firstTable(mongo, ['shop', 'Collections']);
@@ -92,9 +105,11 @@ exports.run = async function run() {
     const before = answered.filter((m) => m === 'table/page').length;
     const panel = await vscode.commands.executeCommand('goqulient.openTable', obj);
     assert.ok(panel, `panel for ${obj.ref.name}`);
+    const variable = obj.conn.conn.variable;
+    assert.equal(panel.title, `${obj.ref.name} — shop (${variable})`);
     await until(`a page of ${obj.ref.name}`, () => answered.filter((m) => m === 'table/page').length > before);
   }
-  console.log('  table viewer: a page arrived for each engine');
+  console.log('  table viewer: a page arrived for each engine; titles name the connection');
   if (process.env.GOKU_E2E_SCREENSHOTS) {
     await vscode.commands.executeCommand('workbench.action.closeAuxiliaryBar');
     await vscode.commands.executeCommand('notifications.clearAll');
@@ -108,7 +123,8 @@ exports.run = async function run() {
   // ER diagram: introspection, then the webview measures the boxes and the engine lays them out.
   const pgDb = pgTable.parent.parent.parent;
   assert.equal(pgDb.type, 'database');
-  await vscode.commands.executeCommand('goqulient.openErDiagram', pgDb);
+  const er = await vscode.commands.executeCommand('goqulient.openErDiagram', pgDb);
+  assert.equal(er.title, 'shop — ER diagram (DATABASE_URL)');
   await until('schema/introspect', () => answered.includes('schema/introspect'));
   await until('er/layout', () => answered.includes('er/layout'));
   console.log('  ER diagram: model and layout arrived');

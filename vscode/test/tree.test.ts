@@ -7,10 +7,13 @@ import {
   columnDescription,
   connectionDescription,
   connectionTooltip,
+  databaseFilter,
   erLayoutKey,
   groupObjects,
   isAuthFailure,
+  shortConnectionName,
   sourceGroups,
+  withConnection,
 } from '../src/tree/model.ts';
 import { Sessions, type ConnectHooks, type Target } from '../src/tree/sessions.ts';
 import type { ObjectRef } from '../src/views/protocol.ts';
@@ -31,6 +34,28 @@ describe('tree model', () => {
   test('ER layout key per connection, database and schemas', () => {
     assert.equal(erLayoutKey('c1', 'shop', []), 'goqulient.er:c1:shop:');
     assert.equal(erLayoutKey('c1', 'shop', ['public', 'audit']), 'goqulient.er:c1:shop:public,audit');
+  });
+
+  test('a profile with a database shows only it unless Show All Databases is on', () => {
+    assert.equal(databaseFilter('shop', undefined, false), 'shop');
+    assert.equal(databaseFilter('shop', undefined, true), undefined, 'the setting');
+    assert.equal(databaseFilter('shop', true, false), undefined, 'the per-connection choice wins over the setting');
+    assert.equal(databaseFilter('shop', false, true), 'shop');
+    assert.equal(databaseFilter(undefined, false, false), undefined, 'no database in the profile: everything');
+    assert.equal(databaseFilter('  ', undefined, false), undefined);
+  });
+
+  test('panel titles name the connection, shortened when long', () => {
+    const env = { name: 'DATABASE_URL (.env)', source: 'env' as const, variable: 'DATABASE_URL', file: '.env' };
+    assert.equal(shortConnectionName(env), 'DATABASE_URL');
+    assert.equal(shortConnectionName({ ...env, name: 'Main' }), 'Main', 'a name from goqulient.envConnections');
+    assert.equal(shortConnectionName({ name: 'Prod', source: 'user' }), 'Prod');
+    assert.equal(withConnection('categories — shop', 'DATABASE_URL'), 'categories — shop (DATABASE_URL)');
+    const long = withConnection('categories — shop', 'Analytics replica in eu-west-1 behind the bastion host');
+    assert.equal(long, 'categories — shop (Analytics replica in eu-west-1 behind t…)');
+    assert.ok(long.length <= 60);
+    const longBase = withConnection('a_very_long_table_name_for_reporting_purposes — warehouse', 'Analytics replica');
+    assert.equal(longBase, 'a_very_long_table_name_for_reporting_purposes — warehouse (Analytics r…)', 'never below 12');
   });
 
   test('wrong-password messages of the three drivers, and not other access errors', () => {

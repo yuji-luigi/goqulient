@@ -10,6 +10,7 @@ import {
   KIND_SINGULAR,
   columnDescription,
   connectionDescription,
+  databaseFilter,
   connectionTooltip,
   groupObjects,
   isBrowsable,
@@ -67,15 +68,25 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
   private readonly cache = new Map<string, Promise<unknown>>();
   private readonly disposables: vscode.Disposable[] = [];
   private readonly onFirstShow: () => void;
+  /** Per-connection "Show All Databases" choices (`goqulient.showAllDatabases.<id>`). */
+  private readonly state: vscode.Memento;
   private shown = false;
 
-  constructor(store: ConnectionStore, sessions: Sessions, onFirstShow: () => void) {
+  constructor(store: ConnectionStore, sessions: Sessions, state: vscode.Memento, onFirstShow: () => void) {
     this.store = store;
     this.sessions = sessions;
+    this.state = state;
     this.onFirstShow = onFirstShow;
     this.rebuild();
     const off = sessions.onDidChange((id, collapsed) => this.sessionChanged(id, collapsed));
-    this.disposables.push(this.changed, store.onDidChange(() => this.reload()), { dispose: off });
+    this.disposables.push(
+      this.changed,
+      store.onDidChange(() => this.reload()),
+      { dispose: off },
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration('goqulient.showAllDatabases')) this.changed.fire(undefined);
+      }),
+    );
   }
 
   dispose(): void {
@@ -91,6 +102,18 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
     this.cache.clear();
     await this.store.refresh();
     this.changed.fire(undefined);
+  }
+
+  /** The only database `conn` shows, or undefined when it lists every database on the server. */
+  databaseFilter(conn: Connection): string | undefined {
+    const setting = vscode.workspace.getConfiguration('goqulient').get<boolean>('showAllDatabases') === true;
+    return databaseFilter(conn.profile?.database, this.state.get<boolean>(showAllKey(conn.id)), setting);
+  }
+
+  /** Remembers "Show All Databases" for this connection (in the workspace) and redraws it. */
+  async setShowAllDatabases(node: ConnectionNode, showAll: boolean): Promise<void> {
+    await this.state.update(showAllKey(node.conn.id), showAll);
+    this.changed.fire(node);
   }
 
   /** Drops the cached lists of `node` and everything below it, then redraws it (a failed connection tries again). */
@@ -230,7 +253,10 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
             ? new vscode.ThemeIcon('database', new vscode.ThemeColor('errorForeground'))
             : new vscode.ThemeIcon('database');
     // Space-separated tokens, matched with `viewItem =~ /\bconnected\b/` in package.json menus.
-    item.contextValue = ['goqulient.connection', c.invalid ? 'invalid' : state.status, c.source === 'env' ? 'env' : 'settings'].join(' ');
+    const scope = !c.profile?.database?.trim() ? undefined : this.databaseFilter(c) === undefined ? 'dball' : 'dbfilter';
+    item.contextValue = ['goqulient.connection', c.invalid ? 'invalid' : state.status, c.source === 'env' ? 'env' : 'settings', scope]
+      .filter(Boolean)
+      .join(' ');
     return item;
   }
 
@@ -319,6 +345,8 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
     try {
       switch (node.type) {
         case 'connection': {
+          const only = this.databaseFilter(conn.conn);
+          if (only !== undefined) return [{ type: 'database', conn, parent: node, database: only }];
           const { databases } = await this.cached<{ databases: string[] }>(node, 'catalog/databases', {});
           if (!databases.length) return [{ type: 'message', parent: node, tone: 'empty', text: 'No databases' }];
           return databases.map((database) => ({ type: 'database', conn, parent: node, database }));
@@ -378,6 +406,10 @@ export class ConnectionTree implements vscode.TreeDataProvider<Node>, vscode.Dis
     }
     return p;
   }
+}
+
+function showAllKey(id: string): string {
+  return `goqulient.showAllDatabases.${id}`;
 }
 
 const OBJECT_ICON: Record<string, string> = {

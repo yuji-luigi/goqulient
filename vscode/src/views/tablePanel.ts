@@ -9,6 +9,8 @@ export interface TableOptions {
   extensionUri: vscode.Uri;
   /** The profile's page size (`maxRows`). */
   pageSize: number;
+  /** Panel title; defaults to `tableTitle(object)`. */
+  title?: string;
 }
 
 const panels = new Map<string, vscode.WebviewPanel>();
@@ -31,7 +33,7 @@ export function openTable(
     existing.reveal();
     return existing;
   }
-  const title = tableTitle(object);
+  const title = options.title ?? tableTitle(object);
   const panel = createPanel('goqulient.table', title, options.extensionUri, 'table');
   panels.set(key, panel);
   const post = poster<TableToWebview>(panel);

@@ -27,6 +27,7 @@ connections are enforced by the server too, and passwords stay in VS Code's secr
 | `goqulient.connections` | Connections in the Goku app's profile format (`name`, `kind`, `hosts`, `user`, `database`, `ssl`, `readOnly`, …). No passwords here: GoQulient asks and keeps them in secret storage. |
 | `goqulient.envFiles` | Files searched for connection variables, relative to each workspace folder (default `.env`). |
 | `goqulient.envConnections` | More variables holding connection URLs, e.g. `{"url": "ANALYTICS_DB_URL", "name": "Analytics", "readOnly": false}`. |
+| `goqulient.showAllDatabases` | List every database on the server for connections that name one (default: only that database). **Show All Databases** in a connection's context menu changes it for that connection. |
 | `goqulient.enginePath` | Use a locally built engine (machine setting, for development). |
 
 ## Security
