@@ -15,7 +15,12 @@ export interface ConnectionStoreOptions {
   secrets: vscode.SecretStorage;
   log: vscode.LogOutputChannel;
   validate?: Validator;
+  /** Validation only runs once this is true, so listing connections never starts the engine (call `revalidate` later). */
+  canValidate?: () => boolean;
 }
+
+/** Where `getCredentials` found a password, so a rejected one can be handled (see `promptPassword`). */
+export type PasswordSource = 'saved' | 'session' | 'typed' | 'none';
 
 interface EnvSource {
   uri: vscode.Uri;
@@ -109,17 +114,31 @@ export class ConnectionStore implements vscode.Disposable {
 
   /** Settings connections: SecretStorage, else a password prompt (with an option to save). Undefined = cancelled. */
   async getCredentials(conn: Connection): Promise<Credentials | undefined> {
-    if (conn.source === 'env') return (await this.envConnection(conn)).credentials ?? {};
+    return (await this.credentialsWithSource(conn))?.credentials;
+  }
+
+  /** `getCredentials`, plus where the password came from. */
+  async credentialsWithSource(conn: Connection): Promise<{ credentials: Credentials; source: PasswordSource } | undefined> {
+    if (conn.source === 'env') return { credentials: (await this.envConnection(conn)).credentials ?? {}, source: 'none' };
     if (!conn.profile) throw new Error(conn.invalid ?? `“${conn.name}” can't be used.`);
-    if (!needsPassword(conn.profile)) return {};
+    if (!needsPassword(conn.profile)) return { credentials: {}, source: 'none' };
     const fingerprint = secretFingerprint(conn.profile);
     const session = this.sessionSecrets.get(conn.id);
-    if (session?.fingerprint === fingerprint) return { password: session.password };
+    if (session?.fingerprint === fingerprint) return { credentials: { password: session.password }, source: 'session' };
     const saved = parseSecret(await this.options.secrets.get(passwordKey(conn.id)));
-    if (saved?.fingerprint === fingerprint) return { password: saved.password };
+    if (saved?.fingerprint === fingerprint) return { credentials: { password: saved.password }, source: 'saved' };
+    const prompt = saved ? `The saved password was for a different server (${conn.endpoint} now).` : conn.endpoint;
+    const credentials = await this.promptPassword(conn, prompt);
+    return credentials && { credentials, source: 'typed' };
+  }
+
+  /** Asks for the password of a settings connection (e.g. after the server rejected one). Undefined = cancelled. */
+  async promptPassword(conn: Connection, prompt: string): Promise<Credentials | undefined> {
+    if (!conn.profile) throw new Error(conn.invalid ?? `“${conn.name}” can't be used.`);
+    const fingerprint = secretFingerprint(conn.profile);
     const password = await vscode.window.showInputBox({
       title: `Password for ${conn.name}`,
-      prompt: saved ? `The saved password was for a different server (${conn.endpoint} now).` : conn.endpoint,
+      prompt,
       password: true,
       ignoreFocusOut: true,
     });
@@ -134,6 +153,16 @@ export class ConnectionStore implements vscode.Disposable {
     if (save?.save) await this.savePassword(conn.id, conn.profile, password);
     else this.sessionSecrets.set(conn.id, { fingerprint, password });
     return { password };
+  }
+
+  /** Forgets a password kept until VS Code closes (not the saved one). */
+  forgetSessionPassword(id: string): void {
+    this.sessionSecrets.delete(id);
+  }
+
+  /** Validates through the engine now (e.g. once it has started); a no-op while `canValidate` says no. */
+  revalidate(): Promise<void> {
+    return this.validateAll(this.generation);
   }
 
   async savePassword(id: string, profile: ProfileJson, password: string): Promise<void> {
@@ -235,7 +264,7 @@ export class ConnectionStore implements vscode.Disposable {
 
   private async validateAll(generation: number): Promise<void> {
     const validate = this.options.validate;
-    if (!validate) return;
+    if (!validate || this.options.canValidate?.() === false) return;
     let changed = false;
     for (const c of this.connections) {
       if (!c.profile || c.invalid) continue;

@@ -89,6 +89,27 @@ describe('with the real engine', { skip: bin ? false : 'GOKU_ENGINE_BIN not set'
     assert.equal(alive(pid), false);
   });
 
+  test('start and stop events, isRunning; a crash restart reports both', async () => {
+    const c = client();
+    const events: string[] = [];
+    c.onDidStart(() => events.push('start'));
+    const off = c.onDidStop(() => events.push('stop'));
+    try {
+      assert.equal(c.isRunning, false, 'nothing starts the engine but a request');
+      await c.info();
+      assert.equal(c.isRunning, true);
+      process.kill((await c.pid())!, 'SIGKILL');
+      await waitFor(() => events.length >= 3);
+      assert.deepEqual(events, ['start', 'stop', 'start']);
+      off();
+      await c.stop();
+      assert.equal(c.isRunning, false);
+      assert.deepEqual(events, ['start', 'stop', 'start'], 'unsubscribed');
+    } finally {
+      await c.stop();
+    }
+  });
+
   test('a crashed engine restarts, then gives up when the budget is spent', async () => {
     let gaveUp = '';
     const c = client({ budget: new CrashBudget(1, 60_000), onGaveUp: (r) => (gaveUp = r) });

@@ -46,7 +46,8 @@
       {
         "command": "goku.addConnection",
         "title": "Add Connection",
-        "category": "Goku"
+        "category": "Goku",
+        "icon": "$(add)"
       },
       {
         "command": "goku.forgetPassword",
@@ -56,6 +57,64 @@
       {
         "command": "goku.openSettings",
         "title": "Open Settings",
+        "category": "Goku",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "goku.refresh",
+        "title": "Refresh Connections",
+        "category": "Goku",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "goku.refreshNode",
+        "title": "Refresh",
+        "category": "Goku",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "goku.retry",
+        "title": "Retry",
+        "category": "Goku",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "goku.disconnect",
+        "title": "Disconnect",
+        "category": "Goku",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "goku.cancelConnecting",
+        "title": "Cancel Connecting",
+        "category": "Goku",
+        "icon": "$(close)"
+      },
+      {
+        "command": "goku.openTable",
+        "title": "Open Table",
+        "category": "Goku",
+        "icon": "$(table)"
+      },
+      {
+        "command": "goku.openErDiagram",
+        "title": "Open ER Diagram",
+        "category": "Goku",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "goku.copyName",
+        "title": "Copy Name",
+        "category": "Goku"
+      },
+      {
+        "command": "goku.tree.activate",
+        "title": "Open",
+        "category": "Goku"
+      },
+      {
+        "command": "goku.tree.enter",
+        "title": "Open Selected",
         "category": "Goku"
       }
     ],
@@ -129,14 +188,160 @@
           "markdownDescription": "Path to a `goku-engine-server` to use instead of the bundled one (for engine development). Machine scope only, so a workspace can't point it at another program."
         }
       }
-    }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "goku",
+          "title": "Goku",
+          "icon": "media/activitybar.svg"
+        }
+      ]
+    },
+    "views": {
+      "goku": [
+        {
+          "id": "goku.connections",
+          "name": "Connections",
+          "icon": "media/activitybar.svg",
+          "contextualTitle": "Goku"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "goku.connections",
+        "contents": "No database connections yet.\n[Add Connection](command:goku.addConnection)\n[Open Settings](command:goku.openSettings)\nGoku also reads DATABASE_URL, POSTGRES_URL, MYSQL_URL, MONGODB_URI, PG* and MYSQL_* variables from the workspace .env file (read-only by default).",
+        "when": "isWorkspaceTrusted"
+      },
+      {
+        "view": "goku.connections",
+        "contents": "No database connections yet.\n[Add Connection](command:goku.addConnection)\n[Open Settings](command:goku.openSettings)\nThis workspace isn’t trusted, so Goku ignores its .env files and workspace settings. [Manage Workspace Trust](command:workbench.trust.manage)",
+        "when": "!isWorkspaceTrusted"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "goku.addConnection",
+          "when": "view == goku.connections",
+          "group": "navigation@1"
+        },
+        {
+          "command": "goku.refresh",
+          "when": "view == goku.connections",
+          "group": "navigation@2"
+        },
+        {
+          "command": "goku.openSettings",
+          "when": "view == goku.connections",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "goku.cancelConnecting",
+          "when": "view == goku.connections && viewItem =~ /^goku\\.connection connecting\\b/",
+          "group": "inline"
+        },
+        {
+          "command": "goku.cancelConnecting",
+          "when": "view == goku.connections && viewItem =~ /^goku\\.connection connecting\\b/",
+          "group": "1_connection@1"
+        },
+        {
+          "command": "goku.disconnect",
+          "when": "view == goku.connections && viewItem =~ /^goku\\.connection connected\\b/",
+          "group": "1_connection@2"
+        },
+        {
+          "command": "goku.refreshNode",
+          "when": "view == goku.connections && viewItem =~ /^goku\\.(connection (connected|failed|idle)|database|schema|group|object)\\b/",
+          "group": "1_connection@3"
+        },
+        {
+          "command": "goku.forgetPassword",
+          "when": "view == goku.connections && viewItem =~ /^goku\\.connection .*\\bsettings\\b/",
+          "group": "1_connection@4"
+        },
+        {
+          "command": "goku.openTable",
+          "when": "view == goku.connections && viewItem == goku.object",
+          "group": "inline"
+        },
+        {
+          "command": "goku.openTable",
+          "when": "view == goku.connections && viewItem == goku.object",
+          "group": "0_open@1"
+        },
+        {
+          "command": "goku.openErDiagram",
+          "when": "view == goku.connections && viewItem =~ /^goku\\.(database|schema)$/",
+          "group": "inline"
+        },
+        {
+          "command": "goku.openErDiagram",
+          "when": "view == goku.connections && viewItem =~ /^goku\\.(database|schema)$/",
+          "group": "0_open@2"
+        },
+        {
+          "command": "goku.retry",
+          "when": "view == goku.connections && viewItem == goku.error",
+          "group": "inline"
+        },
+        {
+          "command": "goku.retry",
+          "when": "view == goku.connections && viewItem == goku.error",
+          "group": "1_connection@1"
+        },
+        {
+          "command": "goku.copyName",
+          "when": "view == goku.connections && viewItem =~ /^goku\\.(connection|database|schema|object|routine|column|error)\\b/",
+          "group": "9_copy@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "goku.tree.activate",
+          "when": "false"
+        },
+        {
+          "command": "goku.tree.enter",
+          "when": "false"
+        },
+        {
+          "command": "goku.retry",
+          "when": "false"
+        },
+        {
+          "command": "goku.copyName",
+          "when": "false"
+        },
+        {
+          "command": "goku.refreshNode",
+          "when": "false"
+        },
+        {
+          "command": "goku.cancelConnecting",
+          "when": "false"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "goku.tree.enter",
+        "key": "enter",
+        "when": "focusedView == goku.connections && listFocus && !inputFocus"
+      }
+    ]
   },
   "scripts": {
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc --noEmit && tsc --noEmit -p webview",
     "test": "node --test 'test/**/*.test.ts'",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "e2e": "node test-e2e/run.mjs"
   },
   "dependencies": {
     "vscode-jsonrpc": "^8.2.1"
@@ -144,6 +349,7 @@
   "devDependencies": {
     "@types/node": "^22.15.0",
     "@types/vscode": "~1.95.0",
+    "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.25.0",
     "typescript": "^5.9.0"
   }

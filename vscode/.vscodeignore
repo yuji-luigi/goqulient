@@ -6,3 +6,5 @@ tsconfig.json
 **/*.map
 webview/**
 webview-dev/**
+test-e2e/**
+.vscode-test/**

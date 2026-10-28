@@ -11,7 +11,9 @@ const TITLE = 'Add Goku Connection';
 export function registerConnectionCommands(context: vscode.ExtensionContext, store: ConnectionStore): vscode.Disposable[] {
   return [
     vscode.commands.registerCommand('goku.addConnection', () => addConnection(store)),
-    vscode.commands.registerCommand('goku.forgetPassword', (arg?: Connection | string) => forgetPassword(store, arg)),
+    vscode.commands.registerCommand('goku.forgetPassword', (arg?: Connection | string | { conn: Connection }) =>
+      forgetPassword(store, arg && typeof arg === 'object' && 'conn' in arg ? arg.conn : arg),
+    ),
     vscode.commands.registerCommand('goku.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', `@ext:${context.extension.id}`),
     ),

@@ -95,6 +95,10 @@ export class EngineClient {
   private readonly budget: CrashBudget;
   private running: Promise<Running> | undefined;
   private disposed = false;
+  /** The initialized process, set once `initialize` answered. */
+  private current: Running | undefined;
+  private readonly startListeners = new Set<(info: InitializeResult) => void>();
+  private readonly stopListeners = new Set<() => void>();
 
   constructor(options: EngineClientOptions) {
     this.options = options;
@@ -104,6 +108,23 @@ export class EngineClient {
   /** Starts the engine if needed and returns what `initialize` reported. */
   async info(): Promise<InitializeResult> {
     return (await this.ensure()).info;
+  }
+
+  /** True while a started engine process is up (doesn't start one). */
+  get isRunning(): boolean {
+    return this.current !== undefined;
+  }
+
+  /** Called after every successful start, including automatic restarts. Returns an unsubscribe function. */
+  onDidStart(listener: (info: InitializeResult) => void): () => void {
+    this.startListeners.add(listener);
+    return () => this.startListeners.delete(listener);
+  }
+
+  /** Called when a started engine stops for any reason (crash, `stop`, `restart`): its sessions are gone. */
+  onDidStop(listener: () => void): () => void {
+    this.stopListeners.add(listener);
+    return () => this.stopListeners.delete(listener);
   }
 
   /** The engine's process id while it runs (for tests and the log). */
@@ -197,11 +218,17 @@ export class EngineClient {
       throw toEngineError(e);
     }
     log.info(`Engine ${running.info.engineVersion} ready (protocol ${running.info.protocolVersion})`);
+    this.current = running;
+    for (const l of this.startListeners) l(running.info);
     return running;
   }
 
   private exited(r: Running, code: number | null, signal: NodeJS.Signals | null): void {
     r.connection.dispose();
+    if (this.current === r) {
+      this.current = undefined;
+      for (const l of this.stopListeners) l();
+    }
     if (r.stopping) return;
     const how = signal ? `signal ${signal}` : `exit code ${code}`;
     this.options.log.error(`The Goku engine stopped unexpectedly (${how}).`);
