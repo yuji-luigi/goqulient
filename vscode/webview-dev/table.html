@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!-- Dev harness for the table viewer: serve the repo root (snapshot.mjs does) and open /vscode/webview-dev/table.html -->
+<html lang="en" data-view="table">
+<head>
+<meta charset="UTF-8">
+<!-- The extension shell's policy, with 'self' for the nonce: violations show up here. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob: data:; style-src 'self'; font-src 'self'; script-src 'self'">
+<title>orders — shop</title>
+<link rel="stylesheet" href="themes.css">
+<link rel="stylesheet" href="../dist/webview/table.css">
+<script src="fake-host.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="../dist/webview/table.js"></script>
+</body>
+</html>

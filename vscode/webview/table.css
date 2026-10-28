@@ -1,0 +1,159 @@
+@import './common.css';
+
+.status { color: var(--vscode-descriptionForeground); font-size: 12px; white-space: nowrap; }
+.status.more { color: var(--vscode-foreground); }
+
+/* The body scrolls; the header follows it horizontally and the row numbers vertically (transforms set in render). */
+.grid {
+  --gutter: 44px;
+  --row: 22px;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--gutter) 1fr;
+  grid-template-rows: 38px 1fr;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+}
+.grid.no-rows { flex: none; height: 39px; }
+.grid.stale .body, .grid.stale .gutter { opacity: 0.55; }
+.corner, .header, .gutter {
+  background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-sideBar-background));
+}
+.corner {
+  border-right: 1px solid var(--vscode-panel-border, var(--vscode-contrastBorder));
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-contrastBorder));
+  color: var(--vscode-editorLineNumber-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+}
+.header {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-contrastBorder));
+}
+.header-inner { position: absolute; top: 0; left: 0; bottom: 0; will-change: transform; }
+.hcell {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  box-sizing: border-box;
+  padding: 3px 8px 2px;
+  border-right: 1px solid var(--vscode-panel-border, var(--vscode-contrastBorder));
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--vscode-font-family);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.hcell:hover { background: var(--vscode-list-hoverBackground); }
+.hname { font-weight: 600; }
+.harrow { color: var(--vscode-textLink-foreground); font-size: 10px; }
+.htype {
+  display: block;
+  font-size: 10.5px;
+  color: var(--vscode-descriptionForeground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hcell.num { text-align: right; }
+.hcell.sorted .hname { color: var(--vscode-textLink-foreground); }
+.resize { position: absolute; top: 0; right: -3px; width: 7px; bottom: 0; cursor: col-resize; z-index: 1; }
+
+.gutter {
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid var(--vscode-panel-border, var(--vscode-contrastBorder));
+}
+.gutter-inner { position: absolute; top: 0; left: 0; right: 0; will-change: transform; }
+.rownum {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--row);
+  line-height: var(--row);
+  padding-right: 8px;
+  text-align: right;
+  color: var(--vscode-editorLineNumber-foreground);
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+}
+.rownum.sel { color: var(--vscode-editorLineNumber-activeForeground, var(--vscode-foreground)); background: var(--vscode-list-inactiveSelectionBackground); }
+
+.body { position: relative; overflow: auto; outline: none; }
+.spacer-box { pointer-events: none; }
+.cells { position: absolute; top: 0; left: 0; }
+.cell {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: var(--row);
+  line-height: var(--row);
+  box-sizing: border-box;
+  padding: 0 8px;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-right: 1px solid var(--vscode-editorIndentGuide-background, rgba(128, 128, 128, 0.15));
+  border-bottom: 1px solid var(--vscode-editorIndentGuide-background, rgba(128, 128, 128, 0.15));
+  user-select: none;
+  cursor: cell;
+}
+.cell.num { text-align: right; }
+.cell.null { color: var(--vscode-disabledForeground, var(--vscode-descriptionForeground)); font-style: italic; }
+/* Truncated by the engine's cell cap: a marker on the right edge. */
+.cell.clipped { padding-right: 22px; }
+.cell.clipped::after {
+  content: '…';
+  position: absolute;
+  right: 3px;
+  top: 4px;
+  height: 13px;
+  line-height: 11px;
+  padding: 0 3px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-style: normal;
+  background: var(--vscode-editorWarning-foreground);
+  color: var(--vscode-editor-background);
+}
+.cell.sel { background: var(--vscode-list-inactiveSelectionBackground); }
+.body:focus .cell.sel { background: var(--vscode-editor-selectionBackground); }
+.cell.focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
+
+.docs { flex: 1; min-height: 0; overflow: auto; padding: 6px 10px 20px; }
+.doc {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+  padding: 6px 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+.doc-n { color: var(--vscode-editorLineNumber-foreground); font-family: var(--vscode-editor-font-family); font-size: 11px; padding-top: 1px; }
+.doc-text {
+  margin: 0;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.clip-note { grid-column: 2; color: var(--vscode-editorWarning-foreground); font-size: 11px; margin-top: 2px; }
+
+.empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--vscode-descriptionForeground); }
+.footer {
+  flex: none;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  border-top: 1px solid var(--vscode-panel-border, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 15px;
+}

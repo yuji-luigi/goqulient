@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!-- Dev harness for the ER diagram: serve the repo root (snapshot.mjs does) and open /vscode/webview-dev/er.html -->
+<html lang="en" data-view="er">
+<head>
+<meta charset="UTF-8">
+<!-- The extension shell's policy, with 'self' for the nonce and connect-src for the fixtures: violations show up here. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob: data:; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self'">
+<title>shop — ER diagram</title>
+<link rel="stylesheet" href="themes.css">
+<link rel="stylesheet" href="../dist/webview/er.css">
+<script src="fake-host.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="../dist/webview/er.js"></script>
+</body>
+</html>
