@@ -16,6 +16,8 @@ tokio-util.workspace = true
 uuid.workspace = true
 fancy-regex.workspace = true
 unicode-segmentation.workspace = true
+mysql_async.workspace = true
+rustls.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }

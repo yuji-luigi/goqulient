@@ -14,6 +14,7 @@ No database access yet. This page is both the PM plan (decisions, milestones, ti
 | ER layout (port of `ERLayout.swift`, checked against `Tests/Parity/er-layout`) | `engine/crates/goku-engine/src/er.rs`, `tests/parity_er_layout.rs` |
 | `secrets` / `uri` redaction (same patterns as `Redaction.swift`) | `engine/crates/goku-engine/src/redact.rs` |
 | `ConnectionProfile` + tolerant decoding, `validate`, `decode_profiles`, `Credentials` (masked `Debug`) | `engine/crates/goku-engine/src/profile.rs` |
+| MySQL/MariaDB driver (`mysql_async` + rustls/ring): connect, host selection, TLS modes, `editor`/`meta` connections, `KILL QUERY`; catalog + introspection; cell formatting (`MySQLValueFormatter` port) | `engine/crates/goku-engine/src/drivers/mysql/{mod,catalog,format}.rs`, `tests/mysql.rs` |
 | Framing (LSP `Content-Length`, 16 MiB cap) | `engine/crates/goku-engine-server/src/framing.rs` |
 | Dispatch, error codes, methods | `engine/crates/goku-engine-server/src/server.rs` |
 | Protocol tests over an in-memory pipe | `engine/crates/goku-engine-server/src/tests.rs` |
@@ -130,6 +131,16 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
 - `ConnectionProfile` decoding mirrors Swift exactly (AGENTS.md rule 6); a new field needs a default in `from_fields`
   and a test, on both sides.
 
+### MySQL driver
+- Never let a `mysql_async::Conn` drop with a result pending: its `Drop` drains the rest of the result in a background
+  task with no deadline. A connection that timed out, was cancelled or stopped at the row cap goes through `discard`
+  (bounded `COM_QUIT`) after `KILL QUERY` from a second connection.
+- Keep the statement cache (default size): with `stmt_cache_size(0)` mysql_async never closes the statements that
+  `exec_iter` prepares, and they pile up on the server until `max_prepared_stmt_count`.
+- `connect` installs rustls' ring provider as the process default (mysql_async uses `ClientConfig::builder()`, which
+  panics when several providers are compiled in and none is installed).
+- Without a CA file the verify modes trust `webpki-roots` (Mozilla's list), not the OS store as the app does.
+
 ## Connections in VS Code
 `ConnectionStore` (`store.ts`) builds the list the tree shows; the merge itself is the pure `mergeConnections` in
 `model.ts` (unit-tested), fed from `inspect('goku.connections')`, the env files and `workspace.isTrusted`.
@@ -244,7 +255,7 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
 | VSX-4 | `vscode/` skeleton: esbuild, `EngineClient` (spawn, restart, output channel), platform binary lookup | M0 | VSX-2 | done |
 | VSX-5 | Parity fixtures exported from GokuCore (Swift test in Docker) | M0 | – | done |
 | VSX-6 | PostgreSQL: connect (TLS modes), catalog, `table/page`, read-only session, introspection | M1 MVP | VSX-3 | |
-| VSX-7 | MySQL/MariaDB: same scope as VSX-6 | M1 | VSX-3 | |
+| VSX-7 | MySQL/MariaDB: same scope as VSX-6 | M1 | VSX-3 | done (no SSH) |
 | VSX-8 | MongoDB: connect (single/multi-host/SRV/URI), catalog, documents page, schema inference | M1 | VSX-3 | |
 | VSX-9 | `er/layout`: port `ERLayout.swift` + parity tests | M1 | VSX-5 | done |
 | VSX-10 | Connections: settings, SecretStorage, `.env` discovery, Workspace Trust, read-only default for env | M1 | VSX-4 | done (no tree yet; Mongo URI password injection waits for VSX-8) |
