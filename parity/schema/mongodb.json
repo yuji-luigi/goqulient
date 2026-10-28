@@ -1,0 +1,469 @@
+{
+  "input" : {
+    "database" : "shop",
+    "entities" : [
+      "customers",
+      "events",
+      "orders",
+      "products",
+      "reviews"
+    ],
+    "schemas" : [
+
+    ],
+    "setup" : [
+
+    ],
+    "teardown" : [
+
+    ]
+  },
+  "output" : {
+    "database" : "shop",
+    "engine" : "mongodb",
+    "entities" : [
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "address",
+            "nullable" : true,
+            "presence" : 0.5,
+            "type" : "object"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "address.city",
+            "nullable" : true,
+            "presence" : 0.5,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "address.zip",
+            "nullable" : true,
+            "presence" : 0.5,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "createdAt",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "date"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : true,
+            "name" : "email",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "name",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "tags",
+            "nullable" : true,
+            "presence" : 0.5,
+            "type" : "array"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "vip",
+            "nullable" : true,
+            "presence" : 0.5,
+            "type" : "bool"
+          }
+        ],
+        "id" : "customers",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "email"
+            ],
+            "name" : "email_1",
+            "primary" : false,
+            "unique" : true
+          }
+        ],
+        "kind" : "collection",
+        "name" : "customers",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "n",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "payload",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          }
+        ],
+        "id" : "events",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "collection",
+        "name" : "events",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "customerId",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "items",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "array"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "items[].productId",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "items[].qty",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "orderedAt",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "date"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "status",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "total",
+            "nullable" : true,
+            "presence" : 0.5,
+            "type" : "double"
+          }
+        ],
+        "id" : "orders",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "customerId",
+              "orderedAt"
+            ],
+            "name" : "customerId_1_orderedAt_-1",
+            "primary" : false,
+            "unique" : false
+          }
+        ],
+        "kind" : "collection",
+        "name" : "orders",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "categories",
+            "nullable" : true,
+            "presence" : 0.5,
+            "type" : "array"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "name",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "price",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "decimal"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "sku",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          }
+        ],
+        "id" : "products",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "collection",
+        "name" : "products",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "customer",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "object"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "product_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "stars",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "text",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          }
+        ],
+        "id" : "reviews",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "collection",
+        "name" : "reviews",
+        "schema" : ""
+      }
+    ],
+    "relationships" : [
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "customerId"
+        ],
+        "fromEntity" : "orders",
+        "id" : "orders(customerId)->customers(_id)#orders.customerId",
+        "inferred" : true,
+        "name" : "orders.customerId",
+        "optional" : false,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "customers"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "items[].productId"
+        ],
+        "fromEntity" : "orders",
+        "id" : "orders(items[].productId)->products(_id)#orders.items[].productId",
+        "inferred" : true,
+        "name" : "orders.items[].productId",
+        "optional" : false,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "products"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "customer"
+        ],
+        "fromEntity" : "reviews",
+        "id" : "reviews(customer)->customers(_id)#reviews.customer",
+        "inferred" : true,
+        "name" : "reviews.customer",
+        "optional" : false,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "customers"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "product_id"
+        ],
+        "fromEntity" : "reviews",
+        "id" : "reviews(product_id)->products(_id)#reviews.product_id",
+        "inferred" : true,
+        "name" : "reviews.product_id",
+        "optional" : false,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "products"
+      }
+    ],
+    "warnings" : [
+      "MongoDB has no declared schema: fields and relationships are inferred from up to 100 sampled documents per collection."
+    ]
+  }
+}

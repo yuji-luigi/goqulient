@@ -1,0 +1,22 @@
+{
+  "input" : {
+    "edges" : [
+
+    ],
+    "entities" : [
+
+    ],
+    "options" : {
+      "componentGap" : 80,
+      "horizontalGap" : 90,
+      "orderingSweeps" : 6,
+      "verticalGap" : 36
+    },
+    "sizes" : {
+
+    }
+  },
+  "output" : {
+
+  }
+}

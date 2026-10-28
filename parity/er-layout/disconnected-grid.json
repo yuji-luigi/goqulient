@@ -1,0 +1,214 @@
+{
+  "input" : {
+    "edges" : [
+      {
+        "child" : "a2",
+        "parent" : "a1"
+      },
+      {
+        "child" : "a3",
+        "parent" : "a2"
+      },
+      {
+        "child" : "b2",
+        "parent" : "b1"
+      },
+      {
+        "child" : "loop",
+        "parent" : "loop"
+      }
+    ],
+    "entities" : [
+      "a1",
+      "a2",
+      "a3",
+      "b1",
+      "b2",
+      "lone1",
+      "lone2",
+      "lone3",
+      "lone4",
+      "lone5",
+      "lone6",
+      "loop"
+    ],
+    "options" : {
+      "componentGap" : 45,
+      "horizontalGap" : 60,
+      "orderingSweeps" : 3,
+      "verticalGap" : 20.5
+    },
+    "sizes" : {
+      "a1" : {
+        "height" : 60,
+        "width" : 150
+      },
+      "a2" : {
+        "height" : 90,
+        "width" : 190
+      },
+      "a3" : {
+        "height" : 120,
+        "width" : 230
+      },
+      "b1" : {
+        "height" : 150,
+        "width" : 150
+      },
+      "b2" : {
+        "height" : 180,
+        "width" : 190
+      },
+      "lone1" : {
+        "height" : 60,
+        "width" : 230
+      },
+      "lone2" : {
+        "height" : 90,
+        "width" : 150
+      },
+      "lone3" : {
+        "height" : 41.5,
+        "width" : 333.25
+      },
+      "lone4" : {
+        "height" : 150,
+        "width" : 230
+      },
+      "lone5" : {
+        "height" : 180,
+        "width" : 150
+      },
+      "lone6" : {
+        "height" : 60,
+        "width" : 190
+      },
+      "loop" : {
+        "height" : 90,
+        "width" : 230
+      }
+    }
+  },
+  "output" : {
+    "a1" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 476
+      },
+      "size" : {
+        "height" : 60,
+        "width" : 150
+      }
+    },
+    "a2" : {
+      "origin" : {
+        "x" : 210,
+        "y" : 461
+      },
+      "size" : {
+        "height" : 90,
+        "width" : 190
+      }
+    },
+    "a3" : {
+      "origin" : {
+        "x" : 460,
+        "y" : 446
+      },
+      "size" : {
+        "height" : 120,
+        "width" : 230
+      }
+    },
+    "b1" : {
+      "origin" : {
+        "x" : 735,
+        "y" : 461
+      },
+      "size" : {
+        "height" : 150,
+        "width" : 150
+      }
+    },
+    "b2" : {
+      "origin" : {
+        "x" : 945,
+        "y" : 446
+      },
+      "size" : {
+        "height" : 180,
+        "width" : 190
+      }
+    },
+    "lone1" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 0
+      },
+      "size" : {
+        "height" : 60,
+        "width" : 230
+      }
+    },
+    "lone2" : {
+      "origin" : {
+        "x" : 260,
+        "y" : 0
+      },
+      "size" : {
+        "height" : 90,
+        "width" : 150
+      }
+    },
+    "lone3" : {
+      "origin" : {
+        "x" : 440,
+        "y" : 0
+      },
+      "size" : {
+        "height" : 41.5,
+        "width" : 333.25
+      }
+    },
+    "lone4" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 110.5
+      },
+      "size" : {
+        "height" : 150,
+        "width" : 230
+      }
+    },
+    "lone5" : {
+      "origin" : {
+        "x" : 260,
+        "y" : 110.5
+      },
+      "size" : {
+        "height" : 180,
+        "width" : 150
+      }
+    },
+    "lone6" : {
+      "origin" : {
+        "x" : 440,
+        "y" : 110.5
+      },
+      "size" : {
+        "height" : 60,
+        "width" : 190
+      }
+    },
+    "loop" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 311
+      },
+      "size" : {
+        "height" : 90,
+        "width" : 230
+      }
+    }
+  }
+}

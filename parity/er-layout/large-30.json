@@ -1,0 +1,604 @@
+{
+  "input" : {
+    "edges" : [
+      {
+        "child" : "t01",
+        "parent" : "t00"
+      },
+      {
+        "child" : "t02",
+        "parent" : "t01"
+      },
+      {
+        "child" : "t03",
+        "parent" : "t02"
+      },
+      {
+        "child" : "t04",
+        "parent" : "t01"
+      },
+      {
+        "child" : "t04",
+        "parent" : "t00"
+      },
+      {
+        "child" : "t05",
+        "parent" : "t00"
+      },
+      {
+        "child" : "t05",
+        "parent" : "t02"
+      },
+      {
+        "child" : "t06",
+        "parent" : "t05"
+      },
+      {
+        "child" : "t07",
+        "parent" : "t02"
+      },
+      {
+        "child" : "t08",
+        "parent" : "t07"
+      },
+      {
+        "child" : "t09",
+        "parent" : "t01"
+      },
+      {
+        "child" : "t10",
+        "parent" : "t09"
+      },
+      {
+        "child" : "t11",
+        "parent" : "t01"
+      },
+      {
+        "child" : "t13",
+        "parent" : "t12"
+      },
+      {
+        "child" : "t14",
+        "parent" : "t13"
+      },
+      {
+        "child" : "t15",
+        "parent" : "t12"
+      },
+      {
+        "child" : "t15",
+        "parent" : "t11"
+      },
+      {
+        "child" : "t16",
+        "parent" : "t15"
+      },
+      {
+        "child" : "t16",
+        "parent" : "t01"
+      },
+      {
+        "child" : "t17",
+        "parent" : "t16"
+      },
+      {
+        "child" : "t17",
+        "parent" : "t06"
+      },
+      {
+        "child" : "t18",
+        "parent" : "t17"
+      },
+      {
+        "child" : "t19",
+        "parent" : "t16"
+      },
+      {
+        "child" : "t20",
+        "parent" : "t16"
+      },
+      {
+        "child" : "t20",
+        "parent" : "t00"
+      },
+      {
+        "child" : "t21",
+        "parent" : "t19"
+      },
+      {
+        "child" : "t22",
+        "parent" : "t20"
+      },
+      {
+        "child" : "t23",
+        "parent" : "t17"
+      },
+      {
+        "child" : "t23",
+        "parent" : "t04"
+      },
+      {
+        "child" : "t24",
+        "parent" : "t22"
+      },
+      {
+        "child" : "t25",
+        "parent" : "t17"
+      },
+      {
+        "child" : "t25",
+        "parent" : "t02"
+      },
+      {
+        "child" : "t03",
+        "parent" : "t20"
+      },
+      {
+        "child" : "t27",
+        "parent" : "t27"
+      }
+    ],
+    "entities" : [
+      "t00",
+      "t01",
+      "t02",
+      "t03",
+      "t04",
+      "t05",
+      "t06",
+      "t07",
+      "t08",
+      "t09",
+      "t10",
+      "t11",
+      "t12",
+      "t13",
+      "t14",
+      "t15",
+      "t16",
+      "t17",
+      "t18",
+      "t19",
+      "t20",
+      "t21",
+      "t22",
+      "t23",
+      "t24",
+      "t25",
+      "t26",
+      "t27",
+      "t28",
+      "t29"
+    ],
+    "options" : {
+      "componentGap" : 80,
+      "horizontalGap" : 90,
+      "orderingSweeps" : 6,
+      "verticalGap" : 36
+    },
+    "sizes" : {
+      "t00" : {
+        "height" : 48,
+        "width" : 230
+      },
+      "t01" : {
+        "height" : 174,
+        "width" : 230
+      },
+      "t02" : {
+        "height" : 84,
+        "width" : 140
+      },
+      "t03" : {
+        "height" : 138,
+        "width" : 230
+      },
+      "t04" : {
+        "height" : 138,
+        "width" : 230
+      },
+      "t05" : {
+        "height" : 120,
+        "width" : 162.5
+      },
+      "t06" : {
+        "height" : 138,
+        "width" : 162.5
+      },
+      "t07" : {
+        "height" : 174,
+        "width" : 230
+      },
+      "t08" : {
+        "height" : 156,
+        "width" : 252.5
+      },
+      "t09" : {
+        "height" : 48,
+        "width" : 185
+      },
+      "t10" : {
+        "height" : 66,
+        "width" : 252.5
+      },
+      "t11" : {
+        "height" : 84,
+        "width" : 207.5
+      },
+      "t12" : {
+        "height" : 192,
+        "width" : 252.5
+      },
+      "t13" : {
+        "height" : 48,
+        "width" : 162.5
+      },
+      "t14" : {
+        "height" : 48,
+        "width" : 162.5
+      },
+      "t15" : {
+        "height" : 84,
+        "width" : 140
+      },
+      "t16" : {
+        "height" : 138,
+        "width" : 185
+      },
+      "t17" : {
+        "height" : 138,
+        "width" : 185
+      },
+      "t18" : {
+        "height" : 48,
+        "width" : 140
+      },
+      "t19" : {
+        "height" : 192,
+        "width" : 230
+      },
+      "t20" : {
+        "height" : 192,
+        "width" : 162.5
+      },
+      "t21" : {
+        "height" : 66,
+        "width" : 140
+      },
+      "t22" : {
+        "height" : 102,
+        "width" : 230
+      },
+      "t23" : {
+        "height" : 192,
+        "width" : 252.5
+      },
+      "t24" : {
+        "height" : 156,
+        "width" : 207.5
+      },
+      "t25" : {
+        "height" : 120,
+        "width" : 162.5
+      },
+      "t26" : {
+        "height" : 120,
+        "width" : 162.5
+      },
+      "t27" : {
+        "height" : 102,
+        "width" : 185
+      },
+      "t28" : {
+        "height" : 102,
+        "width" : 230
+      },
+      "t29" : {
+        "height" : 138,
+        "width" : 185
+      }
+    }
+  },
+  "output" : {
+    "t00" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 285
+      },
+      "size" : {
+        "height" : 48,
+        "width" : 230
+      }
+    },
+    "t01" : {
+      "origin" : {
+        "x" : 342.5,
+        "y" : 294
+      },
+      "size" : {
+        "height" : 174,
+        "width" : 230
+      }
+    },
+    "t02" : {
+      "origin" : {
+        "x" : 662.5,
+        "y" : 150
+      },
+      "size" : {
+        "height" : 84,
+        "width" : 140
+      }
+    },
+    "t03" : {
+      "origin" : {
+        "x" : 1987.5,
+        "y" : 708
+      },
+      "size" : {
+        "height" : 138,
+        "width" : 230
+      }
+    },
+    "t04" : {
+      "origin" : {
+        "x" : 662.5,
+        "y" : 270
+      },
+      "size" : {
+        "height" : 138,
+        "width" : 230
+      }
+    },
+    "t05" : {
+      "origin" : {
+        "x" : 982.5,
+        "y" : 147
+      },
+      "size" : {
+        "height" : 120,
+        "width" : 162.5
+      }
+    },
+    "t06" : {
+      "origin" : {
+        "x" : 1325,
+        "y" : 171
+      },
+      "size" : {
+        "height" : 138,
+        "width" : 162.5
+      }
+    },
+    "t07" : {
+      "origin" : {
+        "x" : 982.5,
+        "y" : 303
+      },
+      "size" : {
+        "height" : 174,
+        "width" : 230
+      }
+    },
+    "t08" : {
+      "origin" : {
+        "x" : 1325,
+        "y" : 345
+      },
+      "size" : {
+        "height" : 156,
+        "width" : 252.5
+      }
+    },
+    "t09" : {
+      "origin" : {
+        "x" : 662.5,
+        "y" : 444
+      },
+      "size" : {
+        "height" : 48,
+        "width" : 185
+      }
+    },
+    "t10" : {
+      "origin" : {
+        "x" : 982.5,
+        "y" : 513
+      },
+      "size" : {
+        "height" : 66,
+        "width" : 252.5
+      }
+    },
+    "t11" : {
+      "origin" : {
+        "x" : 662.5,
+        "y" : 528
+      },
+      "size" : {
+        "height" : 84,
+        "width" : 207.5
+      }
+    },
+    "t12" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 369
+      },
+      "size" : {
+        "height" : 192,
+        "width" : 252.5
+      }
+    },
+    "t13" : {
+      "origin" : {
+        "x" : 342.5,
+        "y" : 504
+      },
+      "size" : {
+        "height" : 48,
+        "width" : 162.5
+      }
+    },
+    "t14" : {
+      "origin" : {
+        "x" : 662.5,
+        "y" : 648
+      },
+      "size" : {
+        "height" : 48,
+        "width" : 162.5
+      }
+    },
+    "t15" : {
+      "origin" : {
+        "x" : 982.5,
+        "y" : 615
+      },
+      "size" : {
+        "height" : 84,
+        "width" : 140
+      }
+    },
+    "t16" : {
+      "origin" : {
+        "x" : 1325,
+        "y" : 537
+      },
+      "size" : {
+        "height" : 138,
+        "width" : 185
+      }
+    },
+    "t17" : {
+      "origin" : {
+        "x" : 1667.5,
+        "y" : 126
+      },
+      "size" : {
+        "height" : 138,
+        "width" : 185
+      }
+    },
+    "t18" : {
+      "origin" : {
+        "x" : 1987.5,
+        "y" : 0
+      },
+      "size" : {
+        "height" : 48,
+        "width" : 140
+      }
+    },
+    "t19" : {
+      "origin" : {
+        "x" : 1667.5,
+        "y" : 528
+      },
+      "size" : {
+        "height" : 192,
+        "width" : 230
+      }
+    },
+    "t20" : {
+      "origin" : {
+        "x" : 1667.5,
+        "y" : 300
+      },
+      "size" : {
+        "height" : 192,
+        "width" : 162.5
+      }
+    },
+    "t21" : {
+      "origin" : {
+        "x" : 1987.5,
+        "y" : 606
+      },
+      "size" : {
+        "height" : 66,
+        "width" : 140
+      }
+    },
+    "t22" : {
+      "origin" : {
+        "x" : 1987.5,
+        "y" : 84
+      },
+      "size" : {
+        "height" : 102,
+        "width" : 230
+      }
+    },
+    "t23" : {
+      "origin" : {
+        "x" : 1987.5,
+        "y" : 222
+      },
+      "size" : {
+        "height" : 192,
+        "width" : 252.5
+      }
+    },
+    "t24" : {
+      "origin" : {
+        "x" : 2330,
+        "y" : 345
+      },
+      "size" : {
+        "height" : 156,
+        "width" : 207.5
+      }
+    },
+    "t25" : {
+      "origin" : {
+        "x" : 1987.5,
+        "y" : 450
+      },
+      "size" : {
+        "height" : 120,
+        "width" : 162.5
+      }
+    },
+    "t26" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 926
+      },
+      "size" : {
+        "height" : 120,
+        "width" : 162.5
+      }
+    },
+    "t27" : {
+      "origin" : {
+        "x" : 275,
+        "y" : 926
+      },
+      "size" : {
+        "height" : 102,
+        "width" : 185
+      }
+    },
+    "t28" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 1082
+      },
+      "size" : {
+        "height" : 102,
+        "width" : 230
+      }
+    },
+    "t29" : {
+      "origin" : {
+        "x" : 275,
+        "y" : 1082
+      },
+      "size" : {
+        "height" : 138,
+        "width" : 185
+      }
+    }
+  }
+}

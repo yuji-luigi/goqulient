@@ -1,0 +1,250 @@
+{
+  "input" : {
+    "edges" : [
+      {
+        "child" : "s1",
+        "parent" : "hub"
+      },
+      {
+        "child" : "s2",
+        "parent" : "hub"
+      },
+      {
+        "child" : "s3",
+        "parent" : "hub"
+      },
+      {
+        "child" : "s4",
+        "parent" : "hub"
+      },
+      {
+        "child" : "s5",
+        "parent" : "hub"
+      },
+      {
+        "child" : "m",
+        "parent" : "p1"
+      },
+      {
+        "child" : "m",
+        "parent" : "p2"
+      },
+      {
+        "child" : "p1",
+        "parent" : "hub"
+      },
+      {
+        "child" : "s5",
+        "parent" : "p2"
+      },
+      {
+        "child" : "x",
+        "parent" : "y"
+      },
+      {
+        "child" : "y",
+        "parent" : "z"
+      },
+      {
+        "child" : "z",
+        "parent" : "x"
+      },
+      {
+        "child" : "x",
+        "parent" : "hub"
+      }
+    ],
+    "entities" : [
+      "hub",
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "s5",
+      "m",
+      "p1",
+      "p2",
+      "x",
+      "y",
+      "z"
+    ],
+    "options" : {
+      "componentGap" : 80,
+      "horizontalGap" : 90,
+      "orderingSweeps" : 6,
+      "verticalGap" : 36
+    },
+    "sizes" : {
+      "hub" : {
+        "height" : 60,
+        "width" : 150
+      },
+      "m" : {
+        "height" : 90,
+        "width" : 150
+      },
+      "p1" : {
+        "height" : 120,
+        "width" : 190
+      },
+      "p2" : {
+        "height" : 150,
+        "width" : 230
+      },
+      "s1" : {
+        "height" : 90,
+        "width" : 190
+      },
+      "s2" : {
+        "height" : 120,
+        "width" : 230
+      },
+      "s3" : {
+        "height" : 150,
+        "width" : 150
+      },
+      "s4" : {
+        "height" : 180,
+        "width" : 190
+      },
+      "s5" : {
+        "height" : 60,
+        "width" : 230
+      },
+      "x" : {
+        "height" : 180,
+        "width" : 150
+      },
+      "y" : {
+        "height" : 60,
+        "width" : 190
+      },
+      "z" : {
+        "height" : 90,
+        "width" : 230
+      }
+    }
+  },
+  "output" : {
+    "hub" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 438
+      },
+      "size" : {
+        "height" : 60,
+        "width" : 150
+      }
+    },
+    "m" : {
+      "origin" : {
+        "x" : 640,
+        "y" : 561
+      },
+      "size" : {
+        "height" : 90,
+        "width" : 150
+      }
+    },
+    "p1" : {
+      "origin" : {
+        "x" : 320,
+        "y" : 96
+      },
+      "size" : {
+        "height" : 120,
+        "width" : 190
+      }
+    },
+    "p2" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 534
+      },
+      "size" : {
+        "height" : 150,
+        "width" : 230
+      }
+    },
+    "s1" : {
+      "origin" : {
+        "x" : 320,
+        "y" : 252
+      },
+      "size" : {
+        "height" : 90,
+        "width" : 190
+      }
+    },
+    "s2" : {
+      "origin" : {
+        "x" : 320,
+        "y" : 378
+      },
+      "size" : {
+        "height" : 120,
+        "width" : 230
+      }
+    },
+    "s3" : {
+      "origin" : {
+        "x" : 320,
+        "y" : 534
+      },
+      "size" : {
+        "height" : 150,
+        "width" : 150
+      }
+    },
+    "s4" : {
+      "origin" : {
+        "x" : 320,
+        "y" : 720
+      },
+      "size" : {
+        "height" : 180,
+        "width" : 190
+      }
+    },
+    "s5" : {
+      "origin" : {
+        "x" : 320,
+        "y" : 936
+      },
+      "size" : {
+        "height" : 60,
+        "width" : 230
+      }
+    },
+    "x" : {
+      "origin" : {
+        "x" : 640,
+        "y" : 345
+      },
+      "size" : {
+        "height" : 180,
+        "width" : 150
+      }
+    },
+    "y" : {
+      "origin" : {
+        "x" : 320,
+        "y" : 0
+      },
+      "size" : {
+        "height" : 60,
+        "width" : 190
+      }
+    },
+    "z" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 312
+      },
+      "size" : {
+        "height" : 90,
+        "width" : 230
+      }
+    }
+  }
+}

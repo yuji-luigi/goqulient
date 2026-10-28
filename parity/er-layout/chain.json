@@ -1,0 +1,107 @@
+{
+  "input" : {
+    "edges" : [
+      {
+        "child" : "b",
+        "parent" : "a"
+      },
+      {
+        "child" : "c",
+        "parent" : "b"
+      },
+      {
+        "child" : "d",
+        "parent" : "c"
+      },
+      {
+        "child" : "d",
+        "parent" : "c"
+      },
+      {
+        "child" : "c",
+        "parent" : "c"
+      },
+      {
+        "child" : "d",
+        "parent" : "ghost"
+      },
+      {
+        "child" : "nosize",
+        "parent" : "a"
+      }
+    ],
+    "entities" : [
+      "d",
+      "c",
+      "b",
+      "a",
+      "nosize"
+    ],
+    "options" : {
+      "componentGap" : 80,
+      "horizontalGap" : 90,
+      "orderingSweeps" : 6,
+      "verticalGap" : 36
+    },
+    "sizes" : {
+      "a" : {
+        "height" : 150,
+        "width" : 150
+      },
+      "b" : {
+        "height" : 120,
+        "width" : 230
+      },
+      "c" : {
+        "height" : 90,
+        "width" : 190
+      },
+      "d" : {
+        "height" : 60,
+        "width" : 150
+      }
+    }
+  },
+  "output" : {
+    "a" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 0
+      },
+      "size" : {
+        "height" : 150,
+        "width" : 150
+      }
+    },
+    "b" : {
+      "origin" : {
+        "x" : 240,
+        "y" : 15
+      },
+      "size" : {
+        "height" : 120,
+        "width" : 230
+      }
+    },
+    "c" : {
+      "origin" : {
+        "x" : 560,
+        "y" : 30
+      },
+      "size" : {
+        "height" : 90,
+        "width" : 190
+      }
+    },
+    "d" : {
+      "origin" : {
+        "x" : 840,
+        "y" : 45
+      },
+      "size" : {
+        "height" : 60,
+        "width" : 150
+      }
+    }
+  }
+}

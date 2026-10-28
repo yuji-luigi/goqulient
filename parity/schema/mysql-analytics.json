@@ -1,0 +1,79 @@
+{
+  "input" : {
+    "database" : "analytics",
+    "entities" : [
+      "page_views"
+    ],
+    "schemas" : [
+
+    ],
+    "setup" : [
+
+    ],
+    "teardown" : [
+
+    ]
+  },
+  "output" : {
+    "database" : "analytics",
+    "engine" : "mysql",
+    "entities" : [
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : true,
+            "name" : "id",
+            "nullable" : false,
+            "type" : "bigint auto_increment"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "path",
+            "nullable" : true,
+            "type" : "varchar(500)"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "customer_id",
+            "nullable" : true,
+            "type" : "bigint"
+          }
+        ],
+        "id" : "page_views",
+        "indexes" : [
+          {
+            "columns" : [
+              "customer_id"
+            ],
+            "name" : "fk_pv_cust",
+            "primary" : false,
+            "unique" : false
+          },
+          {
+            "columns" : [
+              "id"
+            ],
+            "name" : "PRIMARY",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "page_views",
+        "schema" : ""
+      }
+    ],
+    "relationships" : [
+
+    ],
+    "warnings" : [
+      "page_views.fk_pv_cust references shop.customers in another database."
+    ]
+  }
+}

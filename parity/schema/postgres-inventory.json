@@ -1,0 +1,123 @@
+{
+  "input" : {
+    "database" : "shop",
+    "entities" : [
+      "inventory.stock",
+      "inventory.warehouses"
+    ],
+    "schemas" : [
+      "inventory"
+    ],
+    "setup" : [
+
+    ],
+    "teardown" : [
+
+    ]
+  },
+  "output" : {
+    "database" : "shop",
+    "engine" : "postgres",
+    "entities" : [
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "warehouse_id",
+            "nullable" : false,
+            "type" : "integer"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "product_id",
+            "nullable" : false,
+            "type" : "integer"
+          },
+          {
+            "defaultValue" : "0",
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "qty",
+            "nullable" : false,
+            "type" : "integer"
+          }
+        ],
+        "id" : "inventory.stock",
+        "indexes" : [
+          {
+            "columns" : [
+              "warehouse_id",
+              "product_id"
+            ],
+            "name" : "stock_pkey",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "stock",
+        "schema" : "inventory"
+      },
+      {
+        "attributes" : [
+          {
+            "defaultValue" : "nextval('inventory.warehouses_id_seq'::regclass)",
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : true,
+            "name" : "id",
+            "nullable" : false,
+            "type" : "integer"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "city",
+            "nullable" : false,
+            "type" : "text"
+          }
+        ],
+        "id" : "inventory.warehouses",
+        "indexes" : [
+          {
+            "columns" : [
+              "id"
+            ],
+            "name" : "warehouses_pkey",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "warehouses",
+        "schema" : "inventory"
+      }
+    ],
+    "relationships" : [
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "warehouse_id"
+        ],
+        "fromEntity" : "inventory.stock",
+        "id" : "inventory.stock(warehouse_id)->inventory.warehouses(id)#stock_warehouse_id_fkey",
+        "inferred" : false,
+        "name" : "stock_warehouse_id_fkey",
+        "optional" : false,
+        "toColumns" : [
+          "id"
+        ],
+        "toEntity" : "inventory.warehouses"
+      }
+    ],
+    "warnings" : [
+      "inventory.stock.stock_product_id_fkey references public.products, which is outside the selected schemas."
+    ]
+  }
+}

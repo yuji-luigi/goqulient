@@ -1,0 +1,799 @@
+{
+  "input" : {
+    "database" : "shop",
+    "entities" : [
+      "categories",
+      "customers",
+      "order_items",
+      "order_totals",
+      "orders",
+      "products",
+      "shipments",
+      "parity_accounts",
+      "parity_badges",
+      "parity_links",
+      "parity_profiles"
+    ],
+    "schemas" : [
+
+    ],
+    "setup" : [
+      "DROP TABLE IF EXISTS parity_links, parity_badges, parity_profiles, parity_accounts",
+      "CREATE TABLE parity_accounts (id INT PRIMARY KEY, code VARCHAR(20) NOT NULL, UNIQUE KEY parity_accounts_id_code_key (id, code))",
+      "CREATE TABLE parity_profiles (account_id INT PRIMARY KEY, bio TEXT, CONSTRAINT parity_profiles_account_fk FOREIGN KEY (account_id) REFERENCES parity_accounts(id) ON DELETE CASCADE)",
+      "CREATE TABLE parity_badges (id INT PRIMARY KEY, account_id INT NULL, UNIQUE KEY parity_badges_account_key (account_id), CONSTRAINT parity_badges_account_fk FOREIGN KEY (account_id) REFERENCES parity_accounts(id) ON UPDATE CASCADE)",
+      "CREATE TABLE parity_links (id INT PRIMARY KEY, account_id INT NOT NULL, account_code VARCHAR(20) NOT NULL, UNIQUE KEY parity_links_account_key (account_code, account_id), CONSTRAINT parity_links_account_fk FOREIGN KEY (account_id, account_code) REFERENCES parity_accounts(id, code) ON DELETE RESTRICT)"
+    ],
+    "teardown" : [
+      "DROP TABLE IF EXISTS parity_links, parity_badges, parity_profiles, parity_accounts"
+    ]
+  },
+  "output" : {
+    "database" : "shop",
+    "engine" : "mysql",
+    "entities" : [
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : true,
+            "name" : "id",
+            "nullable" : false,
+            "type" : "int auto_increment"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : true,
+            "name" : "name",
+            "nullable" : false,
+            "type" : "varchar(100)"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "parent_id",
+            "nullable" : true,
+            "type" : "int"
+          }
+        ],
+        "comment" : "Product categories",
+        "id" : "categories",
+        "indexes" : [
+          {
+            "columns" : [
+              "parent_id"
+            ],
+            "name" : "fk_cat_parent",
+            "primary" : false,
+            "unique" : false
+          },
+          {
+            "columns" : [
+              "name"
+            ],
+            "name" : "name",
+            "primary" : false,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "id"
+            ],
+            "name" : "PRIMARY",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "categories",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : true,
+            "name" : "id",
+            "nullable" : false,
+            "type" : "bigint auto_increment"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : true,
+            "name" : "email",
+            "nullable" : false,
+            "type" : "varchar(255)"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "full_name",
+            "nullable" : false,
+            "type" : "varchar(200)"
+          },
+          {
+            "defaultValue" : "CURRENT_TIMESTAMP",
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "created_at",
+            "nullable" : false,
+            "type" : "datetime DEFAULT_GENERATED"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "profile",
+            "nullable" : true,
+            "type" : "json"
+          }
+        ],
+        "id" : "customers",
+        "indexes" : [
+          {
+            "columns" : [
+              "email"
+            ],
+            "name" : "email",
+            "primary" : false,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "id"
+            ],
+            "name" : "PRIMARY",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "customers",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "order_id",
+            "nullable" : false,
+            "type" : "bigint"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "line_no",
+            "nullable" : false,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "product_id",
+            "nullable" : false,
+            "type" : "int"
+          },
+          {
+            "defaultValue" : "1",
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "qty",
+            "nullable" : false,
+            "type" : "int"
+          }
+        ],
+        "id" : "order_items",
+        "indexes" : [
+          {
+            "columns" : [
+              "product_id"
+            ],
+            "name" : "fk_item_prod",
+            "primary" : false,
+            "unique" : false
+          },
+          {
+            "columns" : [
+              "order_id",
+              "line_no"
+            ],
+            "name" : "PRIMARY",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "order_items",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "defaultValue" : "0",
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "id",
+            "nullable" : false,
+            "type" : "bigint"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "customer_id",
+            "nullable" : false,
+            "type" : "bigint"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "total",
+            "nullable" : true,
+            "type" : "decimal(42,2)"
+          }
+        ],
+        "comment" : "VIEW",
+        "id" : "order_totals",
+        "indexes" : [
+
+        ],
+        "kind" : "view",
+        "name" : "order_totals",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : true,
+            "name" : "id",
+            "nullable" : false,
+            "type" : "bigint auto_increment"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "customer_id",
+            "nullable" : false,
+            "type" : "bigint"
+          },
+          {
+            "defaultValue" : "new",
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "status",
+            "nullable" : false,
+            "type" : "varchar(20)"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "ordered_on",
+            "nullable" : false,
+            "type" : "date"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "total",
+            "nullable" : true,
+            "type" : "decimal(12,2)"
+          }
+        ],
+        "id" : "orders",
+        "indexes" : [
+          {
+            "columns" : [
+              "customer_id"
+            ],
+            "name" : "orders_customer_idx",
+            "primary" : false,
+            "unique" : false
+          },
+          {
+            "columns" : [
+              "id"
+            ],
+            "name" : "PRIMARY",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "orders",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : true,
+            "name" : "id",
+            "nullable" : false,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "code",
+            "nullable" : false,
+            "type" : "varchar(20)"
+          }
+        ],
+        "id" : "parity_accounts",
+        "indexes" : [
+          {
+            "columns" : [
+              "id",
+              "code"
+            ],
+            "name" : "parity_accounts_id_code_key",
+            "primary" : false,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "id"
+            ],
+            "name" : "PRIMARY",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "parity_accounts",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : true,
+            "name" : "id",
+            "nullable" : false,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : true,
+            "name" : "account_id",
+            "nullable" : true,
+            "type" : "int"
+          }
+        ],
+        "id" : "parity_badges",
+        "indexes" : [
+          {
+            "columns" : [
+              "account_id"
+            ],
+            "name" : "parity_badges_account_key",
+            "primary" : false,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "id"
+            ],
+            "name" : "PRIMARY",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "parity_badges",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : true,
+            "name" : "id",
+            "nullable" : false,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "account_id",
+            "nullable" : false,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "account_code",
+            "nullable" : false,
+            "type" : "varchar(20)"
+          }
+        ],
+        "id" : "parity_links",
+        "indexes" : [
+          {
+            "columns" : [
+              "account_id",
+              "account_code"
+            ],
+            "name" : "parity_links_account_fk",
+            "primary" : false,
+            "unique" : false
+          },
+          {
+            "columns" : [
+              "account_code",
+              "account_id"
+            ],
+            "name" : "parity_links_account_key",
+            "primary" : false,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "id"
+            ],
+            "name" : "PRIMARY",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "parity_links",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : true,
+            "isUnique" : true,
+            "name" : "account_id",
+            "nullable" : false,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "bio",
+            "nullable" : true,
+            "type" : "text"
+          }
+        ],
+        "id" : "parity_profiles",
+        "indexes" : [
+          {
+            "columns" : [
+              "account_id"
+            ],
+            "name" : "PRIMARY",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "parity_profiles",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : true,
+            "name" : "id",
+            "nullable" : false,
+            "type" : "int auto_increment"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : true,
+            "name" : "sku",
+            "nullable" : false,
+            "type" : "char(8)"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "name",
+            "nullable" : false,
+            "type" : "varchar(200)"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "price",
+            "nullable" : false,
+            "type" : "decimal(10,2)"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "category_id",
+            "nullable" : true,
+            "type" : "int"
+          },
+          {
+            "defaultValue" : "active",
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "status",
+            "nullable" : false,
+            "type" : "enum('active','retired')"
+          }
+        ],
+        "id" : "products",
+        "indexes" : [
+          {
+            "columns" : [
+              "category_id"
+            ],
+            "name" : "fk_prod_cat",
+            "primary" : false,
+            "unique" : false
+          },
+          {
+            "columns" : [
+              "id"
+            ],
+            "name" : "PRIMARY",
+            "primary" : true,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "sku"
+            ],
+            "name" : "sku",
+            "primary" : false,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "products",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : true,
+            "name" : "id",
+            "nullable" : false,
+            "type" : "int auto_increment"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "order_id",
+            "nullable" : false,
+            "type" : "bigint"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "line_no",
+            "nullable" : false,
+            "type" : "int"
+          },
+          {
+            "defaultValue" : "0",
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "shipped",
+            "nullable" : false,
+            "type" : "tinyint(1)"
+          }
+        ],
+        "id" : "shipments",
+        "indexes" : [
+          {
+            "columns" : [
+              "order_id",
+              "line_no"
+            ],
+            "name" : "fk_ship_item",
+            "primary" : false,
+            "unique" : false
+          },
+          {
+            "columns" : [
+              "id"
+            ],
+            "name" : "PRIMARY",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "table",
+        "name" : "shipments",
+        "schema" : ""
+      }
+    ],
+    "relationships" : [
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "parent_id"
+        ],
+        "fromEntity" : "categories",
+        "id" : "categories(parent_id)->categories(id)#fk_cat_parent",
+        "inferred" : false,
+        "name" : "fk_cat_parent",
+        "onDelete" : "SET NULL",
+        "optional" : true,
+        "toColumns" : [
+          "id"
+        ],
+        "toEntity" : "categories"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "order_id"
+        ],
+        "fromEntity" : "order_items",
+        "id" : "order_items(order_id)->orders(id)#fk_item_order",
+        "inferred" : false,
+        "name" : "fk_item_order",
+        "onDelete" : "CASCADE",
+        "optional" : false,
+        "toColumns" : [
+          "id"
+        ],
+        "toEntity" : "orders"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "product_id"
+        ],
+        "fromEntity" : "order_items",
+        "id" : "order_items(product_id)->products(id)#fk_item_prod",
+        "inferred" : false,
+        "name" : "fk_item_prod",
+        "optional" : false,
+        "toColumns" : [
+          "id"
+        ],
+        "toEntity" : "products"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "customer_id"
+        ],
+        "fromEntity" : "orders",
+        "id" : "orders(customer_id)->customers(id)#fk_order_cust",
+        "inferred" : false,
+        "name" : "fk_order_cust",
+        "onDelete" : "CASCADE",
+        "optional" : false,
+        "toColumns" : [
+          "id"
+        ],
+        "toEntity" : "customers"
+      },
+      {
+        "cardinality" : "oneToOne",
+        "fromColumns" : [
+          "account_id"
+        ],
+        "fromEntity" : "parity_badges",
+        "id" : "parity_badges(account_id)->parity_accounts(id)#parity_badges_account_fk",
+        "inferred" : false,
+        "name" : "parity_badges_account_fk",
+        "onUpdate" : "CASCADE",
+        "optional" : true,
+        "toColumns" : [
+          "id"
+        ],
+        "toEntity" : "parity_accounts"
+      },
+      {
+        "cardinality" : "oneToOne",
+        "fromColumns" : [
+          "account_id",
+          "account_code"
+        ],
+        "fromEntity" : "parity_links",
+        "id" : "parity_links(account_id,account_code)->parity_accounts(id,code)#parity_links_account_fk",
+        "inferred" : false,
+        "name" : "parity_links_account_fk",
+        "onDelete" : "RESTRICT",
+        "optional" : false,
+        "toColumns" : [
+          "id",
+          "code"
+        ],
+        "toEntity" : "parity_accounts"
+      },
+      {
+        "cardinality" : "oneToOne",
+        "fromColumns" : [
+          "account_id"
+        ],
+        "fromEntity" : "parity_profiles",
+        "id" : "parity_profiles(account_id)->parity_accounts(id)#parity_profiles_account_fk",
+        "inferred" : false,
+        "name" : "parity_profiles_account_fk",
+        "onDelete" : "CASCADE",
+        "optional" : false,
+        "toColumns" : [
+          "id"
+        ],
+        "toEntity" : "parity_accounts"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "category_id"
+        ],
+        "fromEntity" : "products",
+        "id" : "products(category_id)->categories(id)#fk_prod_cat",
+        "inferred" : false,
+        "name" : "fk_prod_cat",
+        "optional" : true,
+        "toColumns" : [
+          "id"
+        ],
+        "toEntity" : "categories"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "order_id",
+          "line_no"
+        ],
+        "fromEntity" : "shipments",
+        "id" : "shipments(order_id,line_no)->order_items(order_id,line_no)#fk_ship_item",
+        "inferred" : false,
+        "name" : "fk_ship_item",
+        "optional" : false,
+        "toColumns" : [
+          "order_id",
+          "line_no"
+        ],
+        "toEntity" : "order_items"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  }
+}

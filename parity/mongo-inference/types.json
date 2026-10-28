@@ -1,0 +1,339 @@
+{
+  "input" : {
+    "collections" : [
+      {
+        "documents" : [
+          "{\"_id\":{\"$numberInt\":\"1\"},\"v\":{\"$numberInt\":\"1\"},\"code\":\"a\",\"big\":{\"$numberLong\":\"3000000000\"},\"ratio\":{\"$numberDouble\":\"1.5\"},\"price\":{\"$numberDecimal\":\"9.99\"},\"when\":{\"$date\":{\"$numberLong\":\"1709212455123\"}},\"ok\":true,\"uid\":{\"$binary\":{\"base64\":\"DjwtDktqTD6fChssPU5fYA==\",\"subType\":\"04\"}},\"pattern\":{\"$regularExpression\":{\"pattern\":\"ab+c\",\"options\":\"i\"}},\"ts\":{\"$timestamp\":{\"t\":1700000000,\"i\":1}},\"nested\":{\"a\":{\"b\":{\"c\":{\"d\":{\"e\":{\"$numberInt\":\"1\"}}}}}},\"list\":[{\"$numberInt\":\"1\"},\"x\",{\"k\":{\"$numberInt\":\"1\"}},{\"k\":\"y\",\"extra\":true}],\"nothing\":null}",
+          "{\"_id\":{\"$numberInt\":\"2\"},\"v\":\"two\",\"code\":\"b\",\"nested\":{\"a\":{\"$numberInt\":\"5\"}},\"list\":[]}",
+          "{\"_id\":{\"$numberInt\":\"3\"},\"v\":null,\"code\":\"c\",\"onlyHere\":{\"deep\":[{\"x\":{\"$numberInt\":\"1\"}}]}}",
+          "{\"_id\":{\"$numberInt\":\"4\"},\"code\":\"d\",\"many\":[{\"i\":{\"$numberInt\":\"0\"}},{\"i\":{\"$numberInt\":\"1\"}},{\"i\":{\"$numberInt\":\"2\"}},{\"i\":{\"$numberInt\":\"3\"}},{\"i\":{\"$numberInt\":\"4\"}},{\"i\":{\"$numberInt\":\"5\"}},{\"i\":{\"$numberInt\":\"6\"}},{\"i\":{\"$numberInt\":\"7\"}},{\"i\":{\"$numberInt\":\"8\"}},{\"i\":{\"$numberInt\":\"9\"}},{\"i\":{\"$numberInt\":\"10\"}},{\"i\":{\"$numberInt\":\"11\"}},{\"i\":{\"$numberInt\":\"12\"}},{\"i\":{\"$numberInt\":\"13\"}},{\"i\":{\"$numberInt\":\"14\"}},{\"i\":{\"$numberInt\":\"15\"}},{\"i\":{\"$numberInt\":\"16\"}},{\"i\":{\"$numberInt\":\"17\"}},{\"i\":{\"$numberInt\":\"18\"}},{\"i\":{\"$numberInt\":\"19\"}},{\"late\":{\"$numberInt\":\"1\"}}]}"
+        ],
+        "indexes" : [
+          {
+            "fields" : [
+              "code"
+            ],
+            "name" : "code_1",
+            "unique" : true
+          },
+          {
+            "fields" : [
+              "v",
+              "code"
+            ],
+            "name" : "v_1_code_1",
+            "unique" : true
+          },
+          {
+            "fields" : [
+              "nested.a.b"
+            ],
+            "name" : "nested.a.b_1",
+            "unique" : false
+          }
+        ],
+        "name" : "samples"
+      },
+      {
+        "documents" : [
+
+        ],
+        "indexes" : [
+
+        ],
+        "name" : "empty"
+      }
+    ],
+    "database" : "parity_infer_types"
+  },
+  "output" : {
+    "database" : "parity_infer_types",
+    "engine" : "mongodb",
+    "entities" : [
+      {
+        "attributes" : [
+
+        ],
+        "id" : "empty",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "collection",
+        "name" : "empty",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "big",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "long"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : true,
+            "name" : "code",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "list",
+            "nullable" : true,
+            "presence" : 0.5,
+            "type" : "array"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "list[].extra",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "bool"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "list[].k",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "int | string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "many",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "array"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "many[].i",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "nested",
+            "nullable" : true,
+            "presence" : 0.5,
+            "type" : "object"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "nested.a",
+            "nullable" : true,
+            "presence" : 0.5,
+            "type" : "int | object"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "nested.a.b",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "object"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "nested.a.b.c",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "object"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "nothing",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "null"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "ok",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "bool"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "onlyHere",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "object"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "onlyHere.deep",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "array"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "onlyHere.deep[].x",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "pattern",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "regex"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "price",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "decimal"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "ratio",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "double"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "ts",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "timestamp"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "uid",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "binData"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "v",
+            "nullable" : true,
+            "presence" : 0.75,
+            "type" : "int | string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "when",
+            "nullable" : true,
+            "presence" : 0.25,
+            "type" : "date"
+          }
+        ],
+        "id" : "samples",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "code"
+            ],
+            "name" : "code_1",
+            "primary" : false,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "v",
+              "code"
+            ],
+            "name" : "v_1_code_1",
+            "primary" : false,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "nested.a.b"
+            ],
+            "name" : "nested.a.b_1",
+            "primary" : false,
+            "unique" : false
+          }
+        ],
+        "kind" : "collection",
+        "name" : "samples",
+        "schema" : ""
+      }
+    ],
+    "relationships" : [
+
+    ],
+    "warnings" : [
+      "MongoDB has no declared schema: fields and relationships are inferred from up to 100 sampled documents per collection."
+    ]
+  }
+}

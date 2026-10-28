@@ -1,0 +1,635 @@
+{
+  "input" : {
+    "collections" : [
+      {
+        "documents" : [
+          "{\"_id\":{\"$oid\":\"65a000000000000000000001\"},\"name\":\"Ann\",\"email\":\"ann@example.com\"}",
+          "{\"_id\":{\"$oid\":\"65a000000000000000000002\"},\"name\":\"Bob\",\"email\":\"bob@example.com\",\"managerId\":{\"$oid\":\"65a000000000000000000001\"}}",
+          "{\"_id\":{\"$oid\":\"65a000000000000000000003\"},\"name\":\"Cy\",\"email\":null}"
+        ],
+        "indexes" : [
+          {
+            "fields" : [
+              "email"
+            ],
+            "name" : "email_1",
+            "unique" : true
+          }
+        ],
+        "name" : "users"
+      },
+      {
+        "documents" : [
+          "{\"_id\":{\"$oid\":\"65a000000000000000000011\"},\"name\":\"swift\"}",
+          "{\"_id\":{\"$oid\":\"65a000000000000000000012\"},\"name\":\"rust\"}"
+        ],
+        "indexes" : [
+
+        ],
+        "name" : "tags"
+      },
+      {
+        "documents" : [
+          "{\"_id\":{\"$numberInt\":\"1\"},\"name\":\"News\"}",
+          "{\"_id\":{\"$numberInt\":\"2\"},\"name\":\"Tech\",\"parentId\":{\"$numberInt\":\"1\"}}"
+        ],
+        "indexes" : [
+
+        ],
+        "name" : "categories"
+      },
+      {
+        "documents" : [
+          "{\"_id\":\"s-1\",\"title\":\"Intro\"}"
+        ],
+        "indexes" : [
+
+        ],
+        "name" : "series"
+      },
+      {
+        "documents" : [
+          "{\"_id\":{\"$oid\":\"65a000000000000000000021\"},\"name\":\"root\"}",
+          "{\"_id\":{\"$oid\":\"65a000000000000000000022\"},\"name\":\"docs\",\"parent\":{\"folderId\":{\"$oid\":\"65a000000000000000000021\"}}}",
+          "{\"_id\":{\"$oid\":\"65a000000000000000000023\"},\"name\":\"img\",\"folderId\":{\"$oid\":\"65a000000000000000000021\"}}"
+        ],
+        "indexes" : [
+
+        ],
+        "name" : "folders"
+      },
+      {
+        "documents" : [
+          "{\"_id\":{\"$oid\":\"65a000000000000000000031\"},\"title\":\"Hello\",\"authorId\":{\"$oid\":\"65a000000000000000000001\"},\"tagIds\":[{\"$oid\":\"65a000000000000000000011\"},{\"$oid\":\"65a000000000000000000012\"}],\"categoryId\":{\"$numberInt\":\"2\"},\"seriesId\":\"s-1\",\"owner\":{\"_id\":{\"$oid\":\"65a000000000000000000002\"}},\"comments\":[{\"userId\":{\"$oid\":\"65a000000000000000000002\"},\"text\":\"hi\"},{\"userId\":{\"$oid\":\"65a000000000000000000003\"},\"text\":\"yo\"}],\"reviewer\":{\"$ref\":\"users\",\"$id\":{\"$oid\":\"65a000000000000000000003\"}}}",
+          "{\"_id\":{\"$oid\":\"65a000000000000000000032\"},\"title\":\"Second\",\"authorId\":{\"$oid\":\"65a000000000000000000002\"},\"tagIds\":[],\"categoryId\":{\"$numberInt\":\"1\"},\"editorId\":{\"$numberInt\":\"999\"},\"legacy_id\":{\"$numberInt\":\"7\"}}",
+          "{\"_id\":{\"$oid\":\"65a000000000000000000033\"},\"title\":\"Third\",\"authorId\":{\"$oid\":\"65a000000000000000000001\"},\"categoryId\":{\"$numberInt\":\"42\"},\"tagId\":{\"$numberInt\":\"5\"},\"ghost\":{\"$ref\":\"ghosts\",\"$id\":{\"$numberInt\":\"1\"}}}"
+        ],
+        "indexes" : [
+          {
+            "fields" : [
+              "authorId",
+              "categoryId"
+            ],
+            "name" : "authorId_1_categoryId_1",
+            "unique" : false
+          }
+        ],
+        "name" : "posts"
+      }
+    ],
+    "database" : "parity_infer_references"
+  },
+  "output" : {
+    "database" : "parity_infer_references",
+    "engine" : "mongodb",
+    "entities" : [
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "name",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "parentId",
+            "nullable" : true,
+            "presence" : 0.5,
+            "type" : "int"
+          }
+        ],
+        "id" : "categories",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "collection",
+        "name" : "categories",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "folderId",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "name",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "parent",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "object"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "parent.folderId",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "objectId"
+          }
+        ],
+        "id" : "folders",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "collection",
+        "name" : "folders",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "authorId",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "categoryId",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "comments",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "array"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "comments[].text",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "comments[].userId",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "editorId",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "ghost",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "object"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "legacy_id",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "owner",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "object"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "owner._id",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "reviewer",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "object"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "seriesId",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "tagId",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "int"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "tagIds",
+            "nullable" : true,
+            "presence" : 0.6666666666666666,
+            "type" : "array"
+          },
+          {
+            "isForeignKey" : true,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "tagIds[]",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "title",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          }
+        ],
+        "id" : "posts",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "authorId",
+              "categoryId"
+            ],
+            "name" : "authorId_1_categoryId_1",
+            "primary" : false,
+            "unique" : false
+          }
+        ],
+        "kind" : "collection",
+        "name" : "posts",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "title",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          }
+        ],
+        "id" : "series",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "collection",
+        "name" : "series",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "name",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          }
+        ],
+        "id" : "tags",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          }
+        ],
+        "kind" : "collection",
+        "name" : "tags",
+        "schema" : ""
+      },
+      {
+        "attributes" : [
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : true,
+            "isUnique" : false,
+            "name" : "_id",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : true,
+            "name" : "email",
+            "nullable" : true,
+            "presence" : 1,
+            "type" : "string"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "managerId",
+            "nullable" : true,
+            "presence" : 0.3333333333333333,
+            "type" : "objectId"
+          },
+          {
+            "isForeignKey" : false,
+            "isPrimaryKey" : false,
+            "isUnique" : false,
+            "name" : "name",
+            "nullable" : false,
+            "presence" : 1,
+            "type" : "string"
+          }
+        ],
+        "id" : "users",
+        "indexes" : [
+          {
+            "columns" : [
+              "_id"
+            ],
+            "name" : "_id_",
+            "primary" : true,
+            "unique" : true
+          },
+          {
+            "columns" : [
+              "email"
+            ],
+            "name" : "email_1",
+            "primary" : false,
+            "unique" : true
+          }
+        ],
+        "kind" : "collection",
+        "name" : "users",
+        "schema" : ""
+      }
+    ],
+    "relationships" : [
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "parent.folderId"
+        ],
+        "fromEntity" : "folders",
+        "id" : "folders(parent.folderId)->folders(_id)#folders.parent.folderId",
+        "inferred" : true,
+        "name" : "folders.parent.folderId",
+        "optional" : true,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "folders"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "authorId"
+        ],
+        "fromEntity" : "posts",
+        "id" : "posts(authorId)->users(_id)#posts.authorId",
+        "inferred" : true,
+        "name" : "posts.authorId",
+        "optional" : false,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "users"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "categoryId"
+        ],
+        "fromEntity" : "posts",
+        "id" : "posts(categoryId)->categories(_id)#posts.categoryId",
+        "inferred" : true,
+        "name" : "posts.categoryId",
+        "optional" : false,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "categories"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "comments[].userId"
+        ],
+        "fromEntity" : "posts",
+        "id" : "posts(comments[].userId)->users(_id)#posts.comments[].userId",
+        "inferred" : true,
+        "name" : "posts.comments[].userId",
+        "optional" : true,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "users"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "owner._id"
+        ],
+        "fromEntity" : "posts",
+        "id" : "posts(owner._id)->users(_id)#posts.owner._id",
+        "inferred" : true,
+        "name" : "posts.owner._id",
+        "optional" : true,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "users"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "reviewer"
+        ],
+        "fromEntity" : "posts",
+        "id" : "posts(reviewer)->users(_id)#posts.reviewer",
+        "inferred" : true,
+        "name" : "posts.reviewer",
+        "optional" : true,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "users"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "seriesId"
+        ],
+        "fromEntity" : "posts",
+        "id" : "posts(seriesId)->series(_id)#posts.seriesId",
+        "inferred" : true,
+        "name" : "posts.seriesId",
+        "optional" : true,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "series"
+      },
+      {
+        "cardinality" : "manyToOne",
+        "fromColumns" : [
+          "tagIds[]"
+        ],
+        "fromEntity" : "posts",
+        "id" : "posts(tagIds[])->tags(_id)#posts.tagIds[]",
+        "inferred" : true,
+        "name" : "posts.tagIds[]",
+        "optional" : true,
+        "toColumns" : [
+          "_id"
+        ],
+        "toEntity" : "tags"
+      }
+    ],
+    "warnings" : [
+      "MongoDB has no declared schema: fields and relationships are inferred from up to 100 sampled documents per collection."
+    ]
+  }
+}

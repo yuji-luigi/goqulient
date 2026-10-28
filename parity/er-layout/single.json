@@ -1,0 +1,34 @@
+{
+  "input" : {
+    "edges" : [
+
+    ],
+    "entities" : [
+      "only"
+    ],
+    "options" : {
+      "componentGap" : 80,
+      "horizontalGap" : 90,
+      "orderingSweeps" : 6,
+      "verticalGap" : 36
+    },
+    "sizes" : {
+      "only" : {
+        "height" : 96,
+        "width" : 180
+      }
+    }
+  },
+  "output" : {
+    "only" : {
+      "origin" : {
+        "x" : 0,
+        "y" : 0
+      },
+      "size" : {
+        "height" : 96,
+        "width" : 180
+      }
+    }
+  }
+}
