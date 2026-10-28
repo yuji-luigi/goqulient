@@ -1,18 +1,21 @@
 # Parity fixtures
 
-JSON snapshots of GokuCore behaviour that the Rust engine (`engine/`, see [docs/vscode-extension.md](../../docs/vscode-extension.md))
-must reproduce. They are written and checked by `Tests/GokuCoreTests/ParityFixtureTests.swift`: every Swift test run
-compares its output with these files, so a GokuCore change that alters them fails until they are regenerated. Changing
-either side means regenerating the fixtures and updating the other engine **in the same commit**.
+JSON snapshots of GokuCore behaviour (the engine of the Goku macOS app, written in Swift) that the Rust engine
+(`engine/`, see [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)) must reproduce. The Rust tests that read them are
+`engine/crates/goku-engine/tests/parity_{schema,mongo_inference,er_layout}.rs`.
+
+**Generated, never edited by hand.** The files are written and checked by the app's test suite
+(`ParityFixtureTests.swift` in the Goku app's repository): every app test run compares its output with them, so a
+GokuCore change that alters them fails there until they are regenerated. Updates reach this repository as a **sync pull
+request from the app's repository** that replaces the changed files (and the seeds in `docker/*/init/` when those
+changed too), so both engines move together. If a Rust change breaks a parity test here, fix the Rust side, or open an
+issue if you think GokuCore is wrong; don't change the JSON.
 
 ```bash
-scripts/dev.sh test ParityFixture                      # compare (the Swift side), in Docker
-GOKU_WRITE_PARITY=1 scripts/dev.sh test ParityFixture  # rewrite the files, then review the diff
+scripts/dev.sh up && scripts/dev.sh engine test   # includes the three parity tests
 ```
-
-`scripts/dev.sh` passes `GOKU_WRITE_PARITY` into the dev container (`docker compose exec -e GOKU_WRITE_PARITY`) only when
-it is set. The database fixtures need the default Docker services (`scripts/dev.sh up`) and are skipped without `DBC_IT=1`.
-Writing also deletes stale `*.json` files in each directory, since the Rust tests iterate them.
+`er-layout` needs no database; the other two need the Docker services and are skipped without `GOKU_IT=1` (set in the
+`engine` container). The Rust tests iterate every `*.json` in each directory, so a sync PR also deletes stale files.
 
 ## Files
 
@@ -67,7 +70,7 @@ input:  { database, schemas: [String],
 output: SchemaModel
 ```
 
-### `SchemaModel` (Swift `Codable`, `Sources/GokuCore/Model/SchemaModel.swift`)
+### `SchemaModel` (Swift `Codable`, `SchemaModel.swift` in the Goku app)
 ```
 { database, engine: "postgres"|"mysql"|"mongodb", warnings: [String],
   entities: [ { id, schema, name, kind: "table"|"view"|"materializedView"|"collection",

@@ -47,4 +47,6 @@ Windows, macOS and Linux, x64 and arm64 (one package per platform with its engin
 containers, where the engine runs on the remote side.
 
 ## Not yet
-SSH tunnels, a query editor, editing rows and exporting data are planned. Feedback and bug reports are welcome.
+SSH tunnels, a query editor, editing rows and exporting data are planned. Feedback and bug reports are welcome:
+[github.com/yuji-luigi/goqulient/issues](https://github.com/yuji-luigi/goqulient/issues). GoQulient is open source
+under the MIT license.
