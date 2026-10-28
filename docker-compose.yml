@@ -23,7 +23,7 @@ services:
       - engine-target:/work/engine/target   # Linux build output stays inside Docker
       - engine-cargo:/usr/local/cargo/registry
     mem_limit: 5g
-    cpus: 4
+    cpus: ${GOKU_ENGINE_CPUS:-4}   # CI runners of private repos have 2 cores (ci.yml sets 2)
     pids_limit: 4096
     environment:
       GOKU_IT: "1"

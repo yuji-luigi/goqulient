@@ -63,6 +63,8 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      GOKU_ENGINE_CPUS: 2   # Docker refuses a cpus limit above the runner's core count
     steps:
       - uses: actions/checkout@v5
       - run: scripts/dev.sh up
