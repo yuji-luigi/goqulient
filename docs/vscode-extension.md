@@ -22,6 +22,7 @@ No database access yet. This page is both the PM plan (decisions, milestones, ti
 | Engine binary lookup (`bin/<platform>-<arch>/`, `goku.enginePath`) | `vscode/src/engine/binary.ts` |
 | Parity fixtures (written by `Tests/GokuCoreTests/ParityFixtureTests.swift`) | `Tests/Parity/` + its `README.md` |
 | CI (Linux/macOS/Windows: fmt, clippy, cargo test, typecheck, build, Node tests against the engine) | `.github/workflows/extension.yml` |
+| Release: engine per target + one VSIX per target, publish | `.github/workflows/extension-release.yml`, `release-please-config.json` |
 
 ## Commands
 ```bash
@@ -165,10 +166,23 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
 - Extension: `@vscode/test-electron` for the tree and commands; webviews are checked by screenshot, the way `--uidemo` is.
 
 ## Release
-- release-please gets a second package `vscode` (release type `node`, tag `vscode-vX.Y.Z`); the root package adds
-  `exclude-paths: ["engine", "vscode"]` so engine work doesn't bump the app. The engine's version is the extension's (it
-  ships inside the VSIX).
-- Publishing needs the `VSCE_PAT` (Marketplace) and `OVSX_PAT` (Open VSX) secrets and a Marketplace publisher id.
+- release-please has a second package `vscode` (release type `node`, tag `vscode-vX.Y.Z`, own PR via
+  `separate-pull-requests`); the root package has `exclude-paths: ["engine", "vscode"]` and
+  `include-component-in-tag: false`, so app tags stay `vX.Y.Z` and engine/extension commits never bump the app. The
+  extension release also bumps `engine/Cargo.toml`'s workspace version (the engine ships inside the VSIX).
+- `release.yml` calls `extension-release.yml` (`workflow_call`) when release-please reports `vscode--release_created`; a
+  tag pushed with `GITHUB_TOKEN` wouldn't start a workflow by itself. Run `extension-release.yml` by hand to get the six
+  VSIXs as an artifact without publishing.
+- `extension-release.yml`: engine per target (Linux: static musl via `cargo-zigbuild`, so any distro and Alpine work;
+  macOS: arm64 + x64 on one runner; Windows: x64 + arm64 MSVC), the native ones run `--version`; then one
+  `vsce package --target` per target with the binary in `bin/<target>/`. The extension restores a lost exec bit before
+  spawning.
+- Publishing needs the `VSCE_PAT` (Marketplace) and `OVSX_PAT` (Open VSX) secrets and the Marketplace publisher
+  `yuji-luigi` (`vscode/package.json`; create it, or change the field, before the first publish). Without the secrets
+  the job only warns.
+- ⚠ Untested until the branch is pushed: the release workflows (in particular the arm64 cross builds once the drivers
+  add TLS crates) and release-please's root-path outputs with two packages. Check the first release PR before merging.
+- macOS binaries are not signed or notarized (VS Code extracts the VSIX itself, so no quarantine flag is set).
 - Name: **Goku** (user decision 2026-10-28). Marketplace extension ids are permanent, so the extension keeps it even if
   the app is renamed later; settings use the `goku.*` prefix.
 
@@ -188,7 +202,7 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
 | VSX-11 | Sidebar tree + commands (refresh, connect/disconnect, open table, ER diagram) | M1 | VSX-6..8, VSX-10 | |
 | VSX-12 | Table/collection viewer webview (virtualised, paged, copy cells) | M1 | VSX-11 | |
 | VSX-13 | ER diagram webview: SVG, pan/zoom, drag, inspector, saved positions (`workspaceState`), PNG/SVG export | M1 | VSX-9, VSX-11 | |
-| VSX-14 | Packaging + release: 6 platform VSIXs, Open VSX, release-please package | M1 | VSX-4 | |
+| VSX-14 | Packaging + release: 6 platform VSIXs, Open VSX, release-please package | M1 | VSX-4 | done (untested in CI) |
 | VSX-15 | Docs: this page becomes the agent doc; README for the Marketplace | M1 | all M1 | |
 | – | SSH tunnels, query editor (SQL + Mongo shell, CodeLens Run, results, destructive confirm, cancel) | M2 | M1 | |
 | – | Grid editing, filter builder, export CSV/JSON, cluster host selection, Goku app import | M3 | M2 | |

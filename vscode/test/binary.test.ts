@@ -14,8 +14,17 @@ test('override wins when it exists, and fails loudly when it does not', () => {
 });
 
 test('missing bundled binary: reinstall for supported targets, list them otherwise', () => {
-  const base = { extensionPath: '/ext', exists: () => false };
+  const base = { extensionPath: '/ext', exists: () => false, makeExecutable: () => {} };
   assert.throws(() => resolveBinary({ ...base, platform: 'darwin', arch: 'arm64' }), /for darwin-arm64 is missing/);
   assert.throws(() => resolveBinary({ ...base, platform: 'freebsd', arch: 'x64' }), /no engine for freebsd-x64\. Supported: win32-x64/);
   assert.equal(resolveBinary({ ...base, platform: 'linux', arch: 'x64', exists: () => true }), join('/ext', 'bin', 'linux-x64', 'goku-engine-server'));
+});
+
+test('the bundled binary gets its exec bit checked, except on Windows', () => {
+  const fixed: string[] = [];
+  const o = { extensionPath: '/ext', exists: () => true, makeExecutable: (p: string) => void fixed.push(p) };
+  resolveBinary({ ...o, platform: 'linux', arch: 'x64' });
+  resolveBinary({ ...o, platform: 'win32', arch: 'x64' });
+  resolveBinary({ ...o, override: '/dev/engine' });
+  assert.deepEqual(fixed, [join('/ext', 'bin', 'linux-x64', 'goku-engine-server')]);
 });

@@ -1,0 +1,104 @@
+# Builds goku-engine-server for the six VS Code targets and packages one VSIX per target (VSX-14,
+# docs/vscode-extension.md). release.yml calls it when release-please creates a vscode-vX.Y.Z release (a tag pushed with
+# GITHUB_TOKEN wouldn't trigger a workflow on its own); run it by hand to get the VSIXs as workflow artifacts.
+# Publishing needs VSCE_PAT (Marketplace) / OVSX_PAT (Open VSX); without them it only builds.
+name: Extension release
+
+on:
+  workflow_call:
+    inputs:
+      ref: { type: string, required: true }
+      publish: { type: boolean, default: false }
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  engine:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux: static musl builds (rustls only), so they run on any distro the remote host has, Alpine included.
+          - { target: linux-x64, rust: x86_64-unknown-linux-musl, os: ubuntu-latest, zig: true }
+          - { target: linux-arm64, rust: aarch64-unknown-linux-musl, os: ubuntu-latest, zig: true }
+          - { target: darwin-arm64, rust: aarch64-apple-darwin, os: macos-latest }
+          - { target: darwin-x64, rust: x86_64-apple-darwin, os: macos-latest }
+          - { target: win32-x64, rust: x86_64-pc-windows-msvc, os: windows-latest }
+          - { target: win32-arm64, rust: aarch64-pc-windows-msvc, os: windows-latest }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - run: rustup show && rustup target add ${{ matrix.rust }}
+        working-directory: engine
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: engine
+          key: ${{ matrix.rust }}
+      - if: matrix.zig
+        run: pip install ziglang && cargo install cargo-zigbuild --locked
+      - name: Build
+        working-directory: engine
+        shell: bash
+        run: |
+          if [ "${{ matrix.zig }}" = "true" ]; then cmd=zigbuild; else cmd=build; fi
+          cargo $cmd --release --locked -p goku-engine-server --target ${{ matrix.rust }}
+          exe=goku-engine-server; [[ "${{ matrix.target }}" == win32-* ]] && exe=goku-engine-server.exe
+          mkdir -p ../out/${{ matrix.target }} && cp target/${{ matrix.rust }}/release/$exe ../out/${{ matrix.target }}/
+      # A binary for the runner's own architecture must start and report its version.
+      - if: matrix.target == 'linux-x64' || matrix.target == 'darwin-arm64' || matrix.target == 'win32-x64'
+        shell: bash
+        run: out/${{ matrix.target }}/goku-engine-server* --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-${{ matrix.target }}
+          path: out/${{ matrix.target }}
+          if-no-files-found: error
+
+  package:
+    needs: engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: engine-*
+          path: engines
+      - name: Package one VSIX per target
+        working-directory: vscode
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          NODE_ENV=production npm run build
+          for dir in ../engines/engine-*; do
+            target=${dir##*/engine-}
+            rm -rf bin && mkdir -p bin/$target && cp $dir/* bin/$target/ && chmod +x bin/$target/* || true
+            npx --yes @vscode/vsce@3 package --target $target --skip-license --allow-missing-repository -o ../dist/goku-$target.vsix
+          done
+          ls -la ../dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: dist/*.vsix
+          if-no-files-found: error
+      - name: Publish
+        if: inputs.publish
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -n "$VSCE_PAT" ]; then npx --yes @vscode/vsce@3 publish --packagePath dist/*.vsix; else echo "::warning::VSCE_PAT not set: not published to the Marketplace"; fi
+          if [ -n "$OVSX_PAT" ]; then for f in dist/*.vsix; do npx --yes ovsx@0 publish "$f" -p "$OVSX_PAT"; done; else echo "::warning::OVSX_PAT not set: not published to Open VSX"; fi
