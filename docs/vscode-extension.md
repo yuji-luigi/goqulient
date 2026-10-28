@@ -1,8 +1,37 @@
-# VS Code extension + Rust engine (plan, 2026-10-28)
+# VS Code extension + Rust engine
 
-Status: **planned, nothing built yet.** This page is the PM plan: decisions, architecture, milestones and tickets. Once
-code lands it becomes the agent doc for the extension (file map, invariants, checklists), like the pages under
-`docs/features/`.
+Status (2026-10-28): **M0 done** (skeleton: engine library + stdio server, extension that runs it, parity fixtures, CI).
+No database access yet. This page is both the PM plan (decisions, milestones, tickets) and the agent doc for what exists
+(file map, protocol, invariants, commands), like the pages under `docs/features/`.
+
+## Files
+| Concern | File |
+|---|---|
+| Cargo workspace, pinned toolchain (`rust-toolchain.toml`), `rustfmt.toml` | `engine/` |
+| `DbError` (same wording as GokuCore's `DBError`), `display_message()` | `engine/crates/goku-engine/src/error.rs` |
+| `with_deadline` (timeout or cancel → `on_timeout` once) | `engine/crates/goku-engine/src/deadline.rs` |
+| `RowCollector`, `clip`, `Paging`, limits | `engine/crates/goku-engine/src/limits.rs` |
+| `secrets` / `uri` redaction (same patterns as `Redaction.swift`) | `engine/crates/goku-engine/src/redact.rs` |
+| `ConnectionProfile` + tolerant decoding, `validate`, `decode_profiles`, `Credentials` (masked `Debug`) | `engine/crates/goku-engine/src/profile.rs` |
+| Framing (LSP `Content-Length`, 16 MiB cap) | `engine/crates/goku-engine-server/src/framing.rs` |
+| Dispatch, error codes, methods | `engine/crates/goku-engine-server/src/server.rs` |
+| Protocol tests over an in-memory pipe | `engine/crates/goku-engine-server/src/tests.rs` |
+| Extension entry, commands | `vscode/src/extension.ts` |
+| `EngineClient` (spawn, initialize, requests, cancel, stop, crash budget), `EngineError` | `vscode/src/engine/client.ts` |
+| Engine binary lookup (`bin/<platform>-<arch>/`, `goku.enginePath`) | `vscode/src/engine/binary.ts` |
+| Parity fixtures (written by `Tests/GokuCoreTests/ParityFixtureTests.swift`) | `Tests/Parity/` + its `README.md` |
+| CI (Linux/macOS/Windows: fmt, clippy, cargo test, typecheck, build, Node tests against the engine) | `.github/workflows/extension.yml` |
+
+## Commands
+```bash
+scripts/dev.sh engine test [filter]   # cargo test in the `engine` container (rust:1.99.1, target dir in a volume)
+scripts/dev.sh engine check           # rustfmt --check + clippy -D warnings
+scripts/dev.sh engine build           # release build (Linux)
+scripts/dev.sh vscode test            # builds the engine (debug), then typecheck + Node tests against it in `vscode`
+scripts/dev.sh vscode build           # dist/extension.cjs
+GOKU_WRITE_PARITY=1 scripts/dev.sh test ParityFixture   # regenerate Tests/Parity (Swift side)
+```
+Nothing Rust or Node is installed on the Mac; native macOS and Windows builds happen in CI.
 
 ## Goal
 A VS Code extension that shows databases the way Goku does, on **Windows, macOS and Linux** (including Remote-SSH, WSL
@@ -48,7 +77,7 @@ VS Code (extension host, Node)                         goku-engine-server (Rust,
 - ER sizes: the webview measures box sizes with its own font (`measureText`) and sends them through the extension to
   `er/layout` in the engine. The engine owns the layout, so the app can use the same one later.
 
-### Planned crates (to confirm in VSX-1)
+### Crates (M0 uses the first and last rows; the rest are planned, to confirm in the driver tickets)
 | Concern | Crate |
 |---|---|
 | Runtime, timeouts | `tokio` |
@@ -57,13 +86,17 @@ VS Code (extension host, Node)                         goku-engine-server (Rust,
 | MongoDB | official `mongodb` crate; `maxTimeMS` |
 | TLS | `rustls` + `rustls-platform-verifier` (uses the Windows/macOS certificate store) |
 | SSH tunnels | `russh` (pure Rust, works on Windows) |
-| JSON | `serde`, `serde_json` |
+| JSON, errors, misc | `serde`, `serde_json`, `thiserror`, `tokio-util` (`CancellationToken`), `fancy-regex` (redaction backreference), `unicode-segmentation` (clip by grapheme like Swift), `uuid` |
 | App binding (M4) | `uniffi` |
 
-### Protocol sketch (`protocolVersion` 1, finalized in VSX-2)
+### Protocol (`protocolVersion` 1)
+Implemented: `initialize`, `shutdown`, `exit`, `$/cancelRequest`, `profile/validate`, and `debug/wait` in debug builds
+only (tests). The rest of the table is planned.
+
 | Method | Result |
 |---|---|
-| `initialize {protocolVersion, clientName}` | engine version, capabilities |
+| `initialize {protocolVersion, clientName}` | `{protocolVersion, engineVersion, capabilities: {methods}}`; a different version → `-32003` |
+| `profile/validate {profile}` | `{profile (normalized, defaults filled), endpoint (redacted)}`, no network |
 | `connection/open {profile, secrets}` → `{sessionId, serverInfo}` | `profile` = the JSON shape of `ConnectionProfile` |
 | `connection/close {sessionId}` | |
 | `catalog/databases`, `catalog/schemas`, `catalog/objects`, `catalog/columns` | same lists as the app's sidebar |
@@ -73,7 +106,20 @@ VS Code (extension host, Node)                         goku-engine-server (Rust,
 | `query/run` (M2) | results; destructive → `needsConfirmation` |
 | `$/cancelRequest` | cancels on the server (`pg_cancel_backend`, `KILL QUERY`, kill the Mongo op) |
 
-Errors carry the same `displayMessage` wording as `DBError`.
+Errors: `-32001` engine error (`message` = the `DbError` display message with secrets removed, `data` = `{kind, detail}`,
+e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-32003` protocol mismatch, plus the standard
+`-32700/-32600/-32601/-32602`. The extension sees them as `EngineError` (`code`, `kind`, `cancelled`).
+
+### Invariants (don't break)
+- stdout carries only protocol frames; logs go to stderr (the extension prints them in the "Goku" output channel).
+- The library never creates a runtime or prints; the server builds exactly one multi-thread runtime.
+- Every request runs in its own task with a `CancellationToken`; `$/cancelRequest` and the end of stdin cancel it. When
+  stdin ends the server exits within ~2 s even if a request is stuck, so it never outlives the extension host.
+- Requests before `initialize` and after `shutdown` are refused. A broken frame ends the server (the stream can't resync).
+- `goku.enginePath` is machine scope (a workspace can't point it at another program); the engine is spawned without a shell
+  and without secrets in argv or env.
+- `ConnectionProfile` decoding mirrors Swift exactly (AGENTS.md rule 6); a new field needs a default in `from_fields`
+  and a test, on both sides.
 
 ## Connections in VS Code
 - **Settings** `goku.connections`: array of profiles (user or workspace scope), same field names as `ConnectionProfile`
@@ -100,16 +146,21 @@ Errors carry the same `displayMessage` wording as `DBError`.
 7. Secrets never reach logs; logged statements and URIs are masked.
 
 ## Testing
-- Rust integration tests run in the **dev container** against the same Docker databases (AGENTS.md rules 1 and 2): add a
-  Rust toolchain to `docker/` and an `engine` subcommand to `scripts/dev.sh test`. Don't run them alongside Swift tests,
-  `--selftest` or `--uidemo`.
-- **Parity fixtures**: a GokuCore test writes JSON snapshots to `Tests/Fixtures/parity/`:
+- Rust tests run in the **`engine` container** (same network and databases as `dev`; integration tests will be gated by
+  `GOKU_IT=1`, set there). Database tests share the Docker databases with the Swift suites (AGENTS.md rule 2): don't run
+  them alongside Swift tests, `--selftest` or `--uidemo`.
+- Extension tests run with Node's built-in runner on the `.ts` sources (type stripping, `erasableSyntaxOnly`) in the
+  `vscode` container, against the engine's Linux debug build (`GOKU_ENGINE_BIN`).
+- **Parity fixtures**: a GokuCore test (`ParityFixtureTests.swift`) writes JSON snapshots to `Tests/Parity/` and
+  compares against them on every Swift run (shapes and normalization: `Tests/Parity/README.md`):
   - `SchemaModel` per engine for the seeded test schemas;
   - Mongo inference on a fixed document set;
   - `ERLayout` output for fixed inputs.
-  Rust tests must produce the same JSON. Changing either side means regenerating the fixtures in the same commit.
-- CI matrix (GitHub Actions): Linux runs build, unit and integration tests (service containers). macOS and **Windows** run
-  build, unit tests and an extension-host smoke test (`@vscode/test-electron`) that spawns the real server.
+  Rust tests must produce the same JSON. Changing either side means regenerating the fixtures in the same commit:
+  `GOKU_WRITE_PARITY=1 scripts/dev.sh test ParityFixture`.
+- CI (`extension.yml`): Linux, macOS and **Windows** each run the Rust tests and the Node tests against their own engine
+  build. Database integration tests will run on Linux only (service containers); an extension-host smoke test
+  (`@vscode/test-electron`) comes with VSX-11.
 - Extension: `@vscode/test-electron` for the tree and commands; webviews are checked by screenshot, the way `--uidemo` is.
 
 ## Release
@@ -121,33 +172,37 @@ Errors carry the same `displayMessage` wording as `DBError`.
   the app is renamed later; settings use the `goku.*` prefix.
 
 ## Milestones and tickets
-| Ticket | Title | Milestone | Depends on |
-|---|---|---|---|
-| VSX-1 | `engine/` Cargo workspace, crate choices confirmed, CI matrix (Linux/macOS/Windows build + unit tests), Rust in the dev container | M0 skeleton | – |
-| VSX-2 | Protocol v1 + `goku-engine-server`: framing, dispatch, `initialize`, cancellation, structured errors | M0 | VSX-1 |
-| VSX-3 | Safety primitives: `with_deadline`, row collector with caps, cell truncation, secret masking, the single runtime | M0 | VSX-1 |
-| VSX-4 | `vscode/` skeleton: esbuild, `EngineClient` (spawn, restart, output channel), platform binary lookup | M0 | VSX-2 |
-| VSX-5 | Parity fixtures exported from GokuCore (Swift test in Docker) | M0 | – |
-| VSX-6 | PostgreSQL: connect (TLS modes), catalog, `table/page`, read-only session, introspection | M1 MVP | VSX-3 |
-| VSX-7 | MySQL/MariaDB: same scope as VSX-6 | M1 | VSX-3 |
-| VSX-8 | MongoDB: connect (single/multi-host/SRV/URI), catalog, documents page, schema inference | M1 | VSX-3 |
-| VSX-9 | `er/layout`: port `ERLayout.swift` + parity tests | M1 | VSX-5 |
-| VSX-10 | Connections: settings, SecretStorage, `.env` discovery, Workspace Trust, read-only default for env | M1 | VSX-4 |
-| VSX-11 | Sidebar tree + commands (refresh, connect/disconnect, open table, ER diagram) | M1 | VSX-6..8, VSX-10 |
-| VSX-12 | Table/collection viewer webview (virtualised, paged, copy cells) | M1 | VSX-11 |
-| VSX-13 | ER diagram webview: SVG, pan/zoom, drag, inspector, saved positions (`workspaceState`), PNG/SVG export | M1 | VSX-9, VSX-11 |
-| VSX-14 | Packaging + release: 6 platform VSIXs, Open VSX, release-please package | M1 | VSX-4 |
-| VSX-15 | Docs: this page becomes the agent doc; README for the Marketplace | M1 | all M1 |
-| – | SSH tunnels, query editor (SQL + Mongo shell, CodeLens Run, results, destructive confirm, cancel) | M2 | M1 |
-| – | Grid editing, filter builder, export CSV/JSON, cluster host selection, Goku app import | M3 | M2 |
-| – | Mac app on the Rust engine through uniffi, one engine behind `DatabaseSession` at a time (experiment branch) | M4 | M3 |
+| Ticket | Title | Milestone | Depends on | Status |
+|---|---|---|---|---|
+| VSX-1 | `engine/` Cargo workspace, CI matrix (Linux/macOS/Windows build + unit tests), Rust in Docker (`engine` service) | M0 skeleton | – | done |
+| VSX-2 | Protocol v1 + `goku-engine-server`: framing, dispatch, `initialize`, cancellation, structured errors | M0 | VSX-1 | done |
+| VSX-3 | Safety primitives: `with_deadline`, row collector with caps, cell truncation, secret masking, the single runtime | M0 | VSX-1 | done |
+| VSX-4 | `vscode/` skeleton: esbuild, `EngineClient` (spawn, restart, output channel), platform binary lookup | M0 | VSX-2 | done |
+| VSX-5 | Parity fixtures exported from GokuCore (Swift test in Docker) | M0 | – | done |
+| VSX-6 | PostgreSQL: connect (TLS modes), catalog, `table/page`, read-only session, introspection | M1 MVP | VSX-3 | |
+| VSX-7 | MySQL/MariaDB: same scope as VSX-6 | M1 | VSX-3 | |
+| VSX-8 | MongoDB: connect (single/multi-host/SRV/URI), catalog, documents page, schema inference | M1 | VSX-3 | |
+| VSX-9 | `er/layout`: port `ERLayout.swift` + parity tests | M1 | VSX-5 | |
+| VSX-10 | Connections: settings, SecretStorage, `.env` discovery, Workspace Trust, read-only default for env | M1 | VSX-4 | |
+| VSX-11 | Sidebar tree + commands (refresh, connect/disconnect, open table, ER diagram) | M1 | VSX-6..8, VSX-10 | |
+| VSX-12 | Table/collection viewer webview (virtualised, paged, copy cells) | M1 | VSX-11 | |
+| VSX-13 | ER diagram webview: SVG, pan/zoom, drag, inspector, saved positions (`workspaceState`), PNG/SVG export | M1 | VSX-9, VSX-11 | |
+| VSX-14 | Packaging + release: 6 platform VSIXs, Open VSX, release-please package | M1 | VSX-4 | |
+| VSX-15 | Docs: this page becomes the agent doc; README for the Marketplace | M1 | all M1 | |
+| – | SSH tunnels, query editor (SQL + Mongo shell, CodeLens Run, results, destructive confirm, cancel) | M2 | M1 | |
+| – | Grid editing, filter builder, export CSV/JSON, cluster host selection, Goku app import | M3 | M2 | |
+| – | Mac app on the Rust engine through uniffi, one engine behind `DatabaseSession` at a time (experiment branch) | M4 | M3 | |
 
 Ticket files are written as `docs/tickets/VSX-<n>-<slug>.md` when a workstream starts.
 
 ## Risks / open questions
 - MySQL cancel and MariaDB differences in `mysql_async`, and the Mongo shell syntax in M2 (port `MongoShellParser`),
   are the largest porting risks.
-- Windows CI can't run Linux service containers: integration tests run on Linux only. Windows gets a smoke test
-  against a database started by the job (to decide in VSX-1).
+- Windows CI can't run Linux service containers: database integration tests run on Linux only. Whether Windows also gets
+  a smoke test against a database the job installs is decided in VSX-6.
+- Native macOS/Windows engine builds are only exercised in CI (no Rust on the Mac); cross builds for the arm64 targets
+  come with VSX-14.
+- Inherited from GokuCore: Mongo inference isn't deterministic (`$sample` order), see `er-diagrams.md`. The Rust port
+  should not copy that blindly; decide in VSX-8 whether both sides sort attributes.
 - Fixture parity covers outputs, not timing or cancel behaviour. Those need their own Rust tests, modelled on the Swift
   deadline tests in `UnitTests.swift`/`IntegrationSupport.swift` and "Diagnosing hangs" in `docs/TESTING.md`.
