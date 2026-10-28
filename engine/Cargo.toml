@@ -29,6 +29,9 @@ mysql_async = { version = "0.37", default-features = false, features = ["minimal
 futures-util = { version = "0.3", default-features = false }
 tokio-postgres = { version = "0.7", default-features = false, features = ["runtime"] }
 tokio-postgres-rustls = "0.14"
+# MongoDB: rustls (ring), the hickory resolver for SRV, `tlsCertificateKeyFilePassword` in URIs; bson 3 with Extended JSON for `execute` and the fixtures.
+mongodb = { version = "3.9", default-features = false, features = ["compat-3-3-0", "bson-3", "rustls-tls", "dns-resolver", "cert-key-password"] }
+bson = { version = "3.1", features = ["serde_json-1"] }
 
 [profile.release]
 lto = "thin"
