@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { registerConnectionCommands } from './connections/commands.ts';
+import { ConnectionStore } from './connections/store.ts';
 import { resolveBinary } from './engine/binary.ts';
 import { EngineClient, EngineError } from './engine/client.ts';
 
@@ -17,8 +19,23 @@ export function activate(context: vscode.ExtensionContext): void {
     onGaveUp: (reason) => void vscode.window.showErrorMessage(reason, 'Show Log').then((a) => a && log.show()),
   });
   const client = engine;
+  const store = new ConnectionStore({
+    secrets: context.secrets,
+    log,
+    validate: async (profile) => {
+      try {
+        await client.request('profile/validate', { profile });
+        return undefined;
+      } catch (e) {
+        if (e instanceof EngineError && e.kind === 'invalidConfiguration') return e.message;
+        throw e;
+      }
+    },
+  });
   context.subscriptions.push(
     log,
+    store,
+    ...registerConnectionCommands(context, store),
     vscode.commands.registerCommand('goku.showLog', () => log.show()),
     vscode.commands.registerCommand('goku.engineInfo', () =>
       report(log, async () => {

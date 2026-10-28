@@ -20,6 +20,13 @@ No database access yet. This page is both the PM plan (decisions, milestones, ti
 | Extension entry, commands | `vscode/src/extension.ts` |
 | `EngineClient` (spawn, initialize, requests, cancel, stop, crash budget), `EngineError` | `vscode/src/engine/client.ts` |
 | Engine binary lookup (`bin/<platform>-<arch>/`, `goku.enginePath`) | `vscode/src/engine/binary.ts` |
+| Profile JSON types, `endpointSummary`, `splitUrl`, `needsPassword`, `secretFingerprint` | `vscode/src/connections/profile.ts` |
+| dotenv parser (no expansion) | `vscode/src/connections/envParse.ts` |
+| URL → profile + credentials, `.env` discovery, `goku.envConnections` | `vscode/src/connections/envProfiles.ts` |
+| Settings decoding (invalid entries kept), merge, trust filter, duplicate ids | `vscode/src/connections/model.ts` |
+| `ConnectionStore`: settings + `.env`, watcher, trust, SecretStorage, password prompt, engine validation | `vscode/src/connections/store.ts` |
+| `goku.addConnection`, `goku.forgetPassword`, `goku.openSettings` | `vscode/src/connections/commands.ts` |
+| URI redaction (same rules as `redact::uri`) | `vscode/src/connections/redact.ts` |
 | Parity fixtures (written by `Tests/GokuCoreTests/ParityFixtureTests.swift`) | `Tests/Parity/` + its `README.md` |
 | CI (Linux/macOS/Windows: fmt, clippy, cargo test, typecheck, build, Node tests against the engine) | `.github/workflows/extension.yml` |
 
@@ -123,16 +130,58 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
   and a test, on both sides.
 
 ## Connections in VS Code
-- **Settings** `goku.connections`: array of profiles (user or workspace scope), same field names as `ConnectionProfile`
-  (`kind`, `host`, `port`, `user`, `database`, `ssl`, `ssh`, `readOnly`, ...). Never contains passwords: the first connect
-  asks for them and stores them in SecretStorage, keyed by connection id.
-- **`.env` discovery** `goku.envFiles` (default `[".env"]`):
-  - recognised URL variables: `DATABASE_URL`, `POSTGRES_URL`, `MYSQL_URL`, `MONGODB_URI`, `MONGO_URL`;
-  - recognised part variables: `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`/`PGDATABASE`, `MYSQL_HOST`/... ;
-  - `goku.envConnections` maps custom variable names.
-  The file is read when connecting, in place; nothing is copied. A changed file updates the tree.
+`ConnectionStore` (`store.ts`) builds the list the tree shows; the merge itself is the pure `mergeConnections` in
+`model.ts` (unit-tested), fed from `inspect('goku.connections')`, the env files and `workspace.isTrusted`.
+- **Settings** `goku.connections`: array of profiles, same JSON as `ConnectionProfile` (`name`, `kind`, `hosts`, `user`,
+  `database`, `ssl`, `ssh`, `readOnly`, ...). User **and** workspace entries are both listed (user first), not one
+  overriding the other.
+  - Decoded tolerantly without the engine: only `name` and `kind` are checked locally. An entry that fails (not an object,
+    no name, unknown kind, or `profile/validate` says no) stays in the list with `invalid` = the reason; nothing is
+    dropped, and `goku.addConnection` appends to the user list without touching the existing entries.
+  - `id`: the profile's `id`, else a hash of scope + name + kind. A repeated id keeps the first entry and marks the others
+    invalid, so a workspace entry can't borrow a user entry's saved password.
+  - Validation through the engine runs in the background after each refresh (cached by profile JSON). If the engine can't
+    start, the list stays unvalidated and a warning goes to the log.
+- **`.env` discovery** `goku.envFiles` (resource scope, default `[".env"]`, relative to each workspace folder; multi-root
+  labels are `<folder>/<path>`):
+  - URL variables: `DATABASE_URL`, `POSTGRES_URL`, `POSTGRESQL_URL`, `MYSQL_URL`, `MONGODB_URI`, `MONGO_URL`,
+    `MONGODB_URL`. A `DATABASE_URL` with another scheme (sqlite, redis, ...) is skipped silently; the others are listed
+    invalid with the reason.
+  - Part variables: `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`/`PGDATABASE`/`PGSSLMODE` (host and port lists like libpq) and
+    `MYSQL_HOST`/`MYSQL_PORT`/`MYSQL_USER`/`MYSQL_PASSWORD`/`MYSQL_DATABASE`; needs a host or a database.
+  - `goku.envConnections` `[{url: "VAR", name?, file?, kind?, readOnly?}]` adds variables; an entry for a well-known
+    variable replaces its default name/read-only. `file` limits it to one env file; `kind` is for schemes that don't say.
+  - Schemes: `postgres(ql)[+driver]://` (`sslmode`, `sslrootcert`/`sslcert`/`sslkey`, `target_session_attrs`,
+    `connect_timeout`, multi-host, `host`/`user`/`password`/`dbname` query params), `mysql`/`mariadb`/`mysql2[+driver]://`
+    (`ssl-mode`, `ssl`), `mongodb://` and `mongodb+srv://` (both **URI mode**, options kept as written). sslmode mapping:
+    disable → `disable`, allow/prefer → `prefer`, require → `require`, verify-ca → `verifyCA`, verify-full/verify-identity
+    → `verifyFull`, unknown → `verifyFull` (same fallback as the engine).
+  - Name `<VAR> (<file>)` (`PG* (<file>)`, `MYSQL_* (<file>)` for parts); id `env-` + sha256(folder URI | path, variable),
+    so it survives restarts and doesn't change with the value.
+  - Read-only by default (D8), `goku.envConnections[].readOnly: false` overrides it.
+  - A watcher on each env file and a configuration listener refresh the list (`onDidChange`). The file is parsed again at
+    connect time (`openParams`), so the password is never kept or stored.
+  - Parser (`envParse.ts`): `export`, `#` lines, ` #` comments after unquoted values (a `#` without whitespace before it is
+    part of the value), single quotes and backticks literal, double quotes with `\n \r \t \" \\`, quoted values may span
+    lines, **no** `$VAR` expansion. Errors carry line numbers only. Files over 1 MiB aren't read.
+- **Passwords** (D7, AGENTS.md rule 5): profiles never hold one. A URL's password moves to `credentials`, which only
+  `connection/open` receives. For Mongo URI mode the password is cut out of the URI (`mongodb://user@host/...`) and sent as
+  `credentials.password`, percent-decoded; the engine must put it back into `scheme://user@host`, percent-encoded, like
+  `MongoSession.connectionString` (⚠ the Rust Mongo driver, VSX-8, doesn't exist yet: it must do this). Settings
+  connections keep it in SecretStorage under `goku.password.<id>` as `{fingerprint, password}`; the fingerprint
+  (`secretFingerprint`: kind, servers, user) must still match, otherwise the user is asked again, so a changed host or a
+  copied id never receives a saved password. The prompt (`showInputBox({password: true})`) offers "save" or "until VS Code
+  closes" (kept in memory only). `goku.forgetPassword` removes both.
+- **Workspace Trust**: untrusted → workspace `goku.connections` and every env file are ignored (user settings still
+  apply); `goku.connections`, `goku.envFiles`, `goku.envConnections` are `restrictedConfigurations`.
+  `onDidGrantWorkspaceTrust` refreshes.
+- **Logs** never contain a password or a full URI: endpoints go through `redactUri` (`redact.ts`, the engine's URI rules,
+  tests mirror `redact.rs`), errors name the variable and file, never the value.
 - **Goku app connections** (macOS, later, M3): import through `goku` (`connections` plus the agent-access rules), never by
   reading the app's Keychain directly.
+- ⚠ Not handled yet: SSH passwords/passphrases are never prompted (SSH is M2); a `tlsCertificateKeyFilePassword` in a Mongo
+  URI stays in the URI (redacted when shown); `PG*`/`MYSQL_*` part connections can't be renamed or made writable through
+  `goku.envConnections`; Unix-socket hosts are rejected.
 
 ## Safety requirements for the engine (from AGENTS.md rule 4 and README "Safety")
 1. Every network wait goes through one `with_deadline(dur, fut, on_timeout)` helper whose `on_timeout` closes the socket
@@ -184,7 +233,7 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
 | VSX-7 | MySQL/MariaDB: same scope as VSX-6 | M1 | VSX-3 | |
 | VSX-8 | MongoDB: connect (single/multi-host/SRV/URI), catalog, documents page, schema inference | M1 | VSX-3 | |
 | VSX-9 | `er/layout`: port `ERLayout.swift` + parity tests | M1 | VSX-5 | done |
-| VSX-10 | Connections: settings, SecretStorage, `.env` discovery, Workspace Trust, read-only default for env | M1 | VSX-4 | |
+| VSX-10 | Connections: settings, SecretStorage, `.env` discovery, Workspace Trust, read-only default for env | M1 | VSX-4 | done (no tree yet; Mongo URI password injection waits for VSX-8) |
 | VSX-11 | Sidebar tree + commands (refresh, connect/disconnect, open table, ER diagram) | M1 | VSX-6..8, VSX-10 | |
 | VSX-12 | Table/collection viewer webview (virtualised, paged, copy cells) | M1 | VSX-11 | |
 | VSX-13 | ER diagram webview: SVG, pan/zoom, drag, inspector, saved positions (`workspaceState`), PNG/SVG export | M1 | VSX-9, VSX-11 | |

@@ -21,7 +21,8 @@
       "description": "Connections from workspace settings and .env files are only read in trusted workspaces.",
       "restrictedConfigurations": [
         "goku.connections",
-        "goku.envFiles"
+        "goku.envFiles",
+        "goku.envConnections"
       ]
     }
   },
@@ -40,6 +41,21 @@
       {
         "command": "goku.showLog",
         "title": "Show Log",
+        "category": "Goku"
+      },
+      {
+        "command": "goku.addConnection",
+        "title": "Add Connection",
+        "category": "Goku"
+      },
+      {
+        "command": "goku.forgetPassword",
+        "title": "Forget Saved Password",
+        "category": "Goku"
+      },
+      {
+        "command": "goku.openSettings",
+        "title": "Open Settings",
         "category": "Goku"
       }
     ],
@@ -66,7 +82,45 @@
           "default": [
             ".env"
           ],
-          "markdownDescription": "Workspace files searched for `DATABASE_URL`, `MONGODB_URI`, `PG*` and similar variables. Connections found there are read-only by default."
+          "scope": "resource",
+          "markdownDescription": "Files, relative to each workspace folder, searched for `DATABASE_URL`, `POSTGRES_URL`, `MYSQL_URL`, `MONGODB_URI`, `PGHOST`/`PGDATABASE`, `MYSQL_HOST`/`MYSQL_DATABASE` and similar variables. Connections found there are read-only by default, read their password from the file when connecting, and are ignored in untrusted workspaces."
+        },
+        "goku.envConnections": {
+          "type": "array",
+          "default": [],
+          "scope": "resource",
+          "markdownDescription": "More connection URLs in the env files, e.g. `{\"url\": \"ANALYTICS_DB_URL\", \"name\": \"Analytics\", \"readOnly\": false}`. `url` is the variable's name; `file` limits the entry to one of `goku.envFiles`; `kind` is for URLs whose scheme doesn't say. An entry for a well-known variable such as `DATABASE_URL` overrides its name and read-only default.",
+          "items": {
+            "type": "object",
+            "required": [
+              "url"
+            ],
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "Name of the variable that holds the connection URL."
+              },
+              "name": {
+                "type": "string"
+              },
+              "file": {
+                "type": "string",
+                "description": "Only in this env file (as written in goku.envFiles)."
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "postgres",
+                  "mysql",
+                  "mongodb"
+                ]
+              },
+              "readOnly": {
+                "type": "boolean",
+                "default": true
+              }
+            }
+          }
         },
         "goku.enginePath": {
           "type": "string",
