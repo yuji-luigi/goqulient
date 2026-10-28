@@ -21,9 +21,14 @@ tokio-util = "0.7"
 uuid = { version = "1", features = ["v4"] }
 fancy-regex = "0.14"
 unicode-segmentation = "1"
-# MySQL/MariaDB over rustls with ring (no C toolchain needed on Windows); `rustls` only to install that provider.
-mysql_async = { version = "0.37", default-features = false, features = ["minimal-rust", "rustls-tls", "tls12", "ring"] }
+# TLS everywhere is rustls with the ring provider only (no C toolchain on Windows, no aws-lc-rs/openssl); drivers call
+# `rustls::crypto::ring::default_provider().install_default()` before building a ClientConfig.
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-platform-verifier = "0.7"
+mysql_async = { version = "0.37", default-features = false, features = ["minimal-rust", "rustls-tls", "tls12", "ring"] }
+futures-util = { version = "0.3", default-features = false }
+tokio-postgres = { version = "0.7", default-features = false, features = ["runtime"] }
+tokio-postgres-rustls = "0.14"
 
 [profile.release]
 lto = "thin"
