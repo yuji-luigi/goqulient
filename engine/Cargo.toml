@@ -21,6 +21,11 @@ tokio-util = "0.7"
 uuid = { version = "1", features = ["v4"] }
 fancy-regex = "0.14"
 unicode-segmentation = "1"
+# MongoDB: rustls (ring), the hickory resolver for SRV, `tlsCertificateKeyFilePassword` in URIs; bson 3 with Extended JSON for `execute` and the fixtures.
+mongodb = { version = "3.9", default-features = false, features = ["compat-3-3-0", "bson-3", "rustls-tls", "dns-resolver", "cert-key-password"] }
+bson = { version = "3.1", features = ["serde_json-1"] }
+# One crypto provider for every driver (ring); `install_default` runs before any TLS setup.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 
 [profile.release]
 lto = "thin"

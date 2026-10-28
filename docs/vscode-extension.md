@@ -14,6 +14,11 @@ No database access yet. This page is both the PM plan (decisions, milestones, ti
 | ER layout (port of `ERLayout.swift`, checked against `Tests/Parity/er-layout`) | `engine/crates/goku-engine/src/er.rs`, `tests/parity_er_layout.rs` |
 | `secrets` / `uri` redaction (same patterns as `Redaction.swift`) | `engine/crates/goku-engine/src/redact.rs` |
 | `ConnectionProfile` + tolerant decoding, `validate`, `decode_profiles`, `Credentials` (masked `Debug`) | `engine/crates/goku-engine/src/profile.rs` |
+| MongoDB session: connect (single/multi-host/SRV/URI, TLS, URI password injection), catalog, browse, `execute` (one JSON command), read-only check | `engine/crates/goku-engine/src/drivers/mongo/mod.rs` |
+| BSON → shell text and the Mongo grid (port of `BSONFormat.swift`) | `engine/crates/goku-engine/src/drivers/mongo/format.rs` |
+| Mongo inference (port of `MongoSchemaInference.swift`) | `engine/crates/goku-engine/src/drivers/mongo/infer.rs` |
+| Extended JSON → BSON keeping key order (`parse_document`) | `engine/crates/goku-engine/src/drivers/mongo/extjson.rs` |
+| Mongo tests: integration, inference parity, optional Atlas; helpers `support/mongo.rs`, `support/parity.rs` (shared normalization) | `engine/crates/goku-engine/tests/{mongo,parity_mongo_inference,atlas}.rs` |
 | Framing (LSP `Content-Length`, 16 MiB cap) | `engine/crates/goku-engine-server/src/framing.rs` |
 | Dispatch, error codes, methods | `engine/crates/goku-engine-server/src/server.rs` |
 | Protocol tests over an in-memory pipe | `engine/crates/goku-engine-server/src/tests.rs` |
@@ -122,6 +127,35 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
 - `ConnectionProfile` decoding mirrors Swift exactly (AGENTS.md rule 6); a new field needs a default in `from_fields`
   and a test, on both sides.
 
+## MongoDB driver (VSX-8)
+Official `mongodb` crate 3.9 with `bson-3`, rustls on **ring** (no aws-lc-rs, no OpenSSL), the hickory resolver for SRV and
+`cert-key-password` (so `tlsCertificateKeyFilePassword` works in URIs). Differences from GokuCore and gotchas:
+- **Timeouts**: the whole connect (SRV/TXT lookup, server selection, TLS, auth, `ping`) runs under one
+  `connect_timeout_seconds` deadline; server selection gives up at 90 % of it so its error (which says why) usually wins.
+  Operations: `query + 5` s, `maxTimeMS = query` on find/aggregate/count/distinct. A timed-out or cancelled operation is
+  dropped: the driver's pool closes a connection checked in mid-command, and `maxTimeMS` stops the server (no `killOp`).
+- **TLS**: `prefer` = no TLS (SRV: TLS stays on), `require` = no verification, `verifyCA` = **full verification** (rustls
+  can't skip only the host name check), client certificate and key must be **one PEM file** (the driver takes one path).
+  A URI keeps its own TLS parameters.
+- **URI mode**: the URI decides user and password. The stored password is injected percent-encoded only when the URI has
+  a user and no password (`inject_password`, like `MongoSession.connectionString`); no user in the URI = no auth (the
+  profile's `user` is ignored, as in the app). **SRV mode** puts the user (never the password) into the SRV URI, because
+  the driver applies the TXT record's `authSource` (Atlas: `admin`) only to a credential carried by the URI.
+- **Read-only**: client check only, in `execute` (allowlist = `MongoCall.readCommands`; `$out`/`$merge` are writes). Any
+  read-only rule for the database blocks writes there (per-collection targets come with the shell parser in M2).
+- `execute` takes one Extended JSON command document (`{"find": "c", "filter": {}}`); a cursor reply shows its first
+  batch (capped) and kills the server cursor. `parse_document` keeps key order; serde_json's `Map` would sort the keys.
+- `browse`: page size capped by `maxRows`; `truncated` is set when more documents exist (GokuCore's `browse` never sets it).
+- **Inference determinism**: a collection whose `count` is ≤ 100 is read whole with `find` in natural order (the same
+  documents `$sample` would return, in a stable order), so attribute order and value-probe samples don't change between
+  runs. Larger collections still use `$sample` (random, as in the app). Both parity fixtures pass, three runs each.
+- SSH tunnels: `Unsupported` until M2.
+- **Atlas test** (optional, `tests/atlas.rs`): set `GOKU_ATLAS_USER`, `GOKU_ATLAS_PASSWORD`, `GOKU_ATLAS_HOST` in the
+  gitignored `.env.atlas` at the repo root and pass the file to Docker, never the values on the command line:
+  `docker run --rm --env-file .env.atlas -v "$PWD":/w -v dbclient_engine-cargo:/usr/local/cargo/registry -w /w/engine
+  rust:1.99.1-bookworm cargo test -p goku-engine --test atlas -- --nocapture`. It prints only the server version and
+  creates/drops `rs_atlas_<random>`. Atlas' IP access list must allow your address.
+
 ## Connections in VS Code
 - **Settings** `goku.connections`: array of profiles (user or workspace scope), same field names as `ConnectionProfile`
   (`kind`, `host`, `port`, `user`, `database`, `ssl`, `ssh`, `readOnly`, ...). Never contains passwords: the first connect
@@ -182,7 +216,7 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
 | VSX-5 | Parity fixtures exported from GokuCore (Swift test in Docker) | M0 | – | done |
 | VSX-6 | PostgreSQL: connect (TLS modes), catalog, `table/page`, read-only session, introspection | M1 MVP | VSX-3 | |
 | VSX-7 | MySQL/MariaDB: same scope as VSX-6 | M1 | VSX-3 | |
-| VSX-8 | MongoDB: connect (single/multi-host/SRV/URI), catalog, documents page, schema inference | M1 | VSX-3 | |
+| VSX-8 | MongoDB: connect (single/multi-host/SRV/URI), catalog, documents page, schema inference | M1 | VSX-3 | done (no SSH) |
 | VSX-9 | `er/layout`: port `ERLayout.swift` + parity tests | M1 | VSX-5 | done |
 | VSX-10 | Connections: settings, SecretStorage, `.env` discovery, Workspace Trust, read-only default for env | M1 | VSX-4 | |
 | VSX-11 | Sidebar tree + commands (refresh, connect/disconnect, open table, ER diagram) | M1 | VSX-6..8, VSX-10 | |
