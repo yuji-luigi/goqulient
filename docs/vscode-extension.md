@@ -1,8 +1,9 @@
 # VS Code extension + Rust engine
 
-Status (2026-10-28): **M0 done** (skeleton: engine library + stdio server, extension that runs it, parity fixtures, CI).
-No database access yet. This page is both the PM plan (decisions, milestones, tickets) and the agent doc for what exists
-(file map, protocol, invariants, commands), like the pages under `docs/features/`.
+Status (2026-10-28): **M1 done** on the branches (not released): PostgreSQL, MySQL/MariaDB and MongoDB drivers, sidebar
+tree, table viewer, ER diagrams, connections from settings and `.env`, an end-to-end test in a real VS Code. No SSH
+tunnels and no query editor yet (M2). This page is both the PM plan (decisions, milestones, tickets) and the agent doc for
+what exists (file map, protocol, invariants, commands, checklists), like the pages under `docs/features/`.
 
 ## Files
 | Concern | File |
@@ -24,15 +25,21 @@ No database access yet. This page is both the PM plan (decisions, milestones, ti
 | Framing (LSP `Content-Length`, 16 MiB cap) | `engine/crates/goku-engine-server/src/framing.rs` |
 | Dispatch, error codes, methods | `engine/crates/goku-engine-server/src/server.rs` |
 | Protocol tests over an in-memory pipe | `engine/crates/goku-engine-server/src/tests.rs` |
-| Extension entry, commands | `vscode/src/extension.ts` |
-| `EngineClient` (spawn, initialize, requests, cancel, stop, crash budget), `EngineError` | `vscode/src/engine/client.ts` |
+| Extension entry: engine, store, tree, commands; the test API returned in test mode | `vscode/src/extension.ts` |
+| `EngineClient` (spawn, initialize, requests, cancel, stop, crash budget, `onDidStart`/`onDidStop`, `isRunning`), `EngineError` | `vscode/src/engine/client.ts` |
+| Sidebar `TreeDataProvider`: node types, catalog cache by node path, connection items | `vscode/src/tree/provider.ts` |
+| Sessions by connection id: lazy connect, cancel, password retry, engine stop, `sync` | `vscode/src/tree/sessions.ts` |
+| Tree commands: open table (double-click/Enter), ER, refresh, disconnect, cancel, retry, copy name | `vscode/src/tree/commands.ts` |
+| Pure tree helpers: kind groups in app order, source groups, descriptions, `erLayoutKey`, `isAuthFailure` | `vscode/src/tree/model.ts` |
+| Activity bar icon | `vscode/media/activitybar.svg` |
+| End-to-end test in a real VS Code (`@vscode/test-electron`): launcher + suite, Docker image (xvfb) | `vscode/test-e2e/{run.mjs,suite.cjs}`, `docker/vscode-e2e/Dockerfile` |
 | Engine binary lookup (`bin/<platform>-<arch>/`, `goku.enginePath`) | `vscode/src/engine/binary.ts` |
 | Profile JSON types, `endpointSummary`, `splitUrl`, `needsPassword`, `secretFingerprint` | `vscode/src/connections/profile.ts` |
 | dotenv parser (no expansion) | `vscode/src/connections/envParse.ts` |
 | URL → profile + credentials, `.env` discovery, `goku.envConnections` | `vscode/src/connections/envProfiles.ts` |
 | Settings decoding (invalid entries kept), merge, trust filter, duplicate ids | `vscode/src/connections/model.ts` |
 | `ConnectionStore`: settings + `.env`, watcher, trust, SecretStorage, password prompt, engine validation | `vscode/src/connections/store.ts` |
-| `goku.addConnection`, `goku.forgetPassword`, `goku.openSettings` | `vscode/src/connections/commands.ts` |
+| `goku.addConnection`, `goku.forgetPassword` (also from a tree node), `goku.openSettings` | `vscode/src/connections/commands.ts` |
 | URI redaction (same rules as `redact::uri`) | `vscode/src/connections/redact.ts` |
 | Webview entry points `openTable` / `openErDiagram` (for the sidebar) | `vscode/src/views/index.ts` |
 | Table panel (paging, cancel, copy to clipboard), ER panel (introspect, `er/layout`, saved positions, export) | `vscode/src/views/{tablePanel,erPanel}.ts` |
@@ -52,9 +59,20 @@ scripts/dev.sh engine check           # rustfmt --check + clippy -D warnings
 scripts/dev.sh engine build           # release build (Linux)
 scripts/dev.sh vscode test            # builds the engine (debug), then typecheck + Node tests against it in `vscode`
 scripts/dev.sh vscode build           # dist/extension.cjs
+scripts/dev.sh vscode e2e             # the extension in a real VS Code (Docker, xvfb) against the test databases (read-only)
+GOKU_E2E_SCREENSHOTS=vscode/webview-dev/snapshots scripts/dev.sh vscode e2e   # … and keep window screenshots
+scripts/dev.sh vscode run [folder]    # on the Mac: native engine (cargo) + this extension in a new VS Code window
 GOKU_WRITE_PARITY=1 scripts/dev.sh test ParityFixture   # regenerate Tests/Parity (Swift side)
 ```
 Nothing Rust or Node is installed on the Mac; native macOS and Windows builds happen in CI.
+
+**Seeing the extension on the Mac** (`scripts/dev.sh vscode run`): with `cargo` on the PATH it builds
+`engine/target/debug/goku-engine-server` natively, builds `vscode/dist` (with npm if present, else in the `vscode`
+container: the output is plain JavaScript) and runs `code --new-window --extensionDevelopmentPath=vscode <folder>` with
+`GOKU_ENGINE_PATH` set. That variable is only read in development and test hosts (`ExtensionMode`), never by an installed
+extension. If your `code` hands the window to an already running VS Code that doesn't pass the variable on, set
+`goku.enginePath` in your user settings instead. Without cargo the command prints the two options: install Rust with
+rustup, or download a VSIX from the "Extension release" workflow's artifacts and `code --install-extension` it.
 
 ## Goal
 A VS Code extension that shows databases the way Goku does, on **Windows, macOS and Linux** (including Remote-SSH, WSL
@@ -113,14 +131,15 @@ VS Code (extension host, Node)                         goku-engine-server (Rust,
 | App binding (M4) | `uniffi` |
 
 ### Protocol (`protocolVersion` 1)
-Implemented: `initialize`, `shutdown`, `exit`, `$/cancelRequest`, `profile/validate`, `er/layout`, and `debug/wait` in debug builds
-only (tests). The rest of the table is planned.
+Implemented: everything in the table except `query/run` (M2), plus `debug/wait` in debug builds only (tests). Session
+methods live in `goku-engine-server/src/sessions.rs`; an unknown `sessionId` is `NotConnected` (`kind: "notConnected"`),
+which the tree treats as "the engine restarted" and reconnects.
 
 | Method | Result |
 |---|---|
 | `initialize {protocolVersion, clientName}` | `{protocolVersion, engineVersion, capabilities: {methods}}`; a different version → `-32003` |
 | `profile/validate {profile}` | `{profile (normalized, defaults filled), endpoint (redacted)}`, no network |
-| `connection/open {profile, secrets}` → `{sessionId, serverInfo}` | `profile` = the JSON shape of `ConnectionProfile` |
+| `connection/open {profile, credentials}` → `{sessionId, serverInfo, endpoint}` | `profile` = the JSON shape of `ConnectionProfile`; a failing first query closes the session |
 | `connection/close {sessionId}` | |
 | `catalog/databases`, `catalog/schemas`, `catalog/objects`, `catalog/columns` | same lists as the app's sidebar |
 | `table/page {sessionId, object, offset, limit, sort?}` | rows, capped; truncated cells flagged |
@@ -252,7 +271,71 @@ extension host (src/views/*Panel.ts)            webview (webview/*.ts → dist/w
   It fails on page errors and CSP violations.
 - ⚠ Known gaps: copies of clipped cells copy the clipped text (no `fullRows` yet); no webview serializer, so panels don't
   survive a window reload; one editor font measurement per model (a font change needs Reload); the dev harness's layout
-  is a stub, not `er/layout`; panels are not tested in a real VS Code yet (VSX-11's `@vscode/test-electron`).
+  is a stub, not `er/layout`. In a real VS Code the e2e test checks that each engine's first page and the ER model +
+  `er/layout` arrive (not what is drawn: look at its screenshots). Panel titles don't name the connection, so two
+  connections' `categories — shop` tabs look the same.
+
+## Sidebar tree (VSX-11)
+View `goku.connections` in the "Goku" activity bar container. `ConnectionTree` (`tree/provider.ts`) shows the store's list;
+`Sessions` (`tree/sessions.ts`) owns the engine sessions; `tree/commands.ts` registers the node commands.
+```
+[User Settings | Workspace Settings | <env file>]   only when connections come from more than one source
+  connection            database icon; description "connecting… · read-only · <redacted endpoint>" or why it's invalid
+    database            catalog/databases (every database the server lists)
+      schema            PostgreSQL only: catalog/schemas
+        Tables (n) …    catalog/objects grouped in DBObjectKind.allCases order (app's ObjectGroups), empty kinds hidden
+          object        table/view/materialized view/collection: double-click or Enter opens it; functions/sequences don't
+            column      catalog/columns: "type · PK · FK · unique · NOT NULL · 60%" (presence for Mongo)
+```
+- **Connect on first expand**: `getChildren(connection)` starts `Sessions.connect` and returns a "Connecting…" child;
+  the node shows `loading~spin`, the view a progress bar, and the context menu (and an inline ✕) **Cancel Connecting**,
+  which cancels the `connection/open` request (`$/cancelRequest`, the engine cancels the connect). A failure is a child
+  item with the engine's redacted message; clicking it (or Retry/Refresh) tries again.
+- **Wrong password** (`isAuthFailure`: PostgreSQL 28P01, MySQL 1045 "using password", Mongo auth/SCRAM): asked once
+  more. A saved password first gets a warning with "Enter Password" / "Forget Saved Password"; a session or just-typed
+  password is dropped and prompted again. Env connections aren't re-prompted (the file is the source).
+- **Node ids** are paths: `<connId>\0<epoch>\0d:<db>\0s:<schema>\0g:<kind>` / `\0o:<kind>:<name>\0c:<column>`, each
+  a prefix of its children's. Catalog answers are cached by the same path; Refresh on a node drops its prefix (a kind
+  group also drops its database/schema object list, which it re-reads). The **epoch** grows whenever a connection goes
+  back to idle (Disconnect, Cancel, engine stop, `NotConnected`): its id changes, so VS Code shows it collapsed and the
+  next expand reconnects, without an error.
+- **Engine start** is lazy: the root `getChildren` (the view was shown) starts it; listing connections never does
+  (`ConnectionStore` validates only while `engine.isRunning`, then again on `onDidStart`). `onDidStop` (crash, Restart
+  Engine) makes every connection idle.
+- **Store changes** (settings, `.env`, trust) rebuild the roots, keep node objects per id (VS Code matches elements by
+  identity for `onDidChangeTreeData(node)`), and `Sessions.sync` closes sessions whose connection is gone or whose
+  profile JSON changed.
+- **Actions**: Open Table (inline, context menu, double-click = two activations of the item command within 500 ms,
+  Enter = keybinding `goku.tree.enter` when the view has focus; other nodes keep the list's Enter) → `openTable` with
+  `maxRows` (default 1,000) as page size and the connection's read-only flag. ER Diagram (database = all schemas,
+  schema = that one) → `openErDiagram` with `erLayoutKey` = `er:<connId>:<db>:<schemas,>`. Refresh, Disconnect, Copy
+  Name, Forget Saved Password (settings connections). View title: Add Connection, Refresh Connections, Open Settings.
+  Welcome content when the list is empty (trusted and untrusted variants).
+- `contextValue`: `goku.connection <idle|connecting|connected|failed|invalid> <settings|env>`, `goku.database`,
+  `goku.schema`, `goku.group`, `goku.object`, `goku.routine`, `goku.column`, `goku.error`; menus match them with
+  `viewItem =~ /…/`.
+- Secrets: labels, descriptions and tooltips only use names, the redacted endpoint and engine messages (the e2e checks
+  every item it sees for the test password).
+- ⚠ Known gaps: all databases on the server are listed even when the profile names one (the app does the same); no
+  filter box; no "connected" indicator per database for PostgreSQL's per-database pools; double-click relies on timing.
+
+### Checklists
+**Add a tree node type**
+1. Add it to `Node` in `tree/provider.ts` with `conn` and `parent` (for `getParent`/`reveal`).
+2. Give it a path in `path()` that extends its parent's path (Refresh and the cache depend on prefixes).
+3. `getTreeItem`: id = path, codicon, `contextValue` `goku.<type>`, tooltip without secrets.
+4. Produce it in `catalog()` (cached through `cached(node, method, params)`), with a message node for empty lists.
+5. Menus in `package.json` (`view/item/context`, `viewItem` regex) and, if needed, `nameOf`/`connectionOf` in
+   `tree/commands.ts`.
+6. Unit-test pure parts in `test/tree.test.ts`; extend `test-e2e/suite.cjs` if it needs a database.
+
+**Add a protocol method**
+1. Engine: implement it in the library, register it (`Sessions::METHODS` + `dispatch` for session methods, else
+   `server.rs` `METHODS`), test it in `goku-engine-server/src/tests.rs` (and the driver tests).
+2. Errors: return `DbError` (the message is redacted by `display_message`); honour the `CancellationToken`.
+3. Extension: call `engine.request` (views) or `sessions.request(connId, …)` (tree, adds `sessionId` and handles
+   `NotConnected`); add the result type to `views/protocol.ts` if a webview uses it.
+4. Document it in the Protocol table above.
 
 ## Connections in VS Code
 `ConnectionStore` (`store.ts`) builds the list the tree shows; the merge itself is the pure `mergeConnections` in
@@ -265,8 +348,8 @@ extension host (src/views/*Panel.ts)            webview (webview/*.ts → dist/w
     dropped, and `goku.addConnection` appends to the user list without touching the existing entries.
   - `id`: the profile's `id`, else a hash of scope + name + kind. A repeated id keeps the first entry and marks the others
     invalid, so a workspace entry can't borrow a user entry's saved password.
-  - Validation through the engine runs in the background after each refresh (cached by profile JSON). If the engine can't
-    start, the list stays unvalidated and a warning goes to the log.
+  - Validation through the engine runs in the background after each refresh (cached by profile JSON), but only while the
+    engine runs (`canValidate`): listing connections never starts it. When the engine starts, `revalidate()` runs.
 - **`.env` discovery** `goku.envFiles` (resource scope, default `[".env"]`, relative to each workspace folder; multi-root
   labels are `<folder>/<path>`):
   - URL variables: `DATABASE_URL`, `POSTGRES_URL`, `POSTGRESQL_URL`, `MYSQL_URL`, `MONGODB_URI`, `MONGO_URL`,
@@ -274,6 +357,10 @@ extension host (src/views/*Panel.ts)            webview (webview/*.ts → dist/w
     invalid with the reason.
   - Part variables: `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`/`PGDATABASE`/`PGSSLMODE` (host and port lists like libpq) and
     `MYSQL_HOST`/`MYSQL_PORT`/`MYSQL_USER`/`MYSQL_PASSWORD`/`MYSQL_DATABASE`; needs a host or a database.
+  - Docker image variables: `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB` (+ `POSTGRES_HOST`/`POSTGRES_PORT`, else
+    localhost:5432) are a separate `POSTGRES_* (<file>)` connection with the image's defaults (user `postgres`, database
+    = user); `MYSQL_ROOT_PASSWORD` without `MYSQL_USER` makes the `MYSQL_*` connection connect as root (and is enough on
+    its own).
   - `goku.envConnections` `[{url: "VAR", name?, file?, kind?, readOnly?}]` adds variables; an entry for a well-known
     variable replaces its default name/read-only. `file` limits it to one env file; `kind` is for schemes that don't say.
   - Schemes: `postgres(ql)[+driver]://` (`sslmode`, `sslrootcert`/`sslcert`/`sslkey`, `target_session_attrs`,
@@ -291,8 +378,8 @@ extension host (src/views/*Panel.ts)            webview (webview/*.ts → dist/w
     lines, **no** `$VAR` expansion. Errors carry line numbers only. Files over 1 MiB aren't read.
 - **Passwords** (D7, AGENTS.md rule 5): profiles never hold one. A URL's password moves to `credentials`, which only
   `connection/open` receives. For Mongo URI mode the password is cut out of the URI (`mongodb://user@host/...`) and sent as
-  `credentials.password`, percent-decoded; the engine must put it back into `scheme://user@host`, percent-encoded, like
-  `MongoSession.connectionString` (⚠ the Rust Mongo driver, VSX-8, doesn't exist yet: it must do this). Settings
+  `credentials.password`, percent-decoded; the engine puts it back into `scheme://user@host`, percent-encoded, like
+  `MongoSession.connectionString` (`inject_password` in the Mongo driver). Settings
   connections keep it in SecretStorage under `goku.password.<id>` as `{fingerprint, password}`; the fingerprint
   (`secretFingerprint`: kind, servers, user) must still match, otherwise the user is asked again, so a changed host or a
   copied id never receives a saved password. The prompt (`showInputBox({password: true})`) offers "save" or "until VS Code
@@ -334,9 +421,18 @@ extension host (src/views/*Panel.ts)            webview (webview/*.ts → dist/w
   Rust tests must produce the same JSON. Changing either side means regenerating the fixtures in the same commit:
   `GOKU_WRITE_PARITY=1 scripts/dev.sh test ParityFixture`.
 - CI (`extension.yml`): Linux, macOS and **Windows** each run the Rust tests and the Node tests against their own engine
-  build. Database integration tests will run on Linux only (service containers); an extension-host smoke test
-  (`@vscode/test-electron`) comes with VSX-11.
-- Extension: `@vscode/test-electron` for the tree and commands; webviews are checked by screenshot, the way `--uidemo` is.
+  build. Database integration tests will run on Linux only (service containers); the end-to-end test below runs in
+  Docker only so far (⚠ adding it to the Linux CI job needs the test databases as service containers).
+- **End-to-end** (`scripts/dev.sh vscode e2e`, `vscode/test-e2e/`): `@vscode/test-electron` downloads VS Code (stable,
+  `GOKU_E2E_VSCODE` to pin; cached in the `vscode-test` volume) and runs it under xvfb in the `vscode-e2e` image on the
+  test network, with a scratch workspace whose `.env` has `DATABASE_URL` (pg-primary), `MYSQL_URL` (`ssl-mode=REQUIRED`)
+  and `MONGODB_URI`, and `GOKU_ENGINE_PATH` = the Linux debug engine. `test-e2e/suite.cjs` uses the test API that
+  `activate` returns in `ExtensionMode.Test` (`tree`, `view`, `sessions`, `store`, `engine`, `answered`) and checks:
+  the engine isn't started by activation; three read-only connections; each expands to `shop` and its tables/collections
+  and columns; `goku.openTable` gets a `table/page` answer for each engine; the ER diagram gets `schema/introspect` and
+  `er/layout` (so the webview measured the boxes); Disconnect and Restart Engine leave connections idle and the next
+  expand reconnects; no item shows the password. Reads only. Set `GOKU_E2E_SCREENSHOTS` to keep `table.png`/`er.png`
+  of the window and look at them. Not in CI yet.
 
 ## Release
 - release-please has a second package `vscode` (release type `node`, tag `vscode-vX.Y.Z`, own PR via
@@ -371,12 +467,12 @@ extension host (src/views/*Panel.ts)            webview (webview/*.ts → dist/w
 | VSX-7 | MySQL/MariaDB: same scope as VSX-6 | M1 | VSX-3 | done (no SSH) |
 | VSX-8 | MongoDB: connect (single/multi-host/SRV/URI), catalog, documents page, schema inference | M1 | VSX-3 | done (no SSH) |
 | VSX-9 | `er/layout`: port `ERLayout.swift` + parity tests | M1 | VSX-5 | done |
-| VSX-10 | Connections: settings, SecretStorage, `.env` discovery, Workspace Trust, read-only default for env | M1 | VSX-4 | done (no tree yet; Mongo URI password injection waits for VSX-8) |
-| VSX-11 | Sidebar tree + commands (refresh, connect/disconnect, open table, ER diagram) | M1 | VSX-6..8, VSX-10 | |
-| VSX-12 | Table/collection viewer webview (virtualised, paged, copy cells) | M1 | VSX-11 | done (webview + `openTable`; wired by VSX-11) |
-| VSX-13 | ER diagram webview: SVG, pan/zoom, drag, inspector, saved positions (`workspaceState`), PNG/SVG export | M1 | VSX-9, VSX-11 | done (webview + `openErDiagram`; wired by VSX-11) |
+| VSX-10 | Connections: settings, SecretStorage, `.env` discovery, Workspace Trust, read-only default for env | M1 | VSX-4 | done |
+| VSX-11 | Sidebar tree + commands (refresh, connect/disconnect, open table, ER diagram) | M1 | VSX-6..8, VSX-10 | done (+ e2e in Docker) |
+| VSX-12 | Table/collection viewer webview (virtualised, paged, copy cells) | M1 | VSX-11 | done |
+| VSX-13 | ER diagram webview: SVG, pan/zoom, drag, inspector, saved positions (`workspaceState`), PNG/SVG export | M1 | VSX-9, VSX-11 | done |
 | VSX-14 | Packaging + release: 6 platform VSIXs, Open VSX, release-please package | M1 | VSX-4 | done (untested in CI) |
-| VSX-15 | Docs: this page becomes the agent doc; README for the Marketplace | M1 | all M1 | |
+| VSX-15 | Docs: this page becomes the agent doc; README for the Marketplace | M1 | all M1 | done |
 | – | SSH tunnels, query editor (SQL + Mongo shell, CodeLens Run, results, destructive confirm, cancel) | M2 | M1 | |
 | – | Grid editing, filter builder, export CSV/JSON, cluster host selection, Goku app import | M3 | M2 | |
 | – | Mac app on the Rust engine through uniffi, one engine behind `DatabaseSession` at a time (experiment branch) | M4 | M3 | |
