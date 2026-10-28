@@ -12,6 +12,7 @@ No database access yet. This page is both the PM plan (decisions, milestones, ti
 | `with_deadline` (timeout or cancel → `on_timeout` once) | `engine/crates/goku-engine/src/deadline.rs` |
 | `RowCollector`, `clip`, `Paging`, limits | `engine/crates/goku-engine/src/limits.rs` |
 | ER layout (port of `ERLayout.swift`, checked against `Tests/Parity/er-layout`) | `engine/crates/goku-engine/src/er.rs`, `tests/parity_er_layout.rs` |
+| PostgreSQL driver: connect + host selection + pool + cancel (`mod.rs`), rustls modes (`tls.rs`), `PGValueFormatter` port (`format.rs`), catalog + introspection (`introspect.rs`); integration tests | `engine/crates/goku-engine/src/drivers/postgres/`, `tests/postgres.rs` |
 | `secrets` / `uri` redaction (same patterns as `Redaction.swift`) | `engine/crates/goku-engine/src/redact.rs` |
 | `ConnectionProfile` + tolerant decoding, `validate`, `decode_profiles`, `Credentials` (masked `Debug`) | `engine/crates/goku-engine/src/profile.rs` |
 | Framing (LSP `Content-Length`, 16 MiB cap) | `engine/crates/goku-engine-server/src/framing.rs` |
@@ -122,6 +123,20 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
 - `ConnectionProfile` decoding mirrors Swift exactly (AGENTS.md rule 6); a new field needs a default in `from_fields`
   and a test, on both sides.
 
+## PostgreSQL driver (gotchas)
+- A request that times out or is cancelled sends `CancelToken::cancel_query` and then **drops its connection** (the
+  next request opens a fresh one). A cancel targets the backend, not the statement, so reusing the connection could
+  let a late cancel kill the next statement. Each connection serves one request at a time (`Conn::lock`).
+- `execute` cut at the row cap also cancels and drops the connection, so the server stops streaming the rest.
+  `browse` asks for `LIMIT n+1` instead: the extra row only sets `truncated` (GokuCore's browse never sets it).
+- Cells are decoded from the binary protocol by the `PGValueFormatter` port, so timestamps are shown in UTC like the app
+  (not in the session time zone). Floats follow Swift's `description` (`1e+20`, `1.0` for float4, `1` for float8).
+- TLS: prefer/require don't verify; verifyCA/verifyFull use `rustls-platform-verifier` (the OS store), or only the
+  `caCertificatePath` file when set. Unlike GokuCore, verifyFull against an IP address checks the IP SAN.
+- The Docker `pg-primary` has no TLS; `tests/postgres.rs` checks the verifying modes only when `PG_TLS_HOST` and
+  `PG_TLS_CA` point at a TLS server whose certificate names that host.
+- SSH tunnels aren't implemented: a profile with `ssh.enabled` fails with `Unsupported`.
+
 ## Connections in VS Code
 - **Settings** `goku.connections`: array of profiles (user or workspace scope), same field names as `ConnectionProfile`
   (`kind`, `host`, `port`, `user`, `database`, `ssl`, `ssh`, `readOnly`, ...). Never contains passwords: the first connect
@@ -180,7 +195,7 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
 | VSX-3 | Safety primitives: `with_deadline`, row collector with caps, cell truncation, secret masking, the single runtime | M0 | VSX-1 | done |
 | VSX-4 | `vscode/` skeleton: esbuild, `EngineClient` (spawn, restart, output channel), platform binary lookup | M0 | VSX-2 | done |
 | VSX-5 | Parity fixtures exported from GokuCore (Swift test in Docker) | M0 | – | done |
-| VSX-6 | PostgreSQL: connect (TLS modes), catalog, `table/page`, read-only session, introspection | M1 MVP | VSX-3 | |
+| VSX-6 | PostgreSQL: connect (TLS modes), catalog, `table/page`, read-only session, introspection | M1 MVP | VSX-3 | done (no SSH) |
 | VSX-7 | MySQL/MariaDB: same scope as VSX-6 | M1 | VSX-3 | |
 | VSX-8 | MongoDB: connect (single/multi-host/SRV/URI), catalog, documents page, schema inference | M1 | VSX-3 | |
 | VSX-9 | `er/layout`: port `ERLayout.swift` + parity tests | M1 | VSX-5 | done |
