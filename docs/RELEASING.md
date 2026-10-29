@@ -7,8 +7,10 @@ a VSIX in each editor, store accounts, trusted publishing, troubleshooting) is i
 ## Flow
 1. Commit with [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `feat!:` …).
 2. On every push to `main`, `.github/workflows/release.yml` runs release-please (`release-please-config.json`, one root
-   package, release type `simple`, `bump-minor-pre-major`). It keeps a release PR open that updates `CHANGELOG.md` and
-   bumps the version in:
+   package, release type `simple`). Before 1.0, `bump-patch-for-minor-pre-major` keeps `feat:` on the patch and
+   `bump-minor-pre-major` turns a breaking change into a minor bump, which keeps pre-releases on an odd minor
+   ([PUBLISHING.md](PUBLISHING.md#33-pre-release-or-stable)). It keeps a release PR open that updates `CHANGELOG.md`
+   and bumps the version in:
    - `vscode/package.json` and `vscode/package-lock.json` (`$.version`, `$.packages[''].version`);
    - `engine/Cargo.toml` (`$.workspace.package.version`) and the two workspace crates in `engine/Cargo.lock`, so
      `cargo build --locked` keeps working on the tag.
@@ -54,9 +56,8 @@ again, e.g. after a failed publish.
 ## Before the first publish
 The full list is in [PUBLISHING.md](PUBLISHING.md#6-checklist-before-the-first-public-release): the Marketplace
 publisher `yuji-luigi` and its trusted publishing policy for `release.yml`, the Open VSX namespace and `OVSX_PAT`, the
-repository setting that lets release-please open pull requests, and a public repository. release-please computes the
-first version from the whole history (there is no earlier tag); to pin it, set `"release-as": "X.Y.Z"` on the root
-package for that one release PR, then remove it.
+repository setting that lets release-please open pull requests, and a public repository. `"release-as": "0.1.0"` pins
+the first version; remove it once v0.1.0 is released (any `release-as` is for one release PR only).
 
 ## Notes
 - macOS and Windows binaries are not signed (macOS: not notarized either). VS Code and Cursor extract the VSIX
