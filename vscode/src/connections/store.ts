@@ -224,9 +224,9 @@ export class ConnectionStore implements vscode.Disposable {
     } catch {
       return []; // a listed env file that doesn't exist is normal
     }
-    const { vars, errors } = parseEnv(new TextDecoder().decode(bytes));
+    const { vars, named, errors } = parseEnv(new TextDecoder().decode(bytes));
     for (const e of errors) this.options.log.warn(`${s.file.label}:${e.line}: ${e.message}`);
-    return envConnections(vars, s.file, s.mappings);
+    return envConnections(vars, s.file, s.mappings, named);
   }
 
   private async envConnection(conn: Connection): Promise<EnvConnection & { profile: ProfileJson }> {

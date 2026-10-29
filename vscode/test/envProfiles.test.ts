@@ -6,7 +6,10 @@ import { endpointSummary, needsPassword, secretFingerprint } from '../src/connec
 import { EngineClient } from '../src/engine/client.ts';
 
 const FILE: EnvFile = { key: 'file:///ws|.env', label: '.env', path: '.env' };
-const env = (text: string, mappings: unknown = [], file = FILE) => envConnections(parseEnv(text).vars, file, sanitizeMappings(mappings));
+const env = (text: string, mappings: unknown = [], file = FILE) => {
+  const { vars, named } = parseEnv(text);
+  return envConnections(vars, file, sanitizeMappings(mappings), named);
+};
 
 /** No password may appear anywhere in what gets kept, shown or validated. */
 function assertNoSecret(value: unknown, ...secrets: string[]) {
@@ -163,6 +166,31 @@ describe('envConnections', () => {
     assertNoSecret(list.map((c) => c.profile), 'pg-pass', 'mongo-pass', 'my-pass');
     assert.deepEqual(list.map((c) => c.credentials?.password).slice(0, 1), ['pg-pass']);
     assert.equal(list.find((c) => c.variable === 'MONGODB_URI')?.credentials?.password, 'mongo-pass');
+  });
+
+  test('marker comments: any variable becomes a connection with the given name', () => {
+    const list = env(
+      "#DATABASE_URL:'Interaction test'\nDB_URI=\"mongodb://u:marked-pass@10.0.0.5:27017/interaction\"\n" +
+        '# DATABASE_URL: Main\nDATABASE_URL=postgres://h/app\n' +
+        '# DATABASE_URL: Broken\nAPI_DB=redis://h\n# DATABASE_URL: Empty\nEMPTY_DB=\n# DATABASE_URL:\nUNNAMED_DB=mysql://h/s',
+      [{ url: 'UNNAMED_DB', name: 'From settings' }],
+    );
+    assert.deepEqual(
+      list.map((c) => [c.variable, c.name, c.error ?? c.profile?.kind]),
+      [
+        ['DATABASE_URL', 'Main', 'postgres'],
+        ['UNNAMED_DB', 'From settings', 'mysql'],
+        ['DB_URI', 'Interaction test', 'mongodb'],
+        ['API_DB', 'Broken', 'API_DB in .env: Unsupported URL scheme “redis”.'],
+        ['EMPTY_DB', 'Empty', 'EMPTY_DB in .env is empty.'],
+      ],
+    );
+    const marked = list.find((c) => c.variable === 'DB_URI')!;
+    assert.equal(marked.profile?.readOnly, true);
+    assert.equal(marked.profile?.name, 'Interaction test');
+    assert.equal(marked.credentials?.password, 'marked-pass');
+    assertNoSecret([marked.profile, list.map((c) => c.error)], 'marked-pass');
+    assert.deepEqual(env('# DATABASE_URL: Cache\nDATABASE_URL=redis://h').map((c) => c.error), ['DATABASE_URL in .env: Unsupported URL scheme “redis”.'], 'a marked DATABASE_URL is flagged, not skipped');
   });
 
   test('ids are stable for the same file and variable, and differ otherwise', () => {

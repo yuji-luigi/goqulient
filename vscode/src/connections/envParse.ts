@@ -1,6 +1,7 @@
 // A dotenv parser for connection discovery. Supports `KEY=value`, `export KEY=value`, `#` comment lines, single quotes
 // (literal), double quotes (escapes \n \r \t \" \\, may span lines), backticks (literal) and ` #` comments after
 // unquoted values. No variable expansion: `$X` stays as written, so a value can't pull in another secret.
+// A marker comment `# DATABASE_URL: 'Name'` makes the next assignment (any variable) a connection called Name.
 // Errors carry line numbers only, never values (they may hold passwords).
 
 export interface EnvParseError {
@@ -10,21 +11,37 @@ export interface EnvParseError {
 
 export interface EnvParseResult {
   vars: Map<string, string>;
+  /** Variables marked as connections by a `# DATABASE_URL: Name` comment → Name ('' when none was given). */
+  named: Map<string, string>;
   errors: EnvParseError[];
 }
 
 const KEY = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 const ESCAPES: Record<string, string> = { n: '\n', r: '\r', t: '\t', '"': '"', '\\': '\\' };
+/** `# DATABASE_URL: 'Name'` (any case, quotes optional). `# DATABASE_URL=…`, a commented-out variable, doesn't match. */
+const MARKER = /^#\s*DATABASE_URL\s*:\s*(.*)$/i;
+
+function markerName(text: string): string {
+  const t = text.trim();
+  const q = t[0];
+  return (q === '"' || q === "'" || q === '`') && t.length > 1 && t.endsWith(q) ? t.slice(1, -1).trim() : t;
+}
 
 export function parseEnv(text: string): EnvParseResult {
   const lines = text.replace(/^﻿/, '').split(/\r?\n/);
   const vars = new Map<string, string>();
+  const named = new Map<string, string>();
   const errors: EnvParseError[] = [];
+  let marker: string | undefined; // waits for the next assignment; blank and comment lines in between are fine
   for (let i = 0; i < lines.length; i++) {
     const lineNo = i + 1;
     const line = lines[i]!;
     const trimmed = line.trim();
+    const m = MARKER.exec(trimmed);
+    if (m) marker = markerName(m[1]!);
     if (!trimmed || trimmed.startsWith('#')) continue;
+    const name = marker;
+    marker = undefined;
     const eq = line.indexOf('=');
     if (eq < 0) {
       errors.push({ line: lineNo, message: 'Expected KEY=value.' });
@@ -37,6 +54,7 @@ export function parseEnv(text: string): EnvParseResult {
     }
     let rest = line.slice(eq + 1).trimStart();
     const quote = rest[0];
+    if (name !== undefined) named.set(key, name);
     if (quote !== '"' && quote !== "'" && quote !== '`') {
       vars.set(key, line.slice(eq + 1).replace(/\s#.*$/, '').trim());
       continue;
@@ -81,5 +99,5 @@ export function parseEnv(text: string): EnvParseResult {
     vars.set(key, value);
     i = end;
   }
-  return { vars, errors };
+  return { vars, named, errors };
 }

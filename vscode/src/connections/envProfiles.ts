@@ -261,13 +261,22 @@ function sameFile(a: string, b: string): boolean {
  * `goqulient.envConnections` mappings (a mapping for a well-known variable replaces its default handling). Read-only unless a
  * mapping says otherwise (D8).
  */
-export function envConnections(vars: Map<string, string>, file: EnvFile, mappings: readonly EnvMapping[] = []): EnvConnection[] {
+/**
+ * `named`: variables marked by a `# DATABASE_URL: Name` comment (`parseEnv`). They become connections whatever their
+ * name, and the marker's name is used unless a `goqulient.envConnections` entry names the variable too.
+ */
+export function envConnections(
+  vars: Map<string, string>,
+  file: EnvFile,
+  mappings: readonly EnvMapping[] = [],
+  named: ReadonlyMap<string, string> = new Map(),
+): EnvConnection[] {
   const out: EnvConnection[] = [];
   const mine = mappings.filter((m) => typeof m?.url === 'string' && m.url.trim() && (!m.file || sameFile(m.file, file.path)));
   const mapped = new Set(mine.map((m) => m.url!.trim()));
   const add = (variable: string, build: () => { profile: ProfileJson; credentials: Credentials } | undefined, m?: EnvMapping) => {
     const id = envId(file.key, variable);
-    const name = m?.name?.trim() || `${variable} (${file.label})`;
+    const name = m?.name?.trim() || named.get(variable) || `${variable} (${file.label})`;
     try {
       const built = build();
       if (!built) return;
@@ -281,8 +290,9 @@ export function envConnections(vars: Map<string, string>, file: EnvFile, mapping
   for (const variable of URL_VARS) {
     const value = vars.get(variable)?.trim();
     if (!value || mapped.has(variable)) continue;
-    // DATABASE_URL is generic (sqlite:, redis://…): skip what isn't a database GoQulient knows instead of flagging it.
-    if (variable === 'DATABASE_URL' && !kindOfScheme(splitUrl(value)?.scheme ?? '')) continue;
+    // DATABASE_URL is generic (sqlite:, redis://…): skip what isn't a database GoQulient knows instead of flagging it,
+    // unless a marker comment says it's meant as a connection.
+    if (variable === 'DATABASE_URL' && !named.has(variable) && !kindOfScheme(splitUrl(value)?.scheme ?? '')) continue;
     add(variable, () => profileFromUrl(value));
   }
   add('PG*', () => partsProfile(vars, 'postgres'));
@@ -294,6 +304,12 @@ export function envConnections(vars: Map<string, string>, file: EnvFile, mapping
     const kind = isKind(m.kind) ? m.kind : undefined;
     if (value) add(variable, () => profileFromUrl(value, kind), m);
     else if (m.file) out.push({ id: envId(file.key, variable), name: m.name?.trim() || `${variable} (${file.label})`, variable, file: file.label, error: `${variable} isn’t set in ${file.label}.` });
+  }
+  for (const [variable, label] of named) {
+    if (URL_VARS.includes(variable) || mapped.has(variable)) continue; // already listed above, with this name
+    const value = vars.get(variable)?.trim();
+    if (value) add(variable, () => profileFromUrl(value));
+    else out.push({ id: envId(file.key, variable), name: label || `${variable} (${file.label})`, variable, file: file.label, error: `${variable} in ${file.label} is empty.` });
   }
   return out;
 }

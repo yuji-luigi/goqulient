@@ -13,7 +13,8 @@ passwords stay in VS Code's secret storage.
 ## Features
 - **Connections from where they already are**: `DATABASE_URL`, `POSTGRES_URL`, `MYSQL_URL`, `MONGODB_URI`, `PG*`,
   `MYSQL_*` and the Docker images' `POSTGRES_*` / `MYSQL_ROOT_PASSWORD` variables in your workspace `.env` (read-only by
-  default, and only in trusted workspaces), or connections in your settings (**GoQulient: Add Connection**).
+  default, and only in trusted workspaces), any variable after a `# DATABASE_URL: 'Name'` comment, or connections in
+  your settings (**GoQulient: Add Connection**).
 - **Sidebar tree**: connection → database → schema → tables / views / materialized views / collections → columns.
   Connections open when you expand them and can be cancelled.
 - **Table viewer**: virtualised grid for wide and long tables, paging, sorting, copy as TSV; a documents view for

@@ -11,6 +11,11 @@ connections are enforced by the server too, and passwords stay in VS Code's secr
 - **Connections from where they already are**: `DATABASE_URL`, `POSTGRES_URL`, `MYSQL_URL`, `MONGODB_URI`, `PG*`,
   `MYSQL_*` and the Docker images' `POSTGRES_*` / `MYSQL_ROOT_PASSWORD` variables in your workspace `.env`, or
   connections you add to your settings (**GoQulient: Add Connection**, by fields or from a URL).
+  Any other variable becomes a connection when a marker comment comes before it:
+  ```sh
+  # DATABASE_URL: 'Interaction test'
+  DB_URI="mongodb://user:password@db.example.com:27017/interaction"
+  ```
 - **Sidebar tree**: connection → database → schema (PostgreSQL) → tables / views / materialized views / collections →
   columns (type, primary/foreign key, NOT NULL; field presence for MongoDB). Connections open when you expand them;
   a slow one can be cancelled (**Cancel Connecting**), a failure shows the server's message with Retry.
