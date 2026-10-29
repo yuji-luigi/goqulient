@@ -59,8 +59,8 @@ again, e.g. after a failed publish.
 The full list is in [PUBLISHING.md](PUBLISHING.md#6-checklist-before-the-first-public-release): the Marketplace
 publisher `yuji-luigi` and its trusted publishing policy for `release.yml` with environment `marketplace`, that
 environment (only `main`, a required reviewer), the Open VSX namespace and `OVSX_PAT`, the
-repository setting that lets release-please open pull requests, and a public repository. `"release-as": "0.1.0"` pins
-the first version; remove it once v0.1.0 is released (any `release-as` is for one release PR only).
+repository setting that lets release-please open pull requests, and a public repository. v0.1.0 (2026-10-29) was
+pinned with `"release-as"`; any `release-as` is for one release PR only, so remove it after that release.
 
 ## Notes
 - macOS and Windows binaries are not signed (macOS: not notarized either). VS Code and Cursor extract the VSIX

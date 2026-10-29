@@ -343,14 +343,16 @@ Error messages and the log never contain passwords. When a user reports a proble
       ([TESTING.md](TESTING.md)) a new password before the repository goes public, and keep it only in your untracked
       `.env.atlas`. (This repository's git history contains no Atlas password; the old one may have been used or
       shared elsewhere.)
-- [ ] Make the repository public (2.1), then check that the README images load on GitHub.
-- [ ] Create the Marketplace publisher `yuji-luigi` (2.2), the GitHub environment `marketplace` (only `main`, you as
+- [x] Make the repository public (2.1), then check that the README images load on GitHub.
+- [x] Create the Marketplace publisher `yuji-luigi` (2.2), the GitHub environment `marketplace` (only `main`, you as
       required reviewer) and the trusted publishing policy for `release.yml` with environment `marketplace` (2.3).
+      The GitHub side is also kept as Terraform, in a separate project (`vscode_extension_marketplace_github`).
 - [ ] Two-factor authentication on your GitHub account.
-- [ ] Open VSX: agreement, token, namespace `yuji-luigi`, ownership claim (2.4).
-- [ ] GitHub: secret `OVSX_PAT`, the release-please setting; delete `VSCE_PAT` if present (2.5).
-- [x] First version: 0.1.0, a pre-release (odd minor), pinned with `"release-as": "0.1.0"`. **Remove `release-as`
-      after it's released**, or release-please proposes 0.1.0 again.
+- [ ] Open VSX: agreement, token, namespace `yuji-luigi`, ownership claim (2.4). Postponed: until then, Cursor,
+      Devin Desktop, VSCodium and code-server users install the VSIX by hand.
+- [x] GitHub: the release-please setting (2.5). `OVSX_PAT` waits for Open VSX.
+- [x] First version: 0.1.0, a pre-release (odd minor), released on 2026-10-29 with `"release-as": "0.1.0"`, which was
+      removed afterwards.
 - [ ] Try the six VSIXs from an **Extension release** run in VS Code and Cursor (section 1), at least on darwin-arm64
       and one Windows or Linux machine.
 - [ ] Re-read `vscode/README.md` (it becomes the store page) and `CHANGELOG.md`.
