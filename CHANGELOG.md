@@ -1,11 +1,7 @@
 # Changelog
 
-## [0.1.0](https://github.com/yuji-luigi/goqulient/compare/v0.1.0...v0.1.0) (2026-10-29)
+## [0.1.0](https://github.com/yuji-luigi/goqulient/releases/tag/v0.1.0) (2026-10-29)
 
-
-### ⚠ BREAKING CHANGES
-
-* **vscode:** settings, commands and saved passwords move from goku.* to goqulient.* (no released version used the old ids).
 
 ### Features
 
@@ -26,8 +22,3 @@
 ### Bug Fixes
 
 * **ci:** package every target with one script that creates the output folder ([52b0c43](https://github.com/yuji-luigi/goqulient/commit/52b0c432ce65e6da734213c7e8bfd27e55412165))
-
-
-### Code Refactoring
-
-* **vscode:** rename the extension to GoQulient ([81d2aa6](https://github.com/yuji-luigi/goqulient/commit/81d2aa6c4408d2f07a792707304614d20237ba43))
