@@ -47,6 +47,9 @@ jobs:
     needs: extension
     # Also runs when an engine job failed, so the log says which targets are missing instead of a skipped job.
     if: ${{ !cancelled() && needs.extension.result != 'skipped' }}
+    # Only main may deploy to this environment and the maintainer approves each run (docs/PUBLISHING.md); the
+    # Marketplace policy names it too, so a release.yml changed on another branch can't publish.
+    environment: marketplace
     runs-on: ubuntu-latest
     permissions:
       contents: read

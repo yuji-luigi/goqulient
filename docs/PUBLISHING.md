@@ -125,19 +125,36 @@ password (see the [checklist](#6-checklist-before-the-first-public-release)).
 
 ### 2.3 Add a trusted publishing policy (Marketplace)
 Trusted publishing lets the GitHub workflow publish without a stored token: GitHub gives the job a short-lived identity
-token (OIDC), and the Marketplace swaps it for a 15-minute publishing credential if it matches your policy.
-1. On <https://marketplace.visualstudio.com/manage>, open the publisher `yuji-luigi` → **Trusted Publishing** → add a
-   policy:
+token (OIDC), and the Marketplace swaps it for a 15-minute publishing credential if it matches your policy. Publishing
+runs on GitHub's servers; your computer never holds a Marketplace credential.
+
+The gate is a GitHub **environment**, `marketplace`, that the `publish` job runs in. Create it **before the first
+release**: if a workflow names an environment that doesn't exist, GitHub creates it without any protection.
+1. GitHub → the repository → **Settings → Environments → New environment**, name `marketplace`, then:
+   - **Deployment branches and tags** → **Selected branches and tags** → **Add deployment branch or tag rule** →
+     branch `main`. Only runs on `main` can enter the environment.
+   - **Required reviewers** → add yourself (and untick "Prevent self-review" if it's ticked, or you can't approve
+     your own release). Every publish then waits for you to click **Approve**.
+   - Save.
+2. On <https://marketplace.visualstudio.com/manage>, open the publisher `yuji-luigi` → **Trusted Publishing** → add a
+   policy (or edit the existing one):
 
    | Field | Value |
    |---|---|
    | Repository owner | `yuji-luigi` |
    | Repository | `goqulient` |
    | Workflow | `release.yml` |
-   | Environment | leave empty (the workflow doesn't use a GitHub environment) |
+   | Environment | `marketplace` |
 
-2. That's all on the Marketplace side. The `publish` job in `release.yml` has `permissions: id-token: write` and runs
-   `npx @vscode/vsce@4 publish --oidc …`.
+3. That's all. The `publish` job in `release.yml` has `environment: marketplace`, `permissions: id-token: write`, and
+   runs `npx @vscode/vsce@4 publish --oidc …`.
+
+What this protects: the Marketplace accepts only identity tokens from `release.yml` in this repository **and** from
+the `marketplace` environment, which only `main` can enter and which waits for your approval. A `release.yml` changed on
+another branch can't publish, pull requests from forks never get an identity token, and there is no token to steal.
+What remains is your GitHub account: protect it with two-factor authentication, ideally a passkey or security key.
+Optionally, protect `main` too (Settings → Rules → a branch ruleset that requires pull requests), so changes to
+`release.yml` go through review.
 
 Why the policy names `release.yml` and not `extension-release.yml`: when a job runs in a called (reusable) workflow,
 GitHub's identity token names two files, the caller (`workflow_ref`) and the called one (`job_workflow_ref`), and the
@@ -195,9 +212,11 @@ Use trusted publishing instead (2.3).
 ### 3.1 The normal flow (release-please)
 1. Merge pull requests with [Conventional Commits](https://www.conventionalcommits.org/) titles (`feat:`, `fix:` …).
 2. release-please keeps a **release PR** open ("chore(main): release X.Y.Z") with the changelog and version bumps.
-3. Merge it. `release.yml` tags `vX.Y.Z`, creates the GitHub release, builds and packages the six targets, and the
-   `publish` job publishes them to both stores, as pre-releases until 1.0.
-4. Check the run's summary, then the [Marketplace page](https://marketplace.visualstudio.com/items?itemName=yuji-luigi.goqulient)
+3. Merge it. `release.yml` tags `vX.Y.Z`, creates the GitHub release, and builds and packages the six targets.
+4. The `publish` job then **waits for your approval**: open the run (Actions → Release, or the email/notification
+   "Review pending deployments") → **Review deployments** → tick `marketplace` → **Approve and deploy**. It
+   publishes to both stores, as pre-releases until 1.0.
+5. Check the run's summary, then the [Marketplace page](https://marketplace.visualstudio.com/items?itemName=yuji-luigi.goqulient)
    and [Open VSX page](https://open-vsx.org/extension/yuji-luigi/goqulient). Cursor's mirror can take hours, sometimes
    about a day, to show a new version.
 
@@ -207,12 +226,14 @@ anything. Fix the cause, then publish that tag by hand (3.2).
 ### 3.2 Publishing by hand from GitHub
 - **Build only:** Actions → **Extension release** → Run workflow. Input `prerelease` (default on) packages as a
   pre-release. It never publishes.
-- **(Re)publish a release:** Actions → **Release** → Run workflow, with:
+- **(Re)publish a release:** Actions → **Release** → Run workflow, from branch **`main`** (the environment refuses
+  other branches), with:
   - `tag`: an existing tag, e.g. `v0.2.0`;
   - `prerelease`: on for a pre-release, off for a stable release.
 
-  It builds that tag and runs the same `publish` job. Both stores use `--skip-duplicate`, so after a partial failure
-  (e.g. the Marketplace worked and Open VSX didn't) a re-run publishes only what's missing.
+  It builds that tag and runs the same `publish` job, which waits for your approval. Both stores use
+  `--skip-duplicate`, so after a partial failure (e.g. the Marketplace worked and Open VSX didn't) a re-run publishes
+  only what's missing.
 
 ### 3.3 Pre-release or stable
 - The stores don't accept version suffixes like `1.0.0-beta`; a pre-release is a normal version with a pre-release
@@ -282,7 +303,9 @@ Error messages and the log never contain passwords. When a user reports a proble
 | Azure DevOps asks for an **Azure subscription** when you create an organization | Since 2025-11-25, new Azure DevOps organizations need one. You only need an organization for a legacy token. | Don't create it. Trusted publishing needs no organization, token or subscription. |
 | You're pushed to an **Azure free trial / pay-as-you-go** sign-up | Wrong path: that's Azure, not the Marketplace. | Close it. Use the Marketplace manage page and trusted publishing. |
 | Publish step: "GitHub Actions did not provide an OIDC token request URL and token. Add `permissions: id-token: write`…" | The job lacks `id-token: write`, or publishing moved to another job. | Keep publishing in the `publish` job of `release.yml`, which has the permission. |
-| Publish step: "Marketplace OIDC token exchange" fails (401/403) | No policy, or it doesn't match: owner, repository, workflow file (`release.yml`), environment (must be empty), or a private repo past the 48-hour window. | Fix the policy (2.3). For a private repo, re-create it and run the workflow within 48 hours, or make the repo public first. |
+| Publish step: "Marketplace OIDC token exchange" fails (401/403) | No policy, or it doesn't match: owner, repository, workflow file (`release.yml`), environment (`marketplace`), or a private repo past the 48-hour window. | Fix the policy (2.3). For a private repo, re-create it and run the workflow within 48 hours, or make the repo public first. |
+| The `publish` job sits at "Waiting" | It's waiting for your approval (the `marketplace` environment's required reviewer). | Open the run → Review deployments → Approve and deploy. |
+| `publish` fails at once: branch "…" is not allowed to deploy to marketplace due to environment protection rules | The run isn't on `main` (e.g. **Release** was run by hand from another branch). | Run it from `main`, with the tag as input. |
 | "No supported OIDC provider was detected" | `--oidc` was run outside GitHub Actions. | Publish to the Marketplace through the workflow (3.2). |
 | Open VSX: 401/403, or an "invalid token" error | `OVSX_PAT` expired (90 days), was revoked, or was pasted with extra spaces. | Generate a new token (2.4) and update the secret. Check it with `npx ovsx verify-pat yuji-luigi -p <token>`. |
 | Legacy token: 401/403 from `vsce publish -p` | Expired, or wrong scope: it needs Marketplace → **Manage** and **All accessible organizations**. | Move to trusted publishing. |
@@ -321,7 +344,9 @@ Error messages and the log never contain passwords. When a user reports a proble
       `.env.atlas`. (This repository's git history contains no Atlas password; the old one may have been used or
       shared elsewhere.)
 - [ ] Make the repository public (2.1), then check that the README images load on GitHub.
-- [ ] Create the Marketplace publisher `yuji-luigi` (2.2) and the trusted publishing policy for `release.yml` (2.3).
+- [ ] Create the Marketplace publisher `yuji-luigi` (2.2), the GitHub environment `marketplace` (only `main`, you as
+      required reviewer) and the trusted publishing policy for `release.yml` with environment `marketplace` (2.3).
+- [ ] Two-factor authentication on your GitHub account.
 - [ ] Open VSX: agreement, token, namespace `yuji-luigi`, ownership claim (2.4).
 - [ ] GitHub: secret `OVSX_PAT`, the release-please setting; delete `VSCE_PAT` if present (2.5).
 - [x] First version: 0.1.0, a pre-release (odd minor), pinned with `"release-as": "0.1.0"`. **Remove `release-as`
