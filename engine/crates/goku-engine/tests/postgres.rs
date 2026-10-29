@@ -1,6 +1,7 @@
 //! PostgreSQL driver against the Docker `pg-primary` (GOKU_IT=1). Scratch objects are named `rs_pg_*` and dropped.
 //! TLS: the Docker server has no TLS, so only prefer/require/bad files are checked there. With `PG_TLS_HOST` (a server
 //! whose certificate names that host) and `PG_TLS_CA` (its CA, PEM) set, the verifying modes are checked too.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, reason = "a failing test panics")]
 mod support;
 
 use goku_engine::DbError;

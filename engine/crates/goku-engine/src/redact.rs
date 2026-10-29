@@ -7,6 +7,7 @@ const QUOTED: &str = r#"(?:'(?:[^'\\]|''|\\.)*'|"(?:[^"\\]|\\.)*")"#;
 const SQL_QUOTED: &str = r#"(?:'(?:[^'\\]|''|\\.)*'|"(?:[^"\\]|\\.)*"|\$(?<tag>\w*)\$[\s\S]*?\$\k<tag>\$)"#;
 const SECRET_PARAMS: &str = "password|passwd|pwd|sslpassword|tlsCertificateKeyFilePassword|tlsCAFilePassword";
 
+#[expect(clippy::expect_used, reason = "the patterns are constants, so the unit tests cover every one")]
 fn rule(pattern: String, template: &'static str) -> (Regex, &'static str) {
     (Regex::new(&format!("(?i){pattern}")).expect("redaction pattern"), template)
 }

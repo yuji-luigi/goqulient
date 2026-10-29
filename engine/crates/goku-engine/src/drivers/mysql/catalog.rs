@@ -184,6 +184,7 @@ pub(super) async fn introspect(s: &MySqlSession, database: &str, cancel: &Cancel
         else {
             continue;
         };
+        #[expect(clippy::expect_used, reason = "the arm pushes right before")]
         let fk = match rels.iter_mut().position(|f| f.from == t && f.name == name) {
             Some(i) => &mut rels[i],
             None => {

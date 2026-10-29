@@ -7,6 +7,9 @@ license.workspace = true
 repository.workspace = true
 publish.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 goku-engine.workspace = true
 serde.workspace = true

@@ -7,9 +7,14 @@ mod sessions;
 
 use std::process::ExitCode;
 
+#[expect(clippy::print_stdout, reason = "--version runs instead of the protocol, so stdout is free")]
+fn print_version() {
+    println!("goku-engine-server {} (protocol {})", goku_engine::VERSION, server::PROTOCOL_VERSION);
+}
+
 fn main() -> ExitCode {
     if std::env::args().nth(1).as_deref() == Some("--version") {
-        println!("goku-engine-server {} (protocol {})", goku_engine::VERSION, server::PROTOCOL_VERSION);
+        print_version();
         return ExitCode::SUCCESS;
     }
     // The one runtime for the whole process (the counterpart of GokuCore's single event-loop group).

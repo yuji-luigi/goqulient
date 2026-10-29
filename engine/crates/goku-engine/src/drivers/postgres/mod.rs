@@ -7,6 +7,7 @@ mod introspect;
 mod tls;
 
 use crate::deadline::with_deadline;
+use crate::drivers::lock;
 use crate::error::{DbError, Result};
 use crate::limits::{Paging, RowCollector};
 use crate::model::{Attribute, ObjectKind, ObjectRef, QueryResult, ResultColumn, SchemaModel, ServerInfo, Sort};
@@ -84,7 +85,7 @@ pub async fn connect(
     };
     // The probe connection is already prepared: keep it as the catalog connection of the default database.
     let shared = Shared { endpoint, ..shared };
-    shared.state.lock().unwrap().insert(pool_key(Purpose::Meta, &database), Arc::new(conn));
+    lock(&shared.state).insert(pool_key(Purpose::Meta, &database), Arc::new(conn));
     Ok(Box::new(PostgresSession(Arc::new(shared))))
 }
 
@@ -254,7 +255,7 @@ impl Shared {
         let slot: Arc<Mutex<Option<AbortHandle>>> = Arc::default();
         let late = slot.clone();
         let abort = move || {
-            if let Some(h) = late.lock().unwrap().take() {
+            if let Some(h) = lock(&late).take() {
                 h.abort();
             }
         };
@@ -279,7 +280,7 @@ impl Shared {
                 let _ = connection.await;
             })
             .abort_handle();
-            *slot.lock().unwrap() = Some(task.clone());
+            *lock(&slot) = Some(task.clone());
             Ok(Conn {
                 cancel: client.cancel_token(),
                 client,
@@ -337,7 +338,7 @@ impl Shared {
     async fn connection(&self, database: &str, purpose: Purpose, cancel: &CancellationToken) -> Result<Arc<Conn>> {
         let key = pool_key(purpose, database);
         {
-            let mut s = self.state.lock().unwrap();
+            let mut s = lock(&self.state);
             if s.closed {
                 return Err(DbError::NotConnected);
             }
@@ -353,7 +354,7 @@ impl Shared {
         self.prepare(&conn, cancel).await?;
         let conn = Arc::new(conn);
         let evicted = {
-            let mut s = self.state.lock().unwrap();
+            let mut s = lock(&self.state);
             if s.closed {
                 conn.task.abort();
                 return Err(DbError::NotConnected);
@@ -371,7 +372,7 @@ impl Shared {
     /// timeout), then the socket is closed.
     fn discard(&self, conn: &Arc<Conn>) {
         conn.discarded.store(true, Ordering::SeqCst);
-        self.state.lock().unwrap().pool.retain(|_, (c, _)| !Arc::ptr_eq(c, conn));
+        lock(&self.state).pool.retain(|_, (c, _)| !Arc::ptr_eq(c, conn));
         let (token, task, tls) = (conn.cancel.clone(), conn.task.clone(), self.tls.clone());
         let seconds = self.profile.connect_timeout_seconds as f64;
         tokio::spawn(async move {
@@ -399,7 +400,7 @@ impl Shared {
             if conn.discarded.load(Ordering::SeqCst) {
                 continue; // discarded while we waited: take a fresh connection
             }
-            *slot.lock().unwrap() = Some(conn.clone());
+            *lock(slot) = Some(conn.clone());
             return Ok(Lease { conn, _guard: guard });
         }
     }
@@ -407,7 +408,7 @@ impl Shared {
     fn discard_on_timeout(self: &Arc<Self>, slot: &Slot) -> impl FnOnce() + use<> {
         let (me, slot) = (self.clone(), slot.clone());
         move || {
-            if let Some(conn) = slot.lock().unwrap().take() {
+            if let Some(conn) = lock(&slot).take() {
                 me.discard(&conn);
             }
         }
@@ -493,7 +494,7 @@ impl Shared {
     /// Display names for result column types: Swift's table, then `format_type` (cached per session; unknown → "oid N").
     async fn type_names(&self, client: &Client, oids: &[u32]) -> Vec<String> {
         let missing: Vec<u32> = {
-            let s = self.state.lock().unwrap();
+            let s = lock(&self.state);
             let mut m: Vec<u32> = oids
                 .iter()
                 .copied()
@@ -507,7 +508,7 @@ impl Shared {
             let list = missing.iter().map(u32::to_string).collect::<Vec<_>>().join(",");
             let sql = format!("SELECT oid::text, format_type(oid, NULL) FROM pg_type WHERE oid IN ({list})");
             if let Ok(rows) = client.query(&sql, &[]).await {
-                let mut s = self.state.lock().unwrap();
+                let mut s = lock(&self.state);
                 for r in rows {
                     if let (Ok(oid), Ok(name)) = (r.try_get::<_, String>(0), r.try_get::<_, String>(1))
                         && let Ok(oid) = oid.parse()
@@ -517,7 +518,7 @@ impl Shared {
                 }
             }
         }
-        let s = self.state.lock().unwrap();
+        let s = lock(&self.state);
         oids.iter()
             .map(|o| {
                 format::TYPE_NAMES
@@ -616,7 +617,7 @@ impl DatabaseSession for PostgresSession {
 
     async fn close(&self) {
         let conns: Vec<Arc<Conn>> = {
-            let mut s = self.0.state.lock().unwrap();
+            let mut s = lock(&self.0.state);
             s.closed = true;
             s.pool.drain().map(|(_, (c, _))| c).collect()
         };

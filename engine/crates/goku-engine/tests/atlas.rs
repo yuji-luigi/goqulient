@@ -1,6 +1,7 @@
 //! Optional cloud test: SRV + TLS against a MongoDB Atlas cluster. Runs only when GOKU_ATLAS_USER, GOKU_ATLAS_PASSWORD
 //! and GOKU_ATLAS_HOST are set (`docker run --env-file .env.atlas`); never prints them. It creates and drops a scratch
 //! database `rs_atlas_<random>`. Commands the free tier (M0) refuses are skipped with a note.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, reason = "a failing test panics")]
 use goku_engine::DbError;
 use goku_engine::limits::Paging;
 use goku_engine::model::{ObjectKind, ObjectRef};

@@ -1,5 +1,6 @@
 //! MongoDB driver against the Docker `mongo` service (GOKU_IT=1): connect, catalog, browse (paging, sort, caps, cell and
 //! document text), `maxTimeMS`, the client deadline, cancel, read-only and `close`. Scratch databases are `rs_mg_*`.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, reason = "a failing test panics")]
 #[path = "support/mongo.rs"]
 mod mongo_support;
 mod support;

@@ -1,6 +1,6 @@
 //! MongoDB test helpers (included with `#[path]`): a plain driver client for setup/teardown of `rs_mg_*` scratch
 //! databases, so the session under test only reads.
-#![allow(dead_code)]
+#![allow(dead_code, reason = "each test crate uses only some of the helpers")]
 use mongodb::Client;
 use mongodb::options::ClientOptions;
 use std::time::Duration;

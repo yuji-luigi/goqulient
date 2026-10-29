@@ -1,5 +1,6 @@
 //! Introspection must match GokuCore: every parity/schema/*.json (written by ParityFixtureTests.swift), after the
 //! normalization in parity/README.md. An engine whose driver isn't implemented yet (`Unsupported`) is skipped.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, reason = "a failing test panics")]
 #[path = "support/parity.rs"]
 mod parity;
 mod support;

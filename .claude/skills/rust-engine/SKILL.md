@@ -53,8 +53,9 @@ secrets. A change that weakens one is wrong, even if the tests pass.
   sets, odd type OIDs, malformed BSON, truncated frames. Use `get()`, `let … else`, `?`, `ok_or_else`. A panic in a
   request task kills that request at best and the engine process at worst.
 - Panics are for bugs you have *proven* impossible (a regex literal that compiles, an invariant of your own data
-  structure). Write `expect("why this can't fail")`, and add `#[allow(clippy::expect_used, reason = "…")]` if the
-  lint fires. Lock poisoning: `lock().unwrap_or_else(PoisonError::into_inner)` or treat it as a bug.
+  structure). Write `expect("why this can't fail")` and mark the smallest enclosing item
+  `#[expect(clippy::expect_used, reason = "…")]`; better, restructure so the case can't arise. A poisoned
+  `std::sync::Mutex` is a bug elsewhere: lock through `drivers::lock` / `server::lock`, which stop on it.
 - Test the error path, not just the happy one: timeouts, cancellation, auth failure, read-only refusal.
 
 ## 3. Async
@@ -141,8 +142,15 @@ scripts/dev.sh engine test [filter]  # unit, protocol, integration (GOKU_IT=1) a
 scripts/dev.sh vscode test           # when the protocol or a result shape changed: the extension's tests
 ```
 `scripts/dev.sh up` first if the databases aren't running. Don't run two test runs against the same compose project
-at once; a git worktree gets its own project (docs/TESTING.md, "Parallel worktrees"). Fix lint warnings rather than
-silencing them; a local `#[allow(clippy::…, reason = "…")]` is for a justified exception, never a whole module.
+at once; a git worktree gets its own project (docs/TESTING.md, "Parallel worktrees").
+
+The workspace lints (`engine/Cargo.toml`) enforce part of this skill: `unsafe_code` is forbidden; `unwrap_used`,
+`expect_used`, `panic`, `todo`, `unimplemented`, `dbg_macro`, `print_stdout` and `allow_attributes_without_reason`
+warn, and `-D warnings` makes them errors. Tests may unwrap (`clippy.toml`, and a crate-level allow in each
+`tests/*.rs`). Lock a `std::sync::Mutex` with `drivers::lock` (server: `server::lock`). Fix a warning rather than
+silence it; a justified exception is `#[expect(clippy::…, reason = "…")]` on the smallest item, never a module.
+`indexing_slicing` isn't enabled (about 100 existing sites), so a new module that parses server or user data starts
+with `#![warn(clippy::indexing_slicing)]`.
 Commit with Conventional Commits (`feat(engine): …`, `fix(engine): …`).
 
 ## 9. Review checklist

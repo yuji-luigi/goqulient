@@ -1,4 +1,5 @@
 //! Open database sessions, by id. Methods take `sessionId`; an unknown id is `NotConnected` (the extension reconnects).
+use crate::server::lock;
 use crate::server::{RpcError, params};
 use goku_engine::DbError;
 use goku_engine::limits::Paging;
@@ -52,7 +53,7 @@ impl Sessions {
     ];
 
     fn get(&self, id: &str) -> Result<Arc<dyn DatabaseSession>, RpcError> {
-        self.0.lock().unwrap().get(id).cloned().ok_or_else(|| DbError::NotConnected.into())
+        lock(&self.0).get(id).cloned().ok_or_else(|| DbError::NotConnected.into())
     }
 
     /// `None` when `method` isn't a session method.
@@ -78,12 +79,12 @@ impl Sessions {
                 }
             };
             let id = uuid_like();
-            self.0.lock().unwrap().insert(id.clone(), s);
+            lock(&self.0).insert(id.clone(), s);
             return Ok(json!({"sessionId": id, "serverInfo": info, "endpoint": endpoint}));
         }
         let t: Target = params(p)?;
         if method == "connection/close" {
-            let s = self.0.lock().unwrap().remove(&t.session_id);
+            let s = lock(&self.0).remove(&t.session_id);
             if let Some(s) = s {
                 s.close().await;
             }
@@ -112,7 +113,7 @@ impl Sessions {
 
     /// Closes every session (end of input or `exit`), each bounded by its own driver deadlines.
     pub async fn close_all(&self) {
-        let all: Vec<_> = self.0.lock().unwrap().drain().map(|(_, s)| s).collect();
+        let all: Vec<_> = lock(&self.0).drain().map(|(_, s)| s).collect();
         for s in all {
             s.close().await;
         }

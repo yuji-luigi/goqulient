@@ -1,6 +1,6 @@
 //! Integration test helpers: the Docker test databases (docker-compose.yml), like `IT` in IntegrationSupport.swift.
 //! Gated by GOKU_IT=1 (set in the `engine` container), so `cargo test` elsewhere (CI on macOS/Windows) skips them.
-#![allow(dead_code)]
+#![allow(dead_code, reason = "each test crate uses only some of the helpers")]
 use goku_engine::profile::{ConnectionProfile, Credentials, DatabaseKind, HostPort, SslMode};
 use std::time::Duration;
 

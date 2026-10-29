@@ -6,7 +6,14 @@ use goku_engine::profile::ConnectionProfile;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
+
+/// `Mutex::lock` for the server's short critical sections. A poisoned lock means another task panicked halfway through
+/// an update, so its state can't be trusted: that is a bug, not an error to handle.
+#[expect(clippy::unwrap_used, reason = "lock poisoning is a bug elsewhere")]
+pub(crate) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
+    m.lock().unwrap()
+}
 use tokio::io::{AsyncBufRead, AsyncWrite};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -114,7 +121,7 @@ where
         }
     };
     let sessions = {
-        let s = state.lock().unwrap();
+        let s = lock(&state);
         for token in s.in_flight.values() {
             token.cancel();
         }
@@ -162,7 +169,7 @@ fn handle(message: Value, state: &Arc<Mutex<State>>, tx: &mpsc::UnboundedSender<
     };
     let reply = |result: Result<Value, RpcError>| response(&id, result);
     {
-        let mut s = state.lock().unwrap();
+        let mut s = lock(state);
         match method.as_str() {
             "initialize" => {
                 let result = initialize(params);
@@ -188,15 +195,15 @@ fn handle(message: Value, state: &Arc<Mutex<State>>, tx: &mpsc::UnboundedSender<
         }
     }
     let token = CancellationToken::new();
-    state.lock().unwrap().in_flight.insert(id_key(&id), token.clone());
-    let sessions = state.lock().unwrap().sessions.clone();
+    lock(state).in_flight.insert(id_key(&id), token.clone());
+    let sessions = lock(state).sessions.clone();
     let (state, tx) = (state.clone(), tx.clone());
     tokio::spawn(async move {
         let result = tokio::select! {
             r = request(&method, params, &token, &sessions) => r,
             _ = token.cancelled() => Err(DbError::Cancelled.into()),
         };
-        state.lock().unwrap().in_flight.remove(&id_key(&id));
+        lock(&state).in_flight.remove(&id_key(&id));
         let _ = tx.send(response(&id, result));
     });
     None
@@ -204,10 +211,10 @@ fn handle(message: Value, state: &Arc<Mutex<State>>, tx: &mpsc::UnboundedSender<
 
 fn notification(method: &str, params: Value, state: &Arc<Mutex<State>>) -> Option<Exit> {
     match method {
-        "exit" => Some(if state.lock().unwrap().shutdown { Exit::Clean } else { Exit::Abrupt }),
+        "exit" => Some(if lock(state).shutdown { Exit::Clean } else { Exit::Abrupt }),
         "$/cancelRequest" => {
             if let Some(id) = params.get("id")
-                && let Some(token) = state.lock().unwrap().in_flight.get(&id_key(id))
+                && let Some(token) = lock(state).in_flight.get(&id_key(id))
             {
                 token.cancel();
             }

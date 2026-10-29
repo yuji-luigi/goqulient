@@ -1,4 +1,5 @@
 //! ER layout must match GokuCore exactly: every case in parity/er-layout (written by ParityFixtureTests.swift).
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, reason = "a failing test panics")]
 use goku_engine::er::{Edge, Options, Rect, Size, layout};
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap};

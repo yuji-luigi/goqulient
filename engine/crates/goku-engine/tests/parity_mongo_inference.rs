@@ -1,6 +1,7 @@
 //! Mongo inference must match GokuCore: every parity/mongo-inference/*.json (written by ParityFixtureTests.swift).
 //! Each fixture's database is dropped, filled with its documents (in order) and indexes, introspected (three times, to
 //! catch order-dependent results), normalized like parity_schema.rs and dropped again.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, reason = "a failing test panics")]
 #[path = "support/mongo.rs"]
 mod mongo_support;
 #[path = "support/parity.rs"]

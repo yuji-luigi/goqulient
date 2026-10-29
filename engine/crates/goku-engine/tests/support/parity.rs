@@ -1,5 +1,5 @@
 //! Parity helpers shared by the parity tests (included with `#[path]`): the normalization in parity/README.md.
-#![allow(dead_code)]
+#![allow(dead_code, reason = "each test crate uses only some of the helpers")]
 use serde_json::{Map, Value};
 use std::collections::HashSet;
 

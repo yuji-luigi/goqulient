@@ -409,7 +409,7 @@ impl MySqlSession {
             let conn = dial(&self.opts, &self.host, &self.profile, token).await?.map_err(|e| clean(&e))?;
             *guard = Some(setup(conn, &self.profile, token).await?);
         }
-        let live = guard.as_mut().expect("opened above");
+        let Some(live) = guard.as_mut() else { return Err(DbError::NotConnected) }; // opened above
         let id = live.id;
         let started = Instant::now();
         let r = with_deadline(seconds, "Query", token, || self.kill(id), async {

@@ -20,7 +20,7 @@ impl<'a> Buf<'a> {
         Some(head)
     }
     fn array<const N: usize>(&mut self) -> Option<[u8; N]> {
-        self.take(N).map(|b| b.try_into().expect("length checked"))
+        self.take(N).and_then(|b| b.try_into().ok())
     }
     fn u8(&mut self) -> Option<u8> {
         self.array::<1>().map(|b| b[0])

@@ -1,5 +1,6 @@
 //! MySQL driver against `mysql-primary` (docker-compose.yml). Scratch tables are `rs_my_*` in `shop`, one per test so the
 //! tests can run in parallel; each test drops its table before and after.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, reason = "a failing test panics")]
 mod support;
 
 use goku_engine::DbError;

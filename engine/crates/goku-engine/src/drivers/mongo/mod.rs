@@ -12,6 +12,7 @@ pub mod infer;
 pub use extjson::parse_document;
 
 use crate::deadline::with_deadline;
+use crate::drivers::lock;
 use crate::error::{DbError, Result};
 use crate::limits::{HARD_MAX_ROWS, Paging, RowCollector, clip};
 use crate::model::{Attribute, ObjectKind, ObjectRef, QueryResult, SchemaModel, ServerInfo, Sort};
@@ -54,14 +55,14 @@ pub async fn connect(
         &format!("Connecting to {connected_to}"),
         cancel,
         move || {
-            if let Some(c) = late.lock().unwrap().take() {
+            if let Some(c) = lock(&late).take() {
                 tokio::spawn(shutdown(c));
             }
         },
         async {
             let options = client_options(&profile, &credentials).await?;
             let client = Client::with_options(options).map_err(|e| DbError::ConnectionFailed(message(&e)))?;
-            *slot.lock().unwrap() = Some(client.clone());
+            *lock(&slot) = Some(client.clone());
             client
                 .database("admin")
                 .run_command(doc! {"ping": 1})
@@ -75,7 +76,7 @@ pub async fn connect(
     match result {
         Ok(client) => Ok(Box::new(MongoSession { profile, client, connected_to, closed: AtomicBool::new(false) })),
         Err(e) => {
-            let client = slot.lock().unwrap().take();
+            let client = lock(&slot).take();
             if let Some(c) = client {
                 shutdown(c).await;
             }

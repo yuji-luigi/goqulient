@@ -211,7 +211,7 @@ pub struct Relationship {
 
 impl Relationship {
     /// Same id format as Swift: `from(cols,…)->to(cols,…)#name`, frozen at creation (rebuild when columns change).
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, reason = "one argument per field; the id is derived from them")]
     pub fn new(
         name: &str,
         from_entity: &str,
