@@ -1,15 +1,19 @@
-# Builds goku-engine-server for the six VS Code targets and packages one VSIX per target (docs/RELEASING.md).
-# release.yml calls it when release-please creates a vX.Y.Z release; run it by hand to get the VSIXs as workflow
-# artifacts without publishing. Publishing needs VSCE_PAT (Marketplace) / OVSX_PAT (Open VSX); without them it only
-# warns. `prerelease` (default true) packages and publishes as a pre-release.
+# Builds goku-engine-server for the six VS Code targets and packages one VSIX per target (docs/RELEASING.md). It never
+# publishes: release.yml calls it and publishes the `vsix` artifact in a job of its own, so the Marketplace's trusted
+# publishing policy names release.yml either way. Run it by hand to get the VSIXs as a workflow artifact. A target whose
+# engine job failed (or never got a runner) is left out and listed in the job summary; release.yml then refuses to
+# publish. `prerelease` (default true) packages as a pre-release.
 name: Extension release
 
 on:
   workflow_call:
     inputs:
       ref: { type: string, required: true }
-      publish: { type: boolean, default: false }
       prerelease: { type: boolean, default: true }
+    outputs:
+      missing:
+        description: Targets without a VSIX, space-separated (empty when all six were packaged)
+        value: ${{ jobs.package.outputs.missing }}
   workflow_dispatch:
     inputs:
       prerelease: { type: boolean, default: true, description: Package as a pre-release }
@@ -83,6 +87,8 @@ jobs:
     # Also when an engine job failed or was cancelled: package the targets that were built.
     if: always()
     runs-on: ubuntu-latest
+    outputs:
+      missing: ${{ steps.engines.outputs.missing }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -125,15 +131,3 @@ jobs:
           name: vsix
           path: dist/*.vsix
           if-no-files-found: error
-      - name: Publish
-        if: inputs.publish
-        env:
-          MISSING: ${{ steps.engines.outputs.missing }}
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-          PRE: ${{ inputs.prerelease && '--pre-release' || '' }}
-        run: |
-          # All or nothing: a release without one platform would leave its users on the previous version.
-          if [ -n "$MISSING" ]; then echo "::error::Not publishing: no VSIX for $MISSING"; exit 1; fi
-          if [ -n "$VSCE_PAT" ]; then npx --yes @vscode/vsce@3 publish $PRE --packagePath dist/*.vsix; else echo "::warning::VSCE_PAT not set: not published to the Marketplace"; fi
-          if [ -n "$OVSX_PAT" ]; then for f in dist/*.vsix; do npx --yes ovsx@0 publish "$f" $PRE -p "$OVSX_PAT"; done; else echo "::warning::OVSX_PAT not set: not published to Open VSX"; fi
