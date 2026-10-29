@@ -6,6 +6,7 @@ import {
   DEFAULT_PORT,
   KIND_LABEL,
   decode,
+  endpointSummary,
   isKind,
   splitUrl,
   type Credentials,
@@ -214,6 +215,22 @@ function dockerPostgresProfile(vars: Map<string, string>): { profile: ProfileJso
   const user = v('POSTGRES_USER') ?? 'postgres';
   const profile: ProfileJson = { name: KIND_LABEL.postgres, kind: 'postgres', mode: hosts.length > 1 ? 'multiHost' : 'single', hosts, user, database: v('POSTGRES_DB') ?? user };
   return { profile, credentials: password === undefined ? {} : { password } };
+}
+
+/**
+ * Text typed or pasted into the first Add Connection picker, if it looks like `scheme://…`: what the picker shows for it
+ * (never the password) and whether it parses. Without this, a pasted URL filters every item away and Enter does nothing.
+ */
+export function pastedUrl(value: string): { url: string; detail: string; ok: boolean } | undefined {
+  const url = value.trim();
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) return undefined;
+  try {
+    const { profile } = profileFromUrl(url);
+    const db = profile.mode !== 'uri' && profile.database ? ` · ${profile.database}` : ''; // a kept URI shows its own
+    return { url, detail: `${KIND_LABEL[profile.kind]} · ${endpointSummary(profile)}${db}`, ok: true };
+  } catch (e) {
+    return { url, detail: e instanceof UrlError ? e.message : 'Not a connection URL.', ok: false };
+  }
 }
 
 /** `goqulient.envConnections` as written by hand: entries without a variable name and fields of the wrong type are dropped. */
