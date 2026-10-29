@@ -47,7 +47,8 @@ scripts/dev.sh vscode test   # extension: typecheck + tests against the engine
 scripts/dev.sh vscode e2e    # the extension inside a real VS Code (headless)
 scripts/dev.sh down
 ```
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/TESTING.md](docs/TESTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/TESTING.md](docs/TESTING.md). Releasing and publishing to the
+Marketplace and Open VSX: [docs/RELEASING.md](docs/RELEASING.md) and [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 ## How it works
 ```
@@ -72,7 +73,7 @@ GoQulient.
 | `engine/` | the Rust engine: `goku-engine` (library) + `goku-engine-server` (stdio JSON-RPC server) |
 | `parity/` | fixtures shared with the Goku app |
 | `docker/`, `docker-compose.yml`, `scripts/dev.sh` | test databases and the Docker-only dev workflow |
-| `docs/` | [architecture](docs/ARCHITECTURE.md), [testing](docs/TESTING.md), [releasing](docs/RELEASING.md) |
+| `docs/` | [architecture](docs/ARCHITECTURE.md), [testing](docs/TESTING.md), [releasing](docs/RELEASING.md), [publishing](docs/PUBLISHING.md) |
 
 ## Contributing, security, license
 - Contributions are welcome: [CONTRIBUTING.md](CONTRIBUTING.md). Coding agents start at [AGENTS.md](AGENTS.md).

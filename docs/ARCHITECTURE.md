@@ -62,7 +62,7 @@ settings and `.env`, and an end-to-end test in a real VS Code. No SSH tunnels an
 | Test databases and tool containers (compose project `goqulient`), seeds | `docker-compose.yml`, `docker/{postgres,mysql,mongo}/init/` |
 | Dev commands (everything in Docker) | `scripts/dev.sh` |
 | CI (Linux/macOS/Windows build + unit tests; Linux: database integration tests and the e2e) | `.github/workflows/ci.yml` |
-| Release: release-please, then the engine per target + one VSIX per target, publish | `.github/workflows/{release,extension-release}.yml`, `release-please-config.json` |
+| Release: release-please, then the engine per target + one VSIX per target, publish (trusted publishing) | `.github/workflows/{release,extension-release}.yml`, `release-please-config.json`, `scripts/package-vsix.sh`; [RELEASING.md](RELEASING.md), [PUBLISHING.md](PUBLISHING.md) |
 
 ## Goal
 A VS Code extension that shows databases the way the Goku app does, on **Windows, macOS and Linux** (including

@@ -10,6 +10,7 @@
 #   scripts/dev.sh vscode test           engine debug build, then type check + Node tests against it
 #   scripts/dev.sh vscode build          dist/ (extension + webviews)
 #   scripts/dev.sh vscode e2e            the extension inside a real VS Code (xvfb) against the test databases
+#   scripts/dev.sh vscode package <dir>  one VSIX per engine binary under <dir> (in the repo) into dist/
 #   scripts/dev.sh vscode run [folder]   native engine (needs cargo) + this extension in a new VS Code window
 #   scripts/dev.sh vscode shell          shell in the `vscode` container
 #   scripts/dev.sh down                  stop and delete everything (containers + volumes)
@@ -64,8 +65,15 @@ EOS
         in_engine "cargo build -p goku-engine-server" && in_vscode "npm ci --no-audit --no-fund && npm run build" &&
           docker compose --profile e2e run --rm ${GOKU_E2E_SCREENSHOTS:+-e GOKU_E2E_SCREENSHOTS="/work/$GOKU_E2E_SCREENSHOTS"} \
             vscode-e2e bash -c "timeout -s KILL 600 xvfb-run -a -s '-screen 0 1440x900x24' node test-e2e/run.mjs" ;;
+      package)   # engines downloaded from a workflow run (docs/PUBLISHING.md); extra arguments go to vsce, e.g. --pre-release.
+        # Packaged from a copy on the container's own disk: see scripts/package-vsix.sh for why not in /work.
+        [[ -d "${2:-}" ]] || { echo "usage: scripts/dev.sh vscode package <engines dir in the repo> [vsce options]" >&2; exit 1; }
+        in_vscode "npm ci --no-audit --no-fund && rm -rf /tmp/pkg && mkdir -p /tmp/pkg/vscode && cp /work/LICENSE /tmp/pkg/ &&
+          tar -C /work/vscode --exclude=./node_modules --exclude=./bin --exclude=./dist -cf - . | tar -C /tmp/pkg/vscode -xf - &&
+          cp -a node_modules /tmp/pkg/vscode/ && cd /tmp/pkg/vscode && npm run typecheck && NODE_ENV=production npm run build &&
+          /work/scripts/package-vsix.sh '/work/$2' /work/dist ${*:3}" ;;
       shell) docker compose exec vscode bash ;;
-      *) echo "usage: scripts/dev.sh vscode [test | build | e2e | run [folder] | shell]" >&2; exit 1 ;;
+      *) echo "usage: scripts/dev.sh vscode [test | build | e2e | run [folder] | package <dir> | shell]" >&2; exit 1 ;;
     esac ;;
   down)
     docker compose --profile e2e down -v ;;

@@ -1,17 +1,23 @@
 # push to main -> release-please keeps a release PR open (docs/RELEASING.md). Merging it tags vX.Y.Z, creates the
-# GitHub release and calls extension-release.yml, which builds the engine for six targets, packages one VSIX per
-# target and publishes them. A tag pushed with GITHUB_TOKEN wouldn't start a workflow by itself, hence the call.
+# GitHub release and calls extension-release.yml, which builds the engine for six targets and packages one VSIX per
+# target; `publish` then publishes them. A tag pushed with GITHUB_TOKEN wouldn't start a workflow by itself, hence the
+# call. Run it by hand with a tag to (re)publish that release (docs/PUBLISHING.md).
 name: Release
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag: { type: string, required: true, description: Release tag to publish (e.g. v0.2.0) }
+      prerelease: { type: boolean, default: true, description: Publish as a pre-release }
 
 permissions:
   contents: read
 
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -28,10 +34,50 @@ jobs:
 
   extension:
     needs: release-please
-    if: needs.release-please.outputs.created == 'true'
+    if: ${{ !cancelled() && (needs.release-please.outputs.created == 'true' || github.event_name == 'workflow_dispatch') }}
     uses: ./.github/workflows/extension-release.yml
     with:
-      ref: ${{ needs.release-please.outputs.tag }}
-      publish: true
-      prerelease: true   # until 1.0
-    secrets: inherit
+      ref: ${{ inputs.tag || needs.release-please.outputs.tag }}
+      prerelease: ${{ github.event_name == 'push' || inputs.prerelease }}   # pre-release until 1.0
+
+  # Publishing is a job of this workflow, not of the called one: the Marketplace's trusted publishing policy names one
+  # workflow file, and in a called workflow GitHub's OIDC token names two (workflow_ref: release.yml, job_workflow_ref:
+  # extension-release.yml). Here both are release.yml.
+  publish:
+    needs: extension
+    # Also runs when an engine job failed, so the log says which targets are missing instead of a skipped job.
+    if: ${{ !cancelled() && needs.extension.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # vsce publish --oidc
+    env:
+      PRE: ${{ (github.event_name == 'push' || inputs.prerelease) && 'true' || '' }} # adds --pre-release
+    steps:
+      # All or nothing: a release without one platform would leave its users on the previous version.
+      - name: Check that all six targets were packaged
+        env:
+          MISSING: ${{ needs.extension.outputs.missing }}
+        run: |
+          if [ -n "$MISSING" ]; then echo "::error::Not publishing: no VSIX for $MISSING"; exit 1; fi
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix
+          path: vsix
+      - name: Count the VSIXs
+        run: |
+          ls -la vsix
+          n=$(find vsix -name '*.vsix' | wc -l)
+          if [ "$n" -ne 6 ]; then echo "::error::Not publishing: $n VSIXs instead of 6"; exit 1; fi
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      # --skip-duplicate on both: re-running after a partial failure publishes only what's still missing.
+      - name: Visual Studio Marketplace (trusted publishing)
+        run: npx --yes @vscode/vsce@4 publish --oidc ${PRE:+--pre-release} --skip-duplicate --packagePath vsix/*.vsix
+      - name: Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -z "$OVSX_PAT" ]; then echo "::warning::OVSX_PAT not set: not published to Open VSX"; exit 0; fi
+          for f in vsix/*.vsix; do npx --yes ovsx@0 publish "$f" ${PRE:+--pre-release} --skip-duplicate -p "$OVSX_PAT"; done

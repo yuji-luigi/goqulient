@@ -13,6 +13,7 @@ scripts/dev.sh vscode build           # dist/extension.cjs + dist/webview/
 scripts/dev.sh vscode e2e             # the extension in a real VS Code (xvfb) against the test databases (read-only)
 GOKU_E2E_SCREENSHOTS=vscode/webview-dev/snapshots scripts/dev.sh vscode e2e   # … and keep window screenshots
 scripts/dev.sh vscode run [folder]    # native engine (needs cargo) + this extension in a new VS Code window
+scripts/dev.sh vscode package <dir>   # one VSIX per engine binary under <dir> (downloaded from a release run) -> dist/
 scripts/dev.sh down                   # remove containers and volumes
 ```
 `engine shell` / `vscode shell` open a shell in the tool containers. A pull request needs `engine test`, `engine check`
@@ -113,7 +114,8 @@ output is plain JavaScript) and runs `code --new-window --extensionDevelopmentPa
 `GOKU_ENGINE_PATH` set. That variable is only read in development and test hosts (`ExtensionMode`), never by an
 installed extension. If your `code` hands the window to an already running VS Code that doesn't pass the variable on,
 set `goqulient.enginePath` in your user settings instead. Without cargo, install a VSIX from the "Extension release"
-workflow's artifacts (`code --install-extension goqulient-<target>.vsix`).
+workflow's artifacts (`code --install-extension goqulient-<target>.vsix`); [PUBLISHING.md](PUBLISHING.md#1-try-a-build-before-publishing)
+covers the other editors and which file to pick.
 
 ## CI
 `.github/workflows/ci.yml`:

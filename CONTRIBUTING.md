@@ -17,6 +17,7 @@ scripts/dev.sh vscode test            # extension: typecheck + Node tests agains
 scripts/dev.sh vscode build           # bundle the extension and webviews into vscode/dist
 scripts/dev.sh vscode e2e             # the extension in a real VS Code (xvfb) against the test databases
 scripts/dev.sh vscode run [folder]    # try it in your own VS Code (needs a native cargo for the engine)
+scripts/dev.sh vscode package <dir>   # VSIXs from engines downloaded from a release run (docs/PUBLISHING.md)
 scripts/dev.sh engine shell | vscode shell
 scripts/dev.sh down                   # remove containers and volumes
 ```
