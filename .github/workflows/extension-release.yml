@@ -83,20 +83,12 @@ jobs:
       - name: Package one VSIX per target
         working-directory: vscode
         env:
-          PRE: ${{ inputs.prerelease && '--pre-release' || '' }}
-          # vsce ignores repository.directory: point README links and images at vscode/ explicitly.
-          BASE: >-
-            --baseContentUrl https://github.com/yuji-luigi/goqulient/blob/HEAD/vscode
-            --baseImagesUrl https://github.com/yuji-luigi/goqulient/raw/HEAD/vscode
+          PRE: ${{ inputs.prerelease && 'true' || '' }} # adds --pre-release
         run: |
           npm ci --no-audit --no-fund
           npm run typecheck
           NODE_ENV=production npm run build
-          for dir in ../engines/engine-*; do
-            target=${dir##*/engine-}
-            rm -rf bin && mkdir -p bin/$target && cp $dir/* bin/$target/ && chmod +x bin/$target/* || true
-            npx --yes @vscode/vsce@3 package --target $target $PRE $BASE -o ../dist/goqulient-$target.vsix
-          done
+          ../scripts/package-vsix.sh ../engines ../dist ${PRE:+--pre-release}
           ls -la ../dist
       - uses: actions/upload-artifact@v4
         with:
