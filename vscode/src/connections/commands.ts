@@ -1,7 +1,7 @@
 // Connection commands: add (to user settings, password into SecretStorage), forget a saved password, open settings.
 import { randomUUID } from 'node:crypto';
 import * as vscode from 'vscode';
-import { UrlError, profileFromUrl } from './envProfiles.ts';
+import { UrlError, pastedUrl, profileFromUrl } from './envProfiles.ts';
 import type { Connection } from './model.ts';
 import { DEFAULT_PORT, DEFAULT_USER, KINDS, KIND_LABEL, endpointSummary, needsPassword, type Kind, type ProfileJson } from './profile.ts';
 import type { ConnectionStore } from './store.ts';
@@ -24,16 +24,50 @@ function input(step: string, options: vscode.InputBoxOptions): Thenable<string |
   return vscode.window.showInputBox({ title: `${TITLE} (${step})`, ignoreFocusOut: true, ...options });
 }
 
+type KindItem = vscode.QuickPickItem & { db?: Kind; url?: string };
+
+/** The first step: a database kind, "From a connection URL…", or a URL pasted straight into the filter box. */
+function pickKind(): Promise<KindItem | undefined> {
+  const items: KindItem[] = [
+    ...KINDS.map((k) => ({ label: KIND_LABEL[k], db: k })),
+    { label: 'From a connection URL…', detail: 'postgres://, mysql://, mongodb://, mongodb+srv://' },
+  ];
+  const qp = vscode.window.createQuickPick<KindItem>();
+  qp.title = TITLE;
+  qp.placeholder = 'Pick a database, or paste a connection URL';
+  qp.ignoreFocusOut = true;
+  qp.items = items;
+  return new Promise((resolve) => {
+    let picked: KindItem | undefined;
+    qp.onDidChangeValue((v) => {
+      const p = pastedUrl(v);
+      // alwaysShow: a URL never matches the filter. The item never repeats the URL, so the password isn't shown twice.
+      qp.items = p
+        ? [{ label: p.ok ? '$(plug) Use this connection URL' : '$(warning) Not a usable connection URL', detail: p.detail, url: p.url, alwaysShow: true }]
+        : items;
+    });
+    qp.onDidAccept(() => {
+      picked = qp.activeItems[0];
+      if (picked) qp.hide();
+    });
+    qp.onDidHide(() => {
+      qp.dispose();
+      resolve(picked);
+    });
+    qp.show();
+  });
+}
+
 async function addConnection(store: ConnectionStore): Promise<void> {
-  type KindItem = vscode.QuickPickItem & { db?: Kind };
-  const choice = await vscode.window.showQuickPick<KindItem>(
-    [...KINDS.map((k) => ({ label: KIND_LABEL[k], db: k })), { label: 'From a connection URL…', detail: 'postgres://, mysql://, mongodb://, mongodb+srv://' }],
-    { title: TITLE, placeHolder: 'Database', ignoreFocusOut: true },
-  );
+  const choice = await pickKind();
   if (!choice) return;
   let profile: ProfileJson;
   let password: string | undefined;
-  if (choice.db) {
+  if (choice.url !== undefined && pastedUrl(choice.url)?.ok) {
+    const parsed = profileFromUrl(choice.url);
+    profile = parsed.profile;
+    password = parsed.credentials.password;
+  } else if (choice.db) {
     const kind = choice.db;
     const host = await input('host', { prompt: 'Host', value: 'localhost', validateInput: (v) => (v.trim() ? undefined : 'Required.') });
     if (host === undefined) return;
@@ -56,6 +90,7 @@ async function addConnection(store: ConnectionStore): Promise<void> {
     const url = await input('URL', {
       prompt: 'Connection URL. A password in it goes to VS Code’s secret storage, not to settings.',
       password: true,
+      value: choice.url, // a pasted URL that didn't parse: show why, and let it be fixed
       validateInput: (v) => {
         try {
           profileFromUrl(v);

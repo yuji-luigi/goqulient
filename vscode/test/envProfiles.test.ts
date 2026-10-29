@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { parseEnv } from '../src/connections/envParse.ts';
-import { envConnections, envId, profileFromUrl, sanitizeMappings, sslModeOf, type EnvFile } from '../src/connections/envProfiles.ts';
+import { envConnections, envId, pastedUrl, profileFromUrl, sanitizeMappings, sslModeOf, type EnvFile } from '../src/connections/envProfiles.ts';
 import { endpointSummary, needsPassword, secretFingerprint } from '../src/connections/profile.ts';
 import { EngineClient } from '../src/engine/client.ts';
 
@@ -126,6 +126,21 @@ describe('profileFromUrl', () => {
     }
     assert.throws(() => profileFromUrl('mysql://h', 'postgres'), /for MySQL \/ MariaDB, not PostgreSQL/);
     assert.equal(profileFromUrl('tcp://h:1/d', 'postgres').profile.kind, 'postgres', 'kind decides when the scheme does not');
+  });
+});
+
+describe('pastedUrl (the Add Connection picker)', () => {
+  test('a pasted URL is offered with its endpoint, never its password', () => {
+    const p = pastedUrl('  mongodb://app:Sec$ret%2Fpw@10.0.0.5:27017/shop  ');
+    assert.deepEqual(p, { url: 'mongodb://app:Sec$ret%2Fpw@10.0.0.5:27017/shop', detail: 'MongoDB · mongodb://app@10.0.0.5:27017/shop', ok: true });
+    assertNoSecret(p!.detail, 'Sec$ret/pw');
+    assert.equal(pastedUrl('postgres://u:p@db.example.com/app')?.detail, 'PostgreSQL · db.example.com:5432 · app');
+  });
+
+  test('a URL that does not parse says why; other text keeps filtering the kinds', () => {
+    assert.deepEqual(pastedUrl('redis://u:secret@h'), { url: 'redis://u:secret@h', detail: 'Unsupported URL scheme “redis”.', ok: false });
+    assertNoSecret(pastedUrl('postgres://u:secret@h:99999/d')!.detail, 'secret');
+    for (const text of ['', 'mongo', 'MySQL', 'postgres:/x']) assert.equal(pastedUrl(text), undefined);
   });
 });
 
