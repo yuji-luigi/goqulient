@@ -354,6 +354,10 @@ View `goqulient.connections` in the "GoQulient" activity bar container. `Connect
     localhost:5432) are a separate `POSTGRES_* (<file>)` connection with the image's defaults (user `postgres`, database
     = user); `MYSQL_ROOT_PASSWORD` without `MYSQL_USER` makes the `MYSQL_*` connection connect as root (and is enough on
     its own).
+  - Marker comments: `# DATABASE_URL: 'Name'` (any case; quotes optional; empty name = the default name) makes the next
+    assignment a connection called Name, whatever the variable. Blank and comment lines may come in between; a
+    commented-out `# DATABASE_URL=…` isn't a marker. A marked `DATABASE_URL` with an unknown scheme is listed invalid
+    instead of skipped. `parseEnv` returns them as `named`; an `envConnections` entry's `name` wins over the marker's.
   - `goqulient.envConnections` `[{url: "VAR", name?, file?, kind?, readOnly?}]` adds variables; an entry for a well-known
     variable replaces its default name/read-only. `file` limits it to one env file; `kind` is for schemes that don't say.
   - Schemes: `postgres(ql)[+driver]://` (`sslmode`, `sslrootcert`/`sslcert`/`sslkey`, `target_session_attrs`,

@@ -49,3 +49,16 @@ test('malformed lines are reported by line number, without values, and skipped',
   assert.deepEqual(Object.fromEntries(trail.vars), { LAST: '3' });
   assert.deepEqual(trail.errors, [{ line: 1, message: 'Unexpected text after the closing quote.' }]);
 });
+
+test('a "# DATABASE_URL: Name" comment marks the next assignment, whatever the variable', () => {
+  const r = parseEnv(
+    "#DATABASE_URL:'Interaction test'\nDB_URI=\"mongodb://h/db\"\n" +
+      '# database_url: "Reports"\n\n# DB_OLD=mongodb://old\nexport REPORTS_DB=postgres://h/r\n' +
+      '# DATABASE_URL:\nPLAIN=mysql://h\n' +
+      '# DATABASE_URL=postgres://commented-out\nOTHER=1\n# DATABASE_URL: Unquoted name  \nLAST=x',
+  );
+  assert.deepEqual(Object.fromEntries(r.named), { DB_URI: 'Interaction test', REPORTS_DB: 'Reports', PLAIN: '', LAST: 'Unquoted name' });
+  assert.equal(r.vars.get('DB_URI'), 'mongodb://h/db');
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(Object.fromEntries(parseEnv('# DATABASE_URL: Dangling').named), {}, 'a marker without a following variable marks nothing');
+});
