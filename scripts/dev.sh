@@ -14,9 +14,27 @@
 #   scripts/dev.sh vscode run [folder]   native engine (needs cargo) + this extension in a new VS Code window
 #   scripts/dev.sh vscode shell          shell in the `vscode` container
 #   scripts/dev.sh down                  stop and delete everything (containers + volumes)
+#   scripts/dev.sh env                   the project name and ports, as exports (eval it before a bare `docker compose`)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 cmd="${1:-help}"; shift || true
+
+# One compose project per checkout, so parallel git worktrees never share containers, mounts or test databases
+# (docs/TESTING.md#parallel-worktrees). The main checkout keeps `goqulient` and the default ports; a linked worktree is
+# named after its folder, gets host ports derived from that name and a smaller engine container, so two fit in Docker.
+if [[ -z "${COMPOSE_PROJECT_NAME:-}" ]]; then
+  COMPOSE_PROJECT_NAME=goqulient
+  if [[ "$(git rev-parse --git-dir 2>/dev/null)" != "$(git rev-parse --git-common-dir 2>/dev/null)" ]]; then
+    COMPOSE_PROJECT_NAME="$(basename "$PWD" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9_\n-' '-')"
+  fi
+fi
+export COMPOSE_PROJECT_NAME
+if [[ "$COMPOSE_PROJECT_NAME" != goqulient ]]; then
+  off=$(( $(printf %s "$COMPOSE_PROJECT_NAME" | cksum | cut -d' ' -f1) % 999 + 1 ))
+  export GOKU_PG_PORT="${GOKU_PG_PORT:-$((25432 + off))}" GOKU_MYSQL_PORT="${GOKU_MYSQL_PORT:-$((23306 + off))}" \
+    GOKU_MONGO_PORT="${GOKU_MONGO_PORT:-$((27217 + off))}" GOKU_ENGINE_MEM="${GOKU_ENGINE_MEM:-3g}" \
+    GOKU_ENGINE_CPUS="${GOKU_ENGINE_CPUS:-2}"
+fi
 
 in_vscode() { docker compose exec -T vscode bash -c "$*"; }
 in_engine() { docker compose exec -T engine bash -c "$*"; }   # not -l: /etc/profile drops cargo from PATH
@@ -77,6 +95,10 @@ EOS
     esac ;;
   down)
     docker compose --profile e2e down -v ;;
+  env)
+    for v in COMPOSE_PROJECT_NAME GOKU_PG_PORT GOKU_MYSQL_PORT GOKU_MONGO_PORT GOKU_ENGINE_MEM GOKU_ENGINE_CPUS; do
+      [[ -n "${!v:-}" ]] && echo "export $v=${!v}"
+    done; true ;;
   *)
-    sed -n '2,16p' "$0" ;;
+    sed -n '2,17p' "$0" ;;
 esac

@@ -15,14 +15,16 @@ GOKU_E2E_SCREENSHOTS=vscode/webview-dev/snapshots scripts/dev.sh vscode e2e   # 
 scripts/dev.sh vscode run [folder]    # native engine (needs cargo) + this extension in a new VS Code window
 scripts/dev.sh vscode package <dir>   # one VSIX per engine binary under <dir> (downloaded from a release run) -> dist/
 scripts/dev.sh down                   # remove containers and volumes
+scripts/dev.sh env                    # this checkout's compose project, ports and limits (Parallel worktrees)
 ```
 `engine shell` / `vscode shell` open a shell in the tool containers. A pull request needs `engine test`, `engine check`
 and `vscode test` to pass; run `vscode e2e` too when you touch the tree, the views or the connection store.
 
 ## Docker topology
 `docker-compose.yml`, compose project **`goqulient`** (so it never collides with another project's containers or
-volumes). The databases are throwaway: seeded from `docker/*/init/` on first start, passwords are test-only, and
-`scripts/dev.sh down` deletes them.
+volumes; a linked git worktree gets a project of its own, see [Parallel worktrees](#parallel-worktrees)). The
+databases are throwaway: seeded from `docker/*/init/` on first start, passwords are test-only, and `scripts/dev.sh down`
+deletes them.
 
 | Service | Image | Host port (127.0.0.1) | In the network | Credentials |
 |---|---|---|---|---|
@@ -37,13 +39,32 @@ Build output stays in volumes (`engine-target`, `engine-cargo`, `vscode-node-mod
 never lands in your checkout. The host ports are for trying the extension in your own VS Code against the test
 databases, e.g. `DATABASE_URL=postgres://dbc:dbcpass@127.0.0.1:25432/shop` in a scratch folder's `.env`.
 
+## Parallel worktrees
+Two git worktrees (say, two coding agents) can run `scripts/dev.sh` at the same time without sharing containers, mounts,
+databases or host ports:
+- `dev.sh` exports `COMPOSE_PROJECT_NAME`: `goqulient` in the main checkout (and in CI, or a copy without `.git`), the
+  worktree's folder name in a linked worktree (`git worktree add ../goqulient-tunnels` → project `goqulient-tunnels`).
+  Each project has its own containers, volumes (so the first build in a new worktree is a cold one) and `./` mount.
+- A linked worktree publishes the databases on ports derived from its name (25432/23306/27217 plus the same offset,
+  1–999); `GOKU_PG_PORT`, `GOKU_MYSQL_PORT` and `GOKU_MONGO_PORT` override them. `scripts/dev.sh env` prints the name,
+  ports and limits as `export` lines: `eval "$(scripts/dev.sh env)"` before a bare `docker compose` command (such as
+  the Atlas one above) so it reaches the same project.
+- A linked worktree's `engine` container defaults to 3 GB and 2 CPUs (`GOKU_ENGINE_MEM`, `GOKU_ENGINE_CPUS`; the main
+  checkout keeps 5 GB and 4). These are limits, not reservations: a project really uses the engine's build (up to its
+  limit) plus about 1.5 GB for the databases and the `vscode` container. With Docker's ~11.7 GB and 6 CPUs on a laptop,
+  give **every** project that runs at the same time 3 GB / 2 CPUs, the main checkout included
+  (`GOKU_ENGINE_MEM=3g GOKU_ENGINE_CPUS=2 scripts/dev.sh …`), and run at most two at once. Changing a limit recreates
+  that container (the build cache is in a volume, so nothing is lost).
+- `scripts/dev.sh down` in a worktree removes only that worktree's project. Run it before `git worktree remove`.
+
 ## Rust tests (`engine/`)
 - Unit tests live next to the code; protocol tests (framing, dispatch, cancellation, error codes) run the server over an
   in-memory pipe (`goku-engine-server/src/tests.rs`).
 - **Database integration tests** (`tests/{postgres,mysql,mongo}.rs`) run only with `GOKU_IT=1` (set in the `engine`
   container), so a plain `cargo test` on macOS or Windows skips them. Helpers: `tests/support/`. Scratch objects are named
   `rs_pg_*`, `rs_my_*`, `rs_mg_<random>` and dropped. Every test body runs under a hard deadline (`support::run`).
-- The test databases are shared by everything that uses the compose project: don't run two test runs at once.
+- The test databases are shared by everything that uses the compose project: don't run two test runs at once in one
+  checkout (each worktree has its own project).
 - The PostgreSQL server has no TLS, so `tests/postgres.rs` checks the verifying TLS modes only when `PG_TLS_HOST` and
   `PG_TLS_CA` point at a TLS server whose certificate names that host.
 - **Atlas** (optional, `tests/atlas.rs`): SRV + TLS against a MongoDB Atlas cluster. Put `GOKU_ATLAS_USER`,

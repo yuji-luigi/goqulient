@@ -6,7 +6,8 @@ can agree on the approach.
 ## Setup: Docker only
 You need **Docker** with Compose v2, and nothing else: Rust, Node and the test databases all run in containers of the
 compose project `goqulient` (`docker-compose.yml`). It publishes the databases on `127.0.0.1` ports 25432, 23306 and
-27217 only, so it doesn't collide with databases you already run.
+27217 only, so it doesn't collide with databases you already run. A linked git worktree gets its own project and ports
+([Parallel worktrees](docs/TESTING.md#parallel-worktrees)).
 
 ```bash
 scripts/dev.sh up                     # test databases (PostgreSQL 17, MySQL 8.4, MongoDB 7) + engine/vscode containers

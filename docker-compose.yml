@@ -1,9 +1,10 @@
-# Dev + test environment. Everything lives in the "goqulient" compose project (scripts/dev.sh wraps it):
+# Dev + test environment. Everything lives in the "goqulient" compose project (scripts/dev.sh wraps it; a linked git
+# worktree gets a project, host ports and engine limits of its own, docs/TESTING.md#parallel-worktrees):
 #   docker compose up -d --wait   -> test databases + the `engine` (Rust) and `vscode` (Node) tool containers
 #   docker compose down -v        -> removes everything (containers, volumes)
 # The databases are throwaway (seeded from docker/*/init, passwords below are test-only). They are published on
-# 127.0.0.1 only, on unusual ports (25432, 23306, 27217), so a native VS Code can reach them without colliding with
-# other local databases. Inside the network the tests use the service names and default ports.
+# 127.0.0.1 only, on unusual ports (25432, 23306, 27217 by default), so a native VS Code can reach them without
+# colliding with other local databases. Inside the network the tests use the service names and default ports.
 name: goqulient
 
 x-limits: &limits
@@ -22,7 +23,7 @@ services:
       - ./:/work
       - engine-target:/work/engine/target   # Linux build output stays inside Docker
       - engine-cargo:/usr/local/cargo/registry
-    mem_limit: 5g
+    mem_limit: ${GOKU_ENGINE_MEM:-5g}
     cpus: ${GOKU_ENGINE_CPUS:-4}   # CI runners of private repos have 2 cores (ci.yml sets 2)
     pids_limit: 4096
     environment:
@@ -72,7 +73,7 @@ services:
   pg-primary:
     <<: *limits
     image: postgres:17
-    ports: ["127.0.0.1:25432:5432"]
+    ports: ["127.0.0.1:${GOKU_PG_PORT:-25432}:5432"]
     mem_limit: 384m
     cpus: 1
     environment:
@@ -92,7 +93,7 @@ services:
   mysql-primary:
     <<: *limits
     image: mysql:8.4
-    ports: ["127.0.0.1:23306:3306"]
+    ports: ["127.0.0.1:${GOKU_MYSQL_PORT:-23306}:3306"]
     mem_limit: 640m
     cpus: 1
     environment:
@@ -112,7 +113,7 @@ services:
   mongo:
     <<: *limits
     image: mongo:7
-    ports: ["127.0.0.1:27217:27017"]
+    ports: ["127.0.0.1:${GOKU_MONGO_PORT:-27217}:27017"]
     mem_limit: 512m
     cpus: 1
     command: ["mongod", "--wiredTigerCacheSizeGB", "0.25", "--bind_ip_all"]
