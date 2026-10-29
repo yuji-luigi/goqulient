@@ -44,6 +44,8 @@ again, e.g. after a failed publish.
 - The `publish` job is in `release.yml`, not in the called workflow, because the Marketplace's trusted publishing
   policy names one workflow file. In a called workflow, GitHub's OIDC token names both the caller (`workflow_ref`) and
   the called file (`job_workflow_ref`); in `release.yml` both are `release.yml`.
+- It runs in the GitHub environment `marketplace`: only `main` may deploy to it, it waits for the maintainer's
+  approval, and the Marketplace policy names it, so `release.yml` changed on another branch can't publish.
 - **All or nothing**: it stops before uploading anything if `extension-release.yml` reports a missing target or the
   `vsix` artifact doesn't hold six files.
 - Marketplace: `npx @vscode/vsce@4 publish --oidc --packagePath vsix/*.vsix` with `permissions: id-token: write`
@@ -55,7 +57,8 @@ again, e.g. after a failed publish.
 
 ## Before the first publish
 The full list is in [PUBLISHING.md](PUBLISHING.md#6-checklist-before-the-first-public-release): the Marketplace
-publisher `yuji-luigi` and its trusted publishing policy for `release.yml`, the Open VSX namespace and `OVSX_PAT`, the
+publisher `yuji-luigi` and its trusted publishing policy for `release.yml` with environment `marketplace`, that
+environment (only `main`, a required reviewer), the Open VSX namespace and `OVSX_PAT`, the
 repository setting that lets release-please open pull requests, and a public repository. `"release-as": "0.1.0"` pins
 the first version; remove it once v0.1.0 is released (any `release-as` is for one release PR only).
 
