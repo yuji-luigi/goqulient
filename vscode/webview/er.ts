@@ -298,8 +298,10 @@ function entityClasses(g: SVGGElement, id: string, focus: Set<string> | undefine
 function relClasses(g: SVGGElement, rel: Relationship, focus: Set<string> | undefined) {
   const anchor = selected?.kind === 'entity' ? selected.id : hovered;
   const active = selected?.kind === 'rel' ? selected.id === rel.id : !!anchor && (rel.fromEntity === anchor || rel.toEntity === anchor);
+  const off = !active && selected?.kind === 'entity';
   g.classList.toggle('active', active);
-  g.classList.toggle('dim', !active && !!focus && !(focus.has(rel.fromEntity) && focus.has(rel.toEntity)));
+  g.classList.toggle('off', off);
+  g.classList.toggle('dim', !active && !off && !!focus && !(focus.has(rel.fromEntity) && focus.has(rel.toEntity)));
 }
 
 function refreshClasses() {
