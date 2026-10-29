@@ -80,6 +80,8 @@ jobs:
 
   package:
     needs: engine
+    # Also when an engine job failed or was cancelled: package the targets that were built.
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -95,6 +97,19 @@ jobs:
           pattern: engines-*
           path: engines
           merge-multiple: true
+      - name: Check which engines were built
+        id: engines
+        shell: bash
+        run: |
+          missing=()
+          { echo "| Target | Engine |"; echo "|---|---|"; } >> "$GITHUB_STEP_SUMMARY"
+          for t in linux-x64 linux-arm64 darwin-arm64 darwin-x64 win32-x64 win32-arm64; do   # SUPPORTED_TARGETS
+            if compgen -G "engines/$t/goku-engine-server*" >/dev/null; then echo "| $t | built |"
+            else missing+=("$t"); echo "| $t | **missing**: no VSIX (engine job failed or didn't run) |"; fi >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo "missing=${missing[*]}" >> "$GITHUB_OUTPUT"
+          if [ ${#missing[@]} -eq 6 ]; then echo "::error::No engine was built"; exit 1; fi
+          if [ ${#missing[@]} -gt 0 ]; then echo "::warning::No VSIX for ${missing[*]}: this run can't be published"; fi
       - name: Package one VSIX per target
         working-directory: vscode
         env:
@@ -113,9 +128,12 @@ jobs:
       - name: Publish
         if: inputs.publish
         env:
+          MISSING: ${{ steps.engines.outputs.missing }}
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
           PRE: ${{ inputs.prerelease && '--pre-release' || '' }}
         run: |
+          # All or nothing: a release without one platform would leave its users on the previous version.
+          if [ -n "$MISSING" ]; then echo "::error::Not publishing: no VSIX for $MISSING"; exit 1; fi
           if [ -n "$VSCE_PAT" ]; then npx --yes @vscode/vsce@3 publish $PRE --packagePath dist/*.vsix; else echo "::warning::VSCE_PAT not set: not published to the Marketplace"; fi
           if [ -n "$OVSX_PAT" ]; then for f in dist/*.vsix; do npx --yes ovsx@0 publish "$f" $PRE -p "$OVSX_PAT"; done; else echo "::warning::OVSX_PAT not set: not published to Open VSX"; fi
