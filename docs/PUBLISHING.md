@@ -221,8 +221,12 @@ anything. Fix the cause, then publish that tag by hand (3.2).
   0.4.x stable). Users on the pre-release channel always get the highest version, stable or not.
 - VS Code users see a pre-release only if they choose it: Install ▾ → **Install Pre-Release Version**, or
   **Switch to Pre-Release Version** on an installed extension (`code --install-extension yuji-luigi.goqulient --pre-release`).
-- Until 1.0, `release.yml` publishes pre-releases. To publish a stable release, run **Release** by hand with
-  `prerelease` off, or change `prerelease: true` in `release.yml`.
+- Until 1.0, `release.yml` publishes pre-releases, on the odd minor **0.1.x**: release-please bumps the patch for
+  `feat:` and `fix:` (`bump-patch-for-minor-pre-major`). A breaking change (`feat!:`) bumps the minor, to an even
+  0.2.0: before merging that release PR, set `"release-as"` to the next odd minor (0.3.0), and remove it after the
+  release.
+- To publish a stable release, use an even minor (`release-as`) and run **Release** by hand with `prerelease` off, or
+  change `prerelease: true` in `release.yml`.
 
 ### 3.4 Publishing a VSIX from your computer (fallback)
 - **Open VSX** works from any computer with the token:
@@ -320,10 +324,8 @@ Error messages and the log never contain passwords. When a user reports a proble
 - [ ] Create the Marketplace publisher `yuji-luigi` (2.2) and the trusted publishing policy for `release.yml` (2.3).
 - [ ] Open VSX: agreement, token, namespace `yuji-luigi`, ownership claim (2.4).
 - [ ] GitHub: secret `OVSX_PAT`, the release-please setting; delete `VSCE_PAT` if present (2.5).
-- [ ] Decide the first version: release-please computes it from the whole history. To pin it, set
-      `"release-as": "X.Y.Z"` in `release-please-config.json` for that one release PR (see [RELEASING.md](RELEASING.md)).
-- [ ] Decide pre-release or stable for the first version: Cursor's UI may not offer pre-release versions, so a
-      pre-release-only extension may be hard to find there. A stable `0.x` is an option.
+- [x] First version: 0.1.0, a pre-release (odd minor), pinned with `"release-as": "0.1.0"`. **Remove `release-as`
+      after it's released**, or release-please proposes 0.1.0 again.
 - [ ] Try the six VSIXs from an **Extension release** run in VS Code and Cursor (section 1), at least on darwin-arm64
       and one Windows or Linux machine.
 - [ ] Re-read `vscode/README.md` (it becomes the store page) and `CHANGELOG.md`.
