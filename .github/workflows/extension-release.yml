@@ -25,25 +25,36 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # targets: <VS Code target>=<Rust target> pairs built on one runner; check: the binary native to the runner, which
+        # must start and report its version.
         include:
           # Linux: static musl builds (rustls only), so they run on any distro the remote host has, Alpine included.
-          - { target: linux-x64, rust: x86_64-unknown-linux-musl, os: ubuntu-latest, zig: true }
-          - { target: linux-arm64, rust: aarch64-unknown-linux-musl, os: ubuntu-latest, zig: true }
-          - { target: darwin-arm64, rust: aarch64-apple-darwin, os: macos-latest }
-          - { target: darwin-x64, rust: x86_64-apple-darwin, os: macos-latest }
-          - { target: win32-x64, rust: x86_64-pc-windows-msvc, os: windows-latest }
-          - { target: win32-arm64, rust: aarch64-pc-windows-msvc, os: windows-latest }
+          - { name: linux-x64, os: ubuntu-latest, zig: true, targets: linux-x64=x86_64-unknown-linux-musl, check: linux-x64/goku-engine-server }
+          - { name: linux-arm64, os: ubuntu-latest, zig: true, targets: linux-arm64=aarch64-unknown-linux-musl }
+          # Both macOS targets on one (arm64) runner, x64 cross-compiled: hosted macOS runners are scarce, and a second
+          # macOS job can wait in the queue until GitHub cancels it.
+          - name: darwin
+            os: macos-latest
+            targets: darwin-arm64=aarch64-apple-darwin darwin-x64=x86_64-apple-darwin
+            check: darwin-arm64/goku-engine-server
+          - { name: win32-x64, os: windows-latest, targets: win32-x64=x86_64-pc-windows-msvc, check: win32-x64/goku-engine-server.exe }
+          - { name: win32-arm64, os: windows-latest, targets: win32-arm64=aarch64-pc-windows-msvc }
+    name: engine (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref || github.ref }}
-      - run: rustup show && rustup target add ${{ matrix.rust }}
+      - name: Install the Rust targets
         working-directory: engine
+        shell: bash
+        run: |
+          rustup show
+          for pair in ${{ matrix.targets }}; do rustup target add "${pair#*=}"; done
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: engine
-          key: ${{ matrix.rust }}
+          key: ${{ matrix.name }}
       - if: matrix.zig
         run: pip install ziglang && cargo install cargo-zigbuild --locked
       - name: Build
@@ -51,17 +62,20 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.zig }}" = "true" ]; then cmd=zigbuild; else cmd=build; fi
-          cargo $cmd --release --locked -p goku-engine-server --target ${{ matrix.rust }}
-          exe=goku-engine-server; [[ "${{ matrix.target }}" == win32-* ]] && exe=goku-engine-server.exe
-          mkdir -p ../out/${{ matrix.target }} && cp target/${{ matrix.rust }}/release/$exe ../out/${{ matrix.target }}/
-      # A binary for the runner's own architecture must start and report its version.
-      - if: matrix.target == 'linux-x64' || matrix.target == 'darwin-arm64' || matrix.target == 'win32-x64'
+          for pair in ${{ matrix.targets }}; do
+            target=${pair%%=*} rust=${pair#*=}
+            cargo $cmd --release --locked -p goku-engine-server --target "$rust"
+            exe=goku-engine-server; [[ "$target" == win32-* ]] && exe=goku-engine-server.exe
+            mkdir -p "../out/$target" && cp "target/$rust/release/$exe" "../out/$target/"
+          done
+      - if: matrix.check
         shell: bash
-        run: out/${{ matrix.target }}/goku-engine-server* --version
+        run: out/${{ matrix.check }} --version
+      # One folder per target (out/<target>/goku-engine-server[.exe]); `package` merges all artifacts into engines/.
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-${{ matrix.target }}
-          path: out/${{ matrix.target }}
+          name: engines-${{ matrix.name }}
+          path: out
           if-no-files-found: error
 
   package:
@@ -78,8 +92,9 @@ jobs:
           cache-dependency-path: vscode/package-lock.json
       - uses: actions/download-artifact@v4
         with:
-          pattern: engine-*
+          pattern: engines-*
           path: engines
+          merge-multiple: true
       - name: Package one VSIX per target
         working-directory: vscode
         env:
