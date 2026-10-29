@@ -86,6 +86,7 @@ field, give it a default in `from_fields`, add a test, and keep the JSON shape t
 | Fixture shapes and normalization | [parity/README.md](parity/README.md) |
 
 ## Common tasks → start points
+- **Any Rust change in `engine/`:** follow the project skill [`.claude/skills/rust-engine/SKILL.md`](.claude/skills/rust-engine/SKILL.md).
 - **Bug in a result or a cell's text:** `engine/crates/goku-engine/src/drivers/<engine>/` (`format.rs` for cell text).
 - **New protocol method / tree node type:** the checklists in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#checklists).
 - **New connection setting or `.env` variable:** `profile.rs` + `vscode/src/connections/` ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#connections-in-vs-code)).

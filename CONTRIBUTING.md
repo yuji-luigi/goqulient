@@ -45,7 +45,10 @@ changelog and the version are built from them by release-please ([docs/RELEASING
 subject should say what changed for a user.
 
 ## Coding agents
-Agents (Claude Code, Codex, …) start at [AGENTS.md](AGENTS.md); `CLAUDE.md` includes it.
+Agents (Claude Code, Codex, …) start at [AGENTS.md](AGENTS.md); `CLAUDE.md` includes it. How we write Rust in the
+engine (invariants, errors, async, API shape, tests, review checklist) is the project skill
+[`.claude/skills/rust-engine/SKILL.md`](.claude/skills/rust-engine/SKILL.md); it's worth a read for human contributors
+too.
 
 ## License
 By contributing you agree that your contributions are licensed under the [MIT License](LICENSE).
