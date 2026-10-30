@@ -11,9 +11,9 @@ comments say "port of GokuCore's `X`" and name the Swift file (`PostgresSession.
 lives in the app's repository, not here. The two engines are kept in step by shared JSON fixtures (`parity/`, see
 [TESTING.md](TESTING.md#parity-fixtures)); this repo can be built, tested and changed without the app.
 
-Status: PostgreSQL, MySQL/MariaDB and MongoDB drivers, the sidebar tree, the table viewer, ER diagrams, connections from
-settings and `.env`, query execution in the engine (`query/run`), and an end-to-end test in a real VS Code. No SSH
-tunnels and no query editor UI yet (see [Roadmap](#roadmap)).
+Status: PostgreSQL, MySQL/MariaDB and MongoDB drivers, SSH tunnels, the sidebar tree, the table viewer, ER diagrams,
+connections from settings and `.env`, query execution in the engine (`query/run`), and an end-to-end test in a real
+VS Code. No query editor UI yet (see [Roadmap](#roadmap)).
 
 ## Files
 | Concern | File |
@@ -21,6 +21,8 @@ tunnels and no query editor UI yet (see [Roadmap](#roadmap)).
 | Cargo workspace, pinned toolchain (`rust-toolchain.toml`), `rustfmt.toml` | `engine/` |
 | `DbError` (same wording as GokuCore's `DBError`), `display_message()` | `engine/crates/goku-engine/src/error.rs` |
 | `with_deadline` (timeout or cancel → `on_timeout` once) | `engine/crates/goku-engine/src/deadline.rs` |
+| Driver contract `DatabaseSession`, `Endpoint` (dial vs display address), `connect` (SSH tunnel first, then the driver; the `Tunnelled` session closes the tunnel) | `engine/crates/goku-engine/src/session.rs` |
+| SSH tunnel (port of `SSHTunnel.swift`, russh): host-key pinning, password/key auth, 127.0.0.1 listeners, `direct-tcpip` pipes; integration tests through the Docker bastion | `engine/crates/goku-engine/src/tunnel.rs`, `tests/tunnel.rs` |
 | `RowCollector`, `clip`, `Paging`, limits | `engine/crates/goku-engine/src/limits.rs` |
 | ER layout (port of `ERLayout.swift`, checked against `parity/er-layout`) | `engine/crates/goku-engine/src/er.rs`, `tests/parity_er_layout.rs` |
 | PostgreSQL driver: connect + host selection + pool + cancel (`mod.rs`), rustls modes (`tls.rs`), `PGValueFormatter` port (`format.rs`), catalog + introspection (`introspect.rs`); integration tests | `engine/crates/goku-engine/src/drivers/postgres/`, `tests/postgres.rs` |
@@ -43,7 +45,7 @@ tunnels and no query editor UI yet (see [Roadmap](#roadmap)).
 | Extension entry: engine, store, tree, commands; the test API returned in test mode | `vscode/src/extension.ts` |
 | `EngineClient` (spawn, initialize, requests, cancel, stop, crash budget, `onDidStart`/`onDidStop`, `isRunning`), `EngineError` | `vscode/src/engine/client.ts` |
 | Sidebar `TreeDataProvider`: node types, catalog cache by node path, connection items | `vscode/src/tree/provider.ts` |
-| Sessions by connection id: lazy connect, cancel, password retry, engine stop, `sync` | `vscode/src/tree/sessions.ts` |
+| Sessions by connection id: lazy connect, cancel, password retry, SSH host-key trust and SSH secret retries, engine stop, `sync` | `vscode/src/tree/sessions.ts` |
 | Tree commands: open table (double-click/Enter), ER, refresh, disconnect, cancel, retry, copy name | `vscode/src/tree/commands.ts` |
 | Pure tree helpers: kind groups in app order, source groups, descriptions, `erLayoutKey`, `isAuthFailure` | `vscode/src/tree/model.ts` |
 | Activity bar icon | `vscode/media/activitybar.svg` |
@@ -53,7 +55,8 @@ tunnels and no query editor UI yet (see [Roadmap](#roadmap)).
 | dotenv parser (no expansion) | `vscode/src/connections/envParse.ts` |
 | URL → profile + credentials, `.env` discovery, `goqulient.envConnections` | `vscode/src/connections/envProfiles.ts` |
 | Settings decoding (invalid entries kept), merge, trust filter, duplicate ids | `vscode/src/connections/model.ts` |
-| `ConnectionStore`: settings + `.env`, watcher, trust, SecretStorage, password prompt, engine validation | `vscode/src/connections/store.ts` |
+| `ConnectionStore`: settings + `.env`, watcher, trust, SecretStorage (password, SSH password, key passphrase), prompts, host-key pinning into settings, engine validation | `vscode/src/connections/store.ts` |
+| SSH helpers (no `vscode`): which SSH secret a profile needs, secret fingerprints, `unknownHostKey` detail, trust prompt text, `pinHostKey` settings rewrite | `vscode/src/connections/ssh.ts` |
 | `goqulient.addConnection`, `goqulient.forgetPassword` (also from a tree node), `goqulient.openSettings` | `vscode/src/connections/commands.ts` |
 | URI redaction (same rules as `redact::uri`) | `vscode/src/connections/redact.ts` |
 | Webview entry points `openTable` / `openErDiagram` (for the sidebar) | `vscode/src/views/index.ts` |
@@ -64,7 +67,7 @@ tunnels and no query editor UI yet (see [Roadmap](#roadmap)).
 | Pure webview helpers (grid virtualisation, TSV; ER geometry, crow's foot, pan/zoom) | `vscode/webview/lib/{grid,er}.ts` |
 | Dev harness (fake `acquireVsCodeApi`, fixtures, fake themes) + Playwright screenshots | `vscode/webview-dev/` |
 | Parity fixtures (generated by the Goku app's test suite; see [TESTING.md](TESTING.md#parity-fixtures)) | `parity/` + its `README.md` |
-| Test databases and tool containers (compose project `goqulient`, one per linked worktree), seeds | `docker-compose.yml`, `docker/{postgres,mysql,mongo}/init/` |
+| Test databases and tool containers (compose project `goqulient`, one per linked worktree), seeds; throwaway SSH bastion | `docker-compose.yml`, `docker/{postgres,mysql,mongo}/init/`, `docker/ssh/` |
 | Dev commands (everything in Docker), compose project and ports per worktree | `scripts/dev.sh` |
 | CI (Linux/macOS/Windows build + unit tests; Linux: database integration tests and the e2e) | `.github/workflows/ci.yml` |
 | Release: release-please, then the engine per target + one VSIX per target, publish (trusted publishing) | `.github/workflows/{release,extension-release}.yml`, `release-please-config.json`, `scripts/package-vsix.sh`; [RELEASING.md](RELEASING.md), [PUBLISHING.md](PUBLISHING.md) |
@@ -104,7 +107,7 @@ VS Code (extension host, Node)                         goku-engine-server (Rust,
 │ Webviews: table grid, ER diagram (SVG) │             │           destructive check                  │
 └────────────────────────────────────────┘             │   introspect → SchemaModel; Mongo inference  │
                                                        │   er_layout (port of ERLayout.swift)          │
-                                                       │   tunnel: SSH (russh, planned)                │
+                                                       │   tunnel: SSH local forwarding (russh/ring)   │
                                                        └──────────────────────────────────────────────┘
 ```
 - One tokio runtime per process (the counterpart of the single `MultiThreadedEventLoopGroup`).
@@ -121,7 +124,7 @@ VS Code (extension host, Node)                         goku-engine-server (Rust,
 | MySQL / MariaDB | `mysql_async` (rustls feature); `KILL QUERY` on a second connection to cancel |
 | MongoDB | official `mongodb` crate; `maxTimeMS` |
 | TLS | `rustls` + `rustls-platform-verifier` (uses the Windows/macOS certificate store) |
-| SSH tunnels (planned) | `russh` (pure Rust, works on Windows) |
+| SSH tunnels | `russh` 0.65 with `ring` + `rsa` (default features off, so no aws-lc-rs; pure Rust, builds on Windows without a C toolchain) |
 | JSON, errors, misc | `serde`, `serde_json`, `thiserror`, `tokio-util` (`CancellationToken`), `fancy-regex` (redaction backreference), `unicode-segmentation` (clip by grapheme like Swift), `uuid` |
 | App binding (planned) | `uniffi` |
 
@@ -134,7 +137,7 @@ which the tree treats as "the engine restarted" and reconnects.
 |---|---|
 | `initialize {protocolVersion, clientName}` | `{protocolVersion, engineVersion, capabilities: {methods}}`; a different version → `-32003` |
 | `profile/validate {profile}` | `{profile (normalized, defaults filled), endpoint (redacted)}`, no network |
-| `connection/open {profile, credentials}` → `{sessionId, serverInfo, endpoint}` | `profile` = the JSON shape of `ConnectionProfile`; a failing first query closes the session |
+| `connection/open {profile, credentials}` → `{sessionId, serverInfo, endpoint}` | `profile` = the JSON shape of `ConnectionProfile`; `credentials` = `{password?, sshPassword?, sshKeyPassphrase?}`; with `ssh.enabled` the SSH tunnel opens first; a failing first query closes the session (and its tunnel) |
 | `connection/close {sessionId}` | |
 | `catalog/databases`, `catalog/schemas`, `catalog/objects`, `catalog/columns` | same lists as the app's sidebar |
 | `table/page {sessionId, object, offset, limit, sort?}` | rows, capped; truncated cells flagged |
@@ -145,7 +148,15 @@ which the tree treats as "the engine restarted" and reconnects.
 
 Errors: `-32001` engine error (`message` = the `DbError` display message with secrets removed, `data` = `{kind, detail}`,
 e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-32003` protocol mismatch, plus the standard
-`-32700/-32600/-32601/-32602`. The extension sees them as `EngineError` (`code`, `kind`, `cancelled`).
+`-32700/-32600/-32601/-32602`. The extension sees them as `EngineError` (`code`, `kind`, `detail`, `cancelled`).
+SSH kinds of `connection/open` (all `-32001`):
+
+| `kind` | `detail` | Meaning |
+|---|---|---|
+| `unknownHostKey` | `{host, port, keyType, hostKey, fingerprint}` (`hostKey` in OpenSSH format, `fingerprint` = `SHA256:…`) | `ssh.trustedHostKey` is empty; nothing was authenticated. Save `hostKey` as `trustedHostKey` and retry. |
+| `sshAuthentication` | message | The SSH server rejected the password or the key (RSA without SHA-2 support gets the app's ssh-rsa hint). |
+| `sshKeyLocked` | message | The private key is encrypted and `sshKeyPassphrase` is missing or wrong. |
+| `connectionFailed` | message | Also a host key that differs from `trustedHostKey` ("Possible man-in-the-middle"), and an unreachable bastion. |
 
 ### Invariants (don't break)
 - stdout carries only protocol frames; logs go to stderr (the extension prints them in the "GoQulient" output channel).
@@ -203,7 +214,9 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
   `caCertificatePath` file when set. Unlike GokuCore, verifyFull against an IP address checks the IP SAN.
 - The Docker `pg-primary` has no TLS; `tests/postgres.rs` checks the verifying modes only when `PG_TLS_HOST` and
   `PG_TLS_CA` point at a TLS server whose certificate names that host.
-- SSH tunnels aren't implemented: a profile with `ssh.enabled` fails with `Unsupported`.
+- Behind an SSH tunnel a connection dials the tunnel's local end through `hostaddr` (127.0.0.1 and the local port) and
+  keeps `host` = the profile's host, so TLS still checks the real server name (verifyFull works through a tunnel). The
+  cancel token dials the same local end.
 
 ## MySQL driver (gotchas)
 - Never let a `mysql_async::Conn` drop with a result pending: its `Drop` drains the rest of the result in a background
@@ -215,6 +228,9 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
   panics when several providers are compiled in and none is installed).
 - Without a CA file the verify modes trust `webpki-roots` (Mozilla's list), not the OS store as the app and the
   PostgreSQL driver (`rustls-platform-verifier`) do. ⚠ Unify: a corporate CA in the OS store works for PG but not MySQL.
+- Behind an SSH tunnel the options dial the local end and `with_danger_tls_hostname_override` names the profile's
+  host, so verifyFull checks the real server name (like the app's `MySQLSession`). `KILL QUERY` connections reuse
+  those options, so they go through the tunnel too.
 
 ## MongoDB driver (gotchas)
 Official `mongodb` crate 3.9 with `bson-3`, rustls on **ring** (no aws-lc-rs, no OpenSSL), the hickory resolver for SRV and
@@ -249,7 +265,41 @@ Official `mongodb` crate 3.9 with `bson-3`, rustls on **ring** (no aws-lc-rs, no
 - **Inference determinism**: a collection whose `count` is ≤ 100 is read whole with `find` in natural order (the same
   documents `$sample` would return, in a stable order), so attribute order and value-probe samples don't change between
   runs. Larger collections still use `$sample` (random, as in the app). Both parity fixtures pass, three runs each.
-- SSH tunnels: `Unsupported` for now.
+- **SSH tunnels**: like the app, every tunnelled profile is a **direct connection** to one host (a multi-host profile
+  tries each host in turn and keeps the first that answers): the members a replica set advertises are names the tunnel
+  doesn't forward, so there is no replica-set discovery or failover behind SSH. SRV and URI modes can't be tunnelled
+  (`validate` refuses them, as in the app). ⚠ The driver checks TLS certificates against the address it dials
+  (127.0.0.1), and rustls can't skip only the host name, so `verifyCA`/`verifyFull` through a tunnel fail unless the
+  certificate names 127.0.0.1; use `require` (encrypted, not verified) there.
+
+## SSH tunnels
+Port of `SSHTunnel.swift` and `DatabaseConnector.openWithDetails` (`tunnel.rs`, `session::connect`), on russh with ring:
+- `connect` opens the tunnel first (profile `ssh`: `host`, `port`, `user`, `auth` = `password` | `privateKey`,
+  `privateKeyPath` (default `~/.ssh/id_ed25519`), `trustedHostKey`), then gives each profile host its own listener on
+  **127.0.0.1** (a free port; never another interface) and hands the driver an `Endpoint {dial: 127.0.0.1:<port>,
+  display: <profile host>}` per host. Every socket accepted there is piped through a `direct-tcpip` channel to the host
+  as the SSH server resolves it. The session the caller gets (`Tunnelled`) closes the driver, then the tunnel.
+- **Host key**: compared with `trustedHostKey` as "type base64" (comments ignored). Empty → `unknownHostKey` before
+  authenticating, with the key and its SHA-256 fingerprint; the client asks and retries with the key saved (the app
+  trusts the first key silently instead). A different key → `connectionFailed` with the app's man-in-the-middle text.
+  A host certificate is pinned by its key.
+- **Auth**: password (`credentials.sshPassword`) or a private key file read and decrypted off the runtime
+  (`spawn_blocking`; OpenSSH, PEM/PKCS#8 and PuTTY formats; `credentials.sshKeyPassphrase`). RSA keys sign with the best
+  hash the server offers (`rsa-sha2-512/256`); only a server that doesn't say falls back to `ssh-rsa` (SHA-1), and then
+  a rejection carries the app's hint.
+- **Deadlines**: TCP connect + key exchange + authentication under one `connect_timeout_seconds` deadline; each channel
+  open under its own. russh runs the connection in a task of its own, so its socket is wrapped (`Killable`): a timeout,
+  a cancel, `close` or dropping the `Tunnel` cuts it, which ends that task, every listener and every pipe. Keepalive
+  every 15 s; three unanswered ones end the connection. Pipes have no deadline of their own (the drivers bound every
+  query), and end with the tunnel.
+- **Errors** the driver can't explain: a channel that couldn't be opened (the bastion can't reach the host) only looks
+  like a closed socket to the driver, so `connect` appends the tunnel's reason (`SSH tunnel to h:5432: Failed to open
+  channel (ConnectFailed)`).
+- Secrets only reach russh; errors name the user, host and key path. `Tunnel`'s `Debug` shows the host key and state
+  only.
+- ⚠ Known gaps: the local port is open to every process of this machine while the session lives (as with `ssh -L`; the
+  database still asks for its own credentials); no SSH agent, keyboard-interactive, jump hosts or `~/.ssh/config`; a
+  channel open that times out leaves a channel on the server until the tunnel closes.
 
 ## Webviews
 Two `WebviewPanel`s, opened by the sidebar through `vscode/src/views/index.ts`. Plain TypeScript + DOM, no framework.
@@ -429,7 +479,18 @@ View `goqulient.connections` in the "GoQulient" activity bar container. `Connect
   connections keep it in SecretStorage under `goqulient.password.<id>` as `{fingerprint, password}`; the fingerprint
   (`secretFingerprint`: kind, servers, user) must still match, otherwise the user is asked again, so a changed host or a
   copied id never receives a saved password. The prompt (`showInputBox({password: true})`) offers "save" or "until VS Code
-  closes" (kept in memory only). `goqulient.forgetPassword` removes both.
+  closes" (kept in memory only). `goqulient.forgetPassword` removes both, and the SSH secrets below.
+- **SSH tunnels** (settings connections only; `.env` connections never have `ssh`): `ssh.auth: password` (or an unknown
+  value, as in the engine) asks for the SSH password up front; it is kept like the password under
+  `goqulient.sshPassword.<id>` with its own fingerprint (bastion host, port, user). A key passphrase is only asked for
+  when the engine answers `sshKeyLocked`, and kept under `goqulient.sshKeyPassphrase.<id>` (fingerprint: the key path).
+  `Sessions.open` handles each SSH answer once: `unknownHostKey` → a modal "Trust the SSH host h:p?" with the key type
+  and SHA-256 fingerprint; on "Trust and Connect" the connection's settings entry (same scope, same position, checked by
+  name and kind: `pinHostKey`) gets `ssh.trustedHostKey`, and the connect is retried with that profile. The entry's
+  session key is updated before the settings write, so the refresh that follows doesn't close the new session.
+  `sshKeyLocked` → passphrase prompt (once more if wrong); `sshAuthentication` with password auth → the SSH password
+  again (a saved one first offers "Enter SSH Password" / "Forget Saved SSH Password"); with key auth it just fails. These
+  never trigger the database password retry (`isAuthFailure` would match "SSH authentication failed").
 - **Workspace Trust**: untrusted → workspace `goqulient.connections` and every env file are ignored (user settings still
   apply); `goqulient.connections`, `goqulient.envFiles`, `goqulient.envConnections` are `restrictedConfigurations`.
   `onDidGrantWorkspaceTrust` refreshes.
@@ -437,7 +498,7 @@ View `goqulient.connections` in the "GoQulient" activity bar container. `Connect
   tests mirror `redact.rs`), errors name the variable and file, never the value.
 - **Goku app connections** (macOS, planned): import through the app's `goku` CLI (`connections` plus its agent-access
   rules), never by reading the app's Keychain directly.
-- ⚠ Not handled yet: SSH passwords/passphrases are never prompted (SSH tunnels are planned); a `tlsCertificateKeyFilePassword` in a Mongo
+- ⚠ Not handled yet: a `tlsCertificateKeyFilePassword` in a Mongo
   URI stays in the URI (redacted when shown); `PG*`/`MYSQL_*` part connections can't be renamed or made writable through
   `goqulient.envConnections`; Unix-socket hosts are rejected.
 
@@ -458,8 +519,8 @@ These are the rules in [AGENTS.md](../AGENTS.md#safety), as the engine implement
 ## Roadmap
 | Milestone | Scope |
 |---|---|
-| Done | Engine + protocol, PostgreSQL, MySQL/MariaDB and MongoDB drivers (no SSH), `er/layout` with parity tests, connections (settings, SecretStorage, `.env`, Workspace Trust), sidebar tree, table viewer, ER diagram, packaging for six targets, end-to-end test, query execution in the engine (`query/run`: SQL + Mongo shell, confirmation, read-only, caps, cancel) |
-| Next | SSH tunnels; query editor UI on `query/run` (CodeLens Run, results, destructive confirmation, cancel) |
+| Done | Engine + protocol, PostgreSQL, MySQL/MariaDB and MongoDB drivers, SSH tunnels, `er/layout` with parity tests, connections (settings, SecretStorage, `.env`, Workspace Trust), sidebar tree, table viewer, ER diagram, packaging for six targets, end-to-end test, query execution in the engine (`query/run`: SQL + Mongo shell, confirmation, read-only, caps, cancel) |
+| Next | Query editor UI on `query/run` (CodeLens Run, results, destructive confirmation, cancel) |
 | Later | Grid editing, filter builder, export CSV/JSON, cluster host selection, import of Goku app connections |
 | Experiment | The Mac app on this Rust engine through uniffi |
 

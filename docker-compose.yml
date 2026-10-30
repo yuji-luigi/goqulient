@@ -23,6 +23,7 @@ services:
       - ./:/work
       - engine-target:/work/engine/target   # Linux build output stays inside Docker
       - engine-cargo:/usr/local/cargo/registry
+      - ssh-keys:/ssh-keys:ro               # the bastion's test keys and host keys (tests/tunnel.rs)
     mem_limit: ${GOKU_ENGINE_MEM:-5g}
     cpus: ${GOKU_ENGINE_CPUS:-4}   # CI runners of private repos have 2 cores (ci.yml sets 2)
     pids_limit: 4096
@@ -31,6 +32,8 @@ services:
       PG_HOST: pg-primary
       MYSQL_HOST: mysql-primary
       MONGO_HOST: mongo
+      SSH_HOST: ssh-bastion
+      SSH_KEYS: /ssh-keys
 
   # VS Code extension (vscode/): type check and Node tests, with the engine's Linux debug build mounted read-only.
   vscode:
@@ -125,8 +128,26 @@ services:
       timeout: 10s
       retries: 60
 
+  # Throwaway SSH bastion for the tunnel tests (docker/ssh): dbc / sshpass, test keys in the `ssh-keys` volume. It
+  # forwards to the databases above by service name.
+  ssh-bastion:
+    <<: *limits
+    build: ./docker/ssh
+    image: goqulient-ssh-bastion:latest
+    ports: ["127.0.0.1:${GOKU_SSH_PORT:-22222}:22"]
+    mem_limit: 64m
+    cpus: 0.25
+    volumes:
+      - ssh-keys:/keys
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /keys/host_ed25519.pub && nc -z 127.0.0.1 22"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
 volumes:
   engine-target:
   engine-cargo:
   vscode-node-modules:
   vscode-test:
+  ssh-keys:

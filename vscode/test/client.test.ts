@@ -66,6 +66,7 @@ describe('with the real engine', { skip: bin ? false : 'GOKU_ENGINE_BIN not set'
         assert.equal(e.code, ErrorCode.engine);
         assert.equal(e.kind, 'invalidConfiguration');
         assert.match(e.message, /^Invalid configuration: Every host needs/);
+        assert.equal(e.detail, 'Every host needs a name and a port between 1 and 65535.', 'data.detail is kept (unknownHostKey has an object there)');
         return true;
       });
       assert.ok(log.lines.some((l) => l.includes('[engine] goku-engine') && l.includes('initialized by node-test')));

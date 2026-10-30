@@ -18,10 +18,10 @@ use crate::drivers::lock;
 use crate::error::{DbError, Result};
 use crate::limits::{HARD_MAX_ROWS, Paging, RowCollector, clip};
 use crate::model::{Attribute, ObjectKind, ObjectRef, QueryResult, ResultColumn, SchemaModel, ServerInfo, Sort};
-use crate::profile::{ConnectionProfile, Credentials, MongoReadPreference, SslMode, TopologyMode};
+use crate::profile::{ConnectionProfile, Credentials, HostPort, MongoReadPreference, SslMode, TopologyMode};
 use crate::query::Statement;
 use crate::redact;
-use crate::session::DatabaseSession;
+use crate::session::{DatabaseSession, Endpoint};
 use async_trait::async_trait;
 use bson::{Bson, Document, doc};
 use mongodb::error::ErrorKind;
@@ -34,19 +34,45 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio_util::sync::CancellationToken;
 
+/// Connects with the profile's topology. Behind an SSH tunnel (`endpoints` tunnelled) it makes a direct connection to
+/// each host in turn and keeps the first that answers, like GokuCore's `MongoSession`: the members a replica set
+/// advertises are names the tunnel doesn't forward.
 pub async fn connect(
     profile: ConnectionProfile,
     credentials: Credentials,
+    endpoints: Vec<Endpoint>,
     cancel: &CancellationToken,
 ) -> Result<Box<dyn DatabaseSession>> {
-    if profile.ssh.enabled {
-        return Err(DbError::Unsupported("SSH tunnels aren't supported by the engine yet.".into()));
-    }
     // ring is the engine's only rustls provider; installing it as the process default keeps rustls from guessing.
     let _ = rustls::crypto::ring::default_provider().install_default();
-    let connected_to = match profile.mode {
-        TopologyMode::Single => profile.hosts.first().map(ToString::to_string).unwrap_or_default(),
-        TopologyMode::Srv => profile.srv_host.clone(),
+    if !endpoints.iter().any(|e| e.tunnelled) {
+        return attempt(profile, &credentials, None, cancel).await;
+    }
+    let mut failures = Vec::new();
+    for endpoint in &endpoints {
+        match attempt(profile.clone(), &credentials, Some(endpoint), cancel).await {
+            Ok(session) => return Ok(session),
+            Err(DbError::Cancelled) => return Err(DbError::Cancelled),
+            Err(e) => failures.push(format!("{}: {e}", endpoint.display)),
+        }
+    }
+    if failures.len() == 1 {
+        return Err(DbError::ConnectionFailed(failures.remove(0)));
+    }
+    Err(DbError::NoSuitableHost(failures.join("\n")))
+}
+
+/// One client and its `ping`, under the connect deadline; `direct` = a direct connection to that endpoint only.
+async fn attempt(
+    profile: ConnectionProfile,
+    credentials: &Credentials,
+    direct: Option<&Endpoint>,
+    cancel: &CancellationToken,
+) -> Result<Box<dyn DatabaseSession>> {
+    let connected_to = match (direct, profile.mode) {
+        (Some(e), _) => e.display.to_string(),
+        (None, TopologyMode::Single) => profile.hosts.first().map(ToString::to_string).unwrap_or_default(),
+        (None, TopologyMode::Srv) => profile.srv_host.clone(),
         _ => profile.endpoint_summary(),
     };
     // The client is created inside the deadline; a late or failed one is shut down so its monitors stop.
@@ -63,7 +89,7 @@ pub async fn connect(
             }
         },
         async {
-            let options = client_options(&profile, &credentials).await?;
+            let options = client_options(&profile, credentials, direct.map(|e| &e.dial)).await?;
             let client = Client::with_options(options).map_err(|e| DbError::ConnectionFailed(message(&e)))?;
             *lock(&slot) = Some(client.clone());
             client
@@ -103,8 +129,9 @@ fn read_preference(p: MongoReadPreference) -> ReadPreference {
 }
 
 /// Builds the driver options. Single and multi-host profiles are built field by field (nothing to escape); SRV and URI
-/// go through the driver's parser, which resolves the SRV/TXT records.
-async fn client_options(p: &ConnectionProfile, c: &Credentials) -> Result<ClientOptions> {
+/// go through the driver's parser, which resolves the SRV/TXT records. `direct` replaces the hosts with one direct
+/// connection (an SSH tunnel's local end).
+async fn client_options(p: &ConnectionProfile, c: &Credentials, direct: Option<&HostPort>) -> Result<ClientOptions> {
     let connect = Duration::from_secs(p.connect_timeout_seconds.max(1) as u64);
     let invalid = |e: mongodb::error::Error| DbError::InvalidConfiguration(message(&e));
     let mut o = match p.mode {
@@ -131,6 +158,11 @@ async fn client_options(p: &ConnectionProfile, c: &Credentials) -> Result<Client
             o.direct_connection = Some(p.mode == TopologyMode::Single);
             if p.mode == TopologyMode::MultiHost && !p.replica_set.is_empty() {
                 o.repl_set_name = Some(p.replica_set.clone());
+            }
+            if let Some(d) = direct {
+                o.hosts = vec![ServerAddress::Tcp { host: d.host.clone(), port: Some(d.port as u16) }];
+                o.direct_connection = Some(true);
+                o.repl_set_name = None;
             }
             o
         }
@@ -822,7 +854,7 @@ mod tests {
         p.read_preference = MongoReadPreference::SecondaryPreferred;
         p.connect_timeout_seconds = 4;
         let c = Credentials { password: Some("pw".into()), ..Credentials::default() };
-        let o = client_options(&p, &c).await.unwrap();
+        let o = client_options(&p, &c, None).await.unwrap();
         assert_eq!(o.hosts.len(), 2);
         assert_eq!((o.direct_connection, o.repl_set_name.as_deref()), (Some(false), Some("rs0")));
         assert_eq!(o.tls, Some(Tls::Disabled), "prefer means no TLS, like the app");
@@ -841,7 +873,7 @@ mod tests {
         p.hosts.truncate(1);
         p.auth_source = "admin".into();
         p.ssl.mode = SslMode::Require;
-        let o = client_options(&p, &c).await.unwrap();
+        let o = client_options(&p, &c, None).await.unwrap();
         assert_eq!((o.direct_connection, o.repl_set_name), (Some(true), None));
         assert_eq!(o.credential.unwrap().source.as_deref(), Some("admin"));
         let Some(Tls::Enabled(t)) = o.tls else { panic!("TLS expected") };
@@ -856,7 +888,7 @@ mod tests {
         p.ssl.mode = SslMode::VerifyFull;
         let pw = "p@ss:w/rd%41";
         let c = Credentials { password: Some(pw.into()), ..Credentials::default() };
-        let o = client_options(&p, &c).await.unwrap();
+        let o = client_options(&p, &c, None).await.unwrap();
         let cred = o.credential.unwrap();
         assert_eq!((cred.username.as_deref(), cred.password.as_deref()), (Some("app"), Some(pw)));
         assert_eq!(o.connect_timeout, Some(Duration::from_secs(2)), "the URI's own timeout is kept");
@@ -866,13 +898,13 @@ mod tests {
         ));
         assert_eq!(o.tls, None, "a URI keeps its own TLS settings");
         p.uri = "mongodb://app:own@h/".into();
-        let cred = client_options(&p, &c).await.unwrap().credential.unwrap();
+        let cred = client_options(&p, &c, None).await.unwrap().credential.unwrap();
         assert_eq!(cred.password.as_deref(), Some("own"), "a URI's own password is left alone");
         p.uri = "mongodb://h/".into();
         p.auth_source = "admin".into();
-        assert!(client_options(&p, &c).await.unwrap().credential.is_none(), "no user in the URI = no auth");
+        assert!(client_options(&p, &c, None).await.unwrap().credential.is_none(), "no user in the URI = no auth");
         p.uri = "mongodb://u@h:99999/?tlsCertificateKeyFilePassword=sekrit".into();
-        let e = client_options(&p, &c).await.unwrap_err().to_string();
+        let e = client_options(&p, &c, None).await.unwrap_err().to_string();
         assert!(!e.contains("sekrit") && !e.contains("p%40ss") && !e.contains(pw), "{e}");
     }
 

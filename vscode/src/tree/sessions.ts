@@ -1,9 +1,11 @@
 // Engine sessions by connection id, for the sidebar. Connecting is lazy and cancellable (`$/cancelRequest`
-// cancels it in the engine too); a rejected password is asked for once more; an engine stop or an unknown session id
-// makes the connection idle again without an error, and the next expand reconnects. No `vscode` import (Node tests).
+// cancels it in the engine too); a rejected password is asked for once more; an SSH tunnel's unknown host key, rejected
+// SSH password or locked key goes to the hooks once each; an engine stop or an unknown session id makes the connection
+// idle again without an error, and the next expand reconnects. No `vscode` import (Node tests).
 import { CancellationTokenSource } from 'vscode-jsonrpc/node.js';
 import type { Credentials, ProfileJson } from '../connections/profile.ts';
-import type { PasswordSource } from '../connections/store.ts';
+import { hostKeyInfo, type HostKeyInfo, type SshSecret } from '../connections/ssh.ts';
+import type { PasswordSource, SecretSources } from '../connections/store.ts';
 import type { EngineClient } from '../engine/client.ts';
 import { EngineError } from '../engine/client.ts';
 import { isAuthFailure } from './model.ts';
@@ -33,7 +35,16 @@ export interface Target {
 export interface OpenParams {
   profile: ProfileJson;
   credentials: Credentials;
+  /** Where the database password came from. */
   source: PasswordSource;
+  /** Where the SSH secrets came from (settings connections). */
+  sources?: SecretSources;
+}
+
+/** The user trusted the host key: the profile to retry with, and how to save it (into the connection's settings). */
+export interface Trusted {
+  profile: ProfileJson;
+  save(): Promise<void>;
 }
 
 export interface ConnectHooks {
@@ -41,6 +52,13 @@ export interface ConnectHooks {
   params(target: Target): Promise<OpenParams | undefined>;
   /** The server rejected the password: new credentials to try once more, or undefined to give up. */
   rejected(target: Target, message: string, source: PasswordSource): Promise<Credentials | undefined>;
+  /**
+   * The SSH server rejected `secret` (or, for the key passphrase, the key needs one): a value to try once more, or
+   * undefined to give up. `source` = where the rejected one came from (undefined = none was sent).
+   */
+  sshSecret?(target: Target, secret: SshSecret, message: string, source: PasswordSource | undefined): Promise<string | undefined>;
+  /** The SSH server's host key isn't pinned yet: ask the user; undefined = don't trust it. */
+  trustHostKey?(target: Target, info: HostKeyInfo): Promise<Trusted | undefined>;
 }
 
 export type Engine = Pick<EngineClient, 'request' | 'onDidStop'>;
@@ -179,12 +197,16 @@ export class Sessions {
     try {
       const params = await this.hooks.params(target);
       if (!params || cancelled()) return { status: 'idle' };
+      let profile = params.profile;
       let credentials = params.credentials;
-      for (let attempt = 0; ; attempt++) {
+      // Each reason gets one more attempt; a passphrase asked for the first time doesn't count as a rejection.
+      const retried = new Set<string>();
+      const once = (reason: string) => !retried.has(reason) && !!retried.add(reason);
+      for (;;) {
         try {
           const r = await this.engine.request<{ sessionId: string; serverInfo: ServerInfo }>(
             'connection/open',
-            { profile: params.profile, credentials },
+            { profile, credentials },
             cts.token,
           );
           if (cancelled()) {
@@ -195,10 +217,34 @@ export class Sessions {
         } catch (e) {
           if (cancelled() || (e instanceof EngineError && e.cancelled)) return { status: 'idle' };
           const message = e instanceof Error ? e.message : String(e);
-          if (attempt > 0 || params.source === 'none' || !isAuthFailure(message)) throw e;
+          const kind = e instanceof EngineError ? e.kind : undefined;
+          if (kind === 'unknownHostKey') {
+            const info = hostKeyInfo((e as EngineError).detail);
+            if (!info || !this.hooks.trustHostKey || !once(kind)) throw e;
+            const trusted = await this.hooks.trustHostKey(target, info);
+            if (!trusted || cancelled()) throw e;
+            // The settings write changes the connection's profile: keep this attempt's session through `sync`.
+            const entry = this.entries.get(target.id);
+            if (entry) entry.key = JSON.stringify(trusted.profile);
+            profile = trusted.profile;
+            await trusted.save();
+            if (cancelled()) return { status: 'idle' };
+            continue;
+          }
+          const secret: SshSecret | undefined =
+            kind === 'sshKeyLocked' ? 'sshKeyPassphrase' : kind === 'sshAuthentication' && credentials.sshPassword !== undefined ? 'sshPassword' : undefined;
+          if (secret) {
+            const sent = credentials[secret] !== undefined;
+            if (!this.hooks.sshSecret || !once(sent ? `${secret} rejected` : secret)) throw e;
+            const value = await this.hooks.sshSecret(target, secret, message, sent ? (params.sources?.[secret] ?? 'typed') : undefined);
+            if (value === undefined || cancelled()) throw e;
+            credentials = { ...credentials, [secret]: value };
+            continue;
+          }
+          if (kind === 'sshAuthentication' || params.source === 'none' || !isAuthFailure(message) || !once('password')) throw e;
           const again = await this.hooks.rejected(target, message, params.source);
           if (!again || cancelled()) throw e;
-          credentials = again;
+          credentials = { ...credentials, ...again };
         }
       }
     } catch (e) {

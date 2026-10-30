@@ -143,13 +143,59 @@
         "goqulient.connections": {
           "type": "array",
           "default": [],
-          "markdownDescription": "Connections, in the same shape as the Goku app's profiles (`name`, `kind`, `hosts`, `user`, `database`, `ssl`, `ssh`, `readOnly`, …). Never put passwords here: GoQulient asks for them and keeps them in VS Code's secret storage.",
+          "markdownDescription": "Connections, in the same shape as the Goku app's profiles (`name`, `kind`, `hosts`, `user`, `database`, `ssl`, `ssh`, `readOnly`, …). Never put passwords here: GoQulient asks for them (and the SSH password or key passphrase of an `ssh` tunnel) and keeps them in VS Code's secret storage.",
           "items": {
             "type": "object",
             "required": [
               "name",
               "kind"
-            ]
+            ],
+            "properties": {
+              "ssh": {
+                "type": "object",
+                "markdownDescription": "Connect through an SSH tunnel (local port forwarding through a bastion). The SSH password or key passphrase is asked for when needed and kept in VS Code's secret storage, never here.",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "host": {
+                    "type": "string",
+                    "description": "SSH server (bastion) host name or address."
+                  },
+                  "port": {
+                    "type": "integer",
+                    "default": 22,
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "SSH user name."
+                  },
+                  "auth": {
+                    "type": "string",
+                    "enum": [
+                      "password",
+                      "privateKey"
+                    ],
+                    "default": "password",
+                    "enumDescriptions": [
+                      "SSH password (asked for when connecting).",
+                      "Private key file (OpenSSH, PEM or PuTTY format); its passphrase is asked for if the key is encrypted."
+                    ]
+                  },
+                  "privateKeyPath": {
+                    "type": "string",
+                    "markdownDescription": "Private key file for `auth: privateKey`; `~` is your home folder. Empty = `~/.ssh/id_ed25519`."
+                  },
+                  "trustedHostKey": {
+                    "type": "string",
+                    "markdownDescription": "The SSH server's host key in OpenSSH format (`ssh-ed25519 AAAA…`). GoQulient shows the key's fingerprint the first time and saves it here when you trust it; a different key later stops the connection."
+                  }
+                }
+              }
+            }
           }
         },
         "goqulient.envFiles": {

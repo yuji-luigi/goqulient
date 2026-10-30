@@ -3,6 +3,7 @@
 //! - results go through `limits::RowCollector` (row cap + cell clipping);
 //! - `query/run` checks read-only and destructive statements before anything is sent (`query`);
 //! - secrets never reach a log, an error or an endpoint summary (`redact`);
+//! - SSH tunnels (`tunnel`) listen on 127.0.0.1 only and close with their session;
 //! - no stdout and no runtime of its own: the host (the stdio server, later the app) owns the one tokio runtime.
 pub mod deadline;
 pub mod drivers;
@@ -14,6 +15,7 @@ pub mod profile;
 pub mod query;
 pub mod redact;
 pub mod session;
+pub mod tunnel;
 
 pub use error::{DbError, Result};
 

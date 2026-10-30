@@ -37,13 +37,16 @@ export interface InitializeResult {
 /** An error from the engine. `message` is already safe to show (secrets removed). */
 export class EngineError extends Error {
   readonly code: number;
-  /** `DbError` kind for engine errors (`timeout`, `readOnly`, `invalidConfiguration`, …). */
+  /** `DbError` kind for engine errors (`timeout`, `readOnly`, `invalidConfiguration`, `unknownHostKey`, …). */
   readonly kind: string | undefined;
-  constructor(code: number, message: string, kind?: string) {
+  /** `DbError` detail: a string for most kinds, an object for `unknownHostKey` (already redacted by the engine). */
+  readonly detail: unknown;
+  constructor(code: number, message: string, kind?: string, detail?: unknown) {
     super(message);
     this.name = 'EngineError';
     this.code = code;
     this.kind = kind;
+    this.detail = detail;
   }
   get cancelled(): boolean {
     return this.code === ErrorCode.cancelled;
@@ -245,8 +248,8 @@ export class EngineClient {
 function toEngineError(e: unknown): EngineError {
   if (e instanceof EngineError) return e;
   if (e instanceof ResponseError) {
-    const data = e.data as { kind?: string } | undefined;
-    return new EngineError(e.code, e.message, data?.kind);
+    const data = e.data as { kind?: string; detail?: unknown } | undefined;
+    return new EngineError(e.code, e.message, data?.kind, data?.detail);
   }
   return new EngineError(ErrorCode.engine, e instanceof Error ? e.message : String(e));
 }

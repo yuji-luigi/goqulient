@@ -1,12 +1,14 @@
 // End-to-end check inside a real VS Code (run.mjs): the .env connections appear read-only, expanding them connects and
 // lists `shop`, the table viewer gets a page, the ER diagram gets a model and a layout, an engine restart only
-// collapses the connections, and no password shows up in any tree item. Reads only (the databases are shared).
+// collapses the connections, a settings connection goes through the SSH bastion once its host key is pinned into the
+// settings, and no password shows up in any tree item. Reads only (the databases are shared).
 const assert = require('node:assert/strict');
 const { execFile } = require('node:child_process');
 const { join } = require('node:path');
 const vscode = require('vscode');
 
 const SECRET = 'dbcpass';
+const SSH_SECRET = 'sshpass';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function until(what, fn, ms = 30_000) {
@@ -142,9 +144,38 @@ exports.run = async function run() {
   named(again, 'shop');
   console.log('  disconnect + engine restart: idle, reconnected on expand');
 
+  // SSH tunnel: a user-settings connection through the bastion. The trust modal can't be clicked here, so the suite does
+  // what "Trust and Connect" does: learn the key from the engine's unknownHostKey answer and pin it with the store.
+  const profile = {
+    id: 'E2E-SSH', name: 'Through SSH', kind: 'postgres', hosts: [{ host: 'pg-primary', port: 5432 }], user: 'dbc',
+    database: 'shop', ssl: { mode: 'disable' }, readOnly: true,
+    ssh: { enabled: true, host: 'ssh-bastion', port: 22, user: 'dbc', auth: 'password' },
+  };
+  const config = () => vscode.workspace.getConfiguration('goqulient');
+  await config().update('connections', [profile], vscode.ConfigurationTarget.Global);
+  const conn = await until('the SSH connection', () => store.get('E2E-SSH'));
+  await store.saveSecret(conn.id, profile, 'sshPassword', SSH_SECRET);
+  await store.savePassword(conn.id, profile, SECRET);
+  const unknown = await engine
+    .request('connection/open', { profile, credentials: { sshPassword: SSH_SECRET, password: SECRET } })
+    .then(() => undefined, (e) => e);
+  assert.equal(unknown?.kind, 'unknownHostKey', `unknownHostKey first, got ${unknown}`);
+  await store.trustHostKey(conn, unknown.detail.hostKey);
+  assert.equal(config().inspect('connections').globalValue[0].ssh.trustedHostKey, unknown.detail.hostKey);
+  const pinned = await until('the pinned profile', () => store.get('E2E-SSH')?.profile?.ssh?.trustedHostKey && store.get('E2E-SSH'));
+  const grouped = await tree.getChildren();
+  const userGroup = grouped.find((n) => n.type === 'source' && item(n).label === 'User Settings');
+  assert.ok(userGroup, `a User Settings group in [${grouped.map((n) => item(n).label).join(', ')}]`);
+  const sshNode = named(await tree.getChildren(userGroup), 'Through SSH');
+  assert.deepEqual((await settled(sshNode)).map((k) => item(k).label), ['shop'], 'through the tunnel');
+  const state = sessions.state(pinned.id);
+  assert.equal(state.status, 'connected');
+  assert.equal(state.serverInfo.connectedHost, 'pg-primary:5432');
+  console.log(`  SSH tunnel: host key ${unknown.detail.fingerprint} pinned in user settings; connected through the bastion`);
+
   for (const i of items) {
     const text = JSON.stringify([i.label, i.description, i.tooltip]);
-    assert.ok(!text.includes(SECRET), `no password in tree items: ${text}`);
+    assert.ok(!text.includes(SECRET) && !text.includes(SSH_SECRET), `no password in tree items: ${text}`);
   }
   console.log(`  ${items.length} tree items checked: no password in labels, descriptions or tooltips`);
 };

@@ -32,7 +32,8 @@ export COMPOSE_PROJECT_NAME
 if [[ "$COMPOSE_PROJECT_NAME" != goqulient ]]; then
   off=$(( $(printf %s "$COMPOSE_PROJECT_NAME" | cksum | cut -d' ' -f1) % 999 + 1 ))
   export GOKU_PG_PORT="${GOKU_PG_PORT:-$((25432 + off))}" GOKU_MYSQL_PORT="${GOKU_MYSQL_PORT:-$((23306 + off))}" \
-    GOKU_MONGO_PORT="${GOKU_MONGO_PORT:-$((27217 + off))}" GOKU_ENGINE_MEM="${GOKU_ENGINE_MEM:-3g}" \
+    GOKU_MONGO_PORT="${GOKU_MONGO_PORT:-$((27217 + off))}" GOKU_SSH_PORT="${GOKU_SSH_PORT:-$((22222 + off))}" \
+    GOKU_ENGINE_MEM="${GOKU_ENGINE_MEM:-3g}" \
     GOKU_ENGINE_CPUS="${GOKU_ENGINE_CPUS:-2}"
 fi
 
@@ -96,7 +97,7 @@ EOS
   down)
     docker compose --profile e2e down -v ;;
   env)
-    for v in COMPOSE_PROJECT_NAME GOKU_PG_PORT GOKU_MYSQL_PORT GOKU_MONGO_PORT GOKU_ENGINE_MEM GOKU_ENGINE_CPUS; do
+    for v in COMPOSE_PROJECT_NAME GOKU_PG_PORT GOKU_MYSQL_PORT GOKU_MONGO_PORT GOKU_SSH_PORT GOKU_ENGINE_MEM GOKU_ENGINE_CPUS; do
       [[ -n "${!v:-}" ]] && echo "export $v=${!v}"
     done; true ;;
   *)

@@ -22,6 +22,8 @@ export interface Connection {
   /** Env connections: the file label and variable they came from. */
   file?: string;
   variable?: string;
+  /** Settings connections: the entry's position in that scope's `goqulient.connections` (to write it back). */
+  index?: number;
 }
 
 function hashId(prefix: string, ...parts: string[]): string {
@@ -52,7 +54,7 @@ export function decodeSettingsConnections(raw: unknown, source: 'user' | 'worksp
     if (!isKind(e.kind)) return invalid(`Unknown database kind “${String(e.kind)}”.`, e.name);
     const profile = { ...e, name: e.name, kind: e.kind } as ProfileJson;
     const id = typeof e.id === 'string' && e.id.trim() ? e.id.trim() : hashId(source, e.name, e.kind);
-    return { id, name: e.name, source, kind: e.kind, profile, endpoint: endpointSummary(profile), readOnly: profile.readOnly === true };
+    return { id, name: e.name, source, kind: e.kind, profile, endpoint: endpointSummary(profile), readOnly: profile.readOnly === true, index: i };
   });
 }
 
