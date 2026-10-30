@@ -12,6 +12,7 @@ use crate::error::{DbError, Result};
 use crate::limits::{Paging, RowCollector};
 use crate::model::{Attribute, ObjectKind, ObjectRef, QueryResult, ResultColumn, SchemaModel, ServerInfo, Sort};
 use crate::profile::{ConnectionProfile, Credentials, HostPort, SslMode, TargetSession};
+use crate::query::Statement;
 use crate::redact;
 use crate::session::DatabaseSession;
 use async_trait::async_trait;
@@ -133,6 +134,39 @@ struct Conn {
     lock: Arc<tokio::sync::Mutex<()>>,
     /// Set by `discard`: a request that was waiting for `lock` must not run here.
     discarded: AtomicBool,
+    /// Notices the server sent, for the request that holds `lock`.
+    notices: Notices,
+}
+
+/// At most this many notices per statement (a `RAISE NOTICE` in a loop must not grow memory).
+const MAX_NOTICES: usize = 100;
+
+type Notices = Arc<Mutex<Vec<String>>>;
+
+/// Drives the connection and keeps its notices (`NOTICE`, `WARNING`, …) for `query/run`; aborting the task closes the
+/// socket.
+fn spawn_connection<S, T>(connection: tokio_postgres::Connection<S, T>, notices: Notices) -> AbortHandle
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+    T: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
+    tokio::spawn(async move {
+        let mut connection = connection;
+        let mut messages = futures_util::stream::poll_fn(move |cx| connection.poll_message(cx));
+        while let Some(message) = messages.next().await {
+            match message {
+                Ok(tokio_postgres::AsyncMessage::Notice(n)) => {
+                    let mut kept = lock(&notices);
+                    if kept.len() < MAX_NOTICES {
+                        kept.push(crate::limits::clip(&redact::secrets(&format!("{}: {}", n.severity(), n.message()))));
+                    }
+                }
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+    })
+    .abort_handle()
 }
 
 #[derive(Default)]
@@ -221,6 +255,16 @@ fn clean(e: tokio_postgres::Error) -> DbError {
     DbError::Query(text)
 }
 
+/// `COPY … FROM STDIN` / `TO STDOUT`: the server switches to the copy sub-protocol, which tokio-postgres' query API
+/// can't serve (it drops the connection).
+fn copies_through_the_client(sql: &str) -> bool {
+    let n = crate::query::sql::Normalized::new(sql, crate::query::sql::Dialect::Postgres);
+    n.leading_keyword() == "COPY"
+        && n.text
+            .split(|c: char| !c.is_alphanumeric() && c != '_')
+            .any(|w| w.eq_ignore_ascii_case("STDIN") || w.eq_ignore_ascii_case("STDOUT"))
+}
+
 fn quote_ident(s: &str) -> String {
     format!("\"{}\"", s.replace('"', "\"\""))
 }
@@ -276,10 +320,8 @@ impl Shared {
                 cfg.password(p);
             }
             let (client, connection) = cfg.connect(self.tls.clone()).await.map_err(clean)?;
-            let task = tokio::spawn(async move {
-                let _ = connection.await;
-            })
-            .abort_handle();
+            let notices = Notices::default();
+            let task = spawn_connection(connection, notices.clone());
             *lock(&slot) = Some(task.clone());
             Ok(Conn {
                 cancel: client.cancel_token(),
@@ -287,6 +329,7 @@ impl Shared {
                 task,
                 lock: Default::default(),
                 discarded: Default::default(),
+                notices,
             })
         })
         .await
@@ -456,11 +499,14 @@ impl Shared {
         let seconds = self.query_seconds() + 2.0;
         let mut result = with_deadline(seconds, "Query", cancel, self.discard_on_timeout(&slot), async {
             let lease = self.lease(db, Purpose::Data, cancel, &slot).await?;
+            lock(&lease.conn.notices).clear(); // late ones from the previous request
             let client = &lease.conn.client;
-            let stmt = client.prepare(sql).await.map_err(clean)?;
+            let fail = |e| self.failed(&lease.conn, e);
+            let stmt = client.prepare(sql).await.map_err(fail)?;
             if stmt.columns().is_empty() {
-                let n = client.execute_raw(&stmt, NO_PARAMS).await.map_err(clean)?;
-                return Ok(QueryResult { affected_rows: Some(n), ..QueryResult::default() });
+                let n = client.execute_raw(&stmt, NO_PARAMS).await.map_err(fail)?;
+                let notices = std::mem::take(&mut *lock(&lease.conn.notices));
+                return Ok(QueryResult { affected_rows: Some(n), notices, ..QueryResult::default() });
             }
             let oids: Vec<u32> = stmt.columns().iter().map(|c| c.type_().oid()).collect();
             let names = self.type_names(client, &oids).await;
@@ -470,7 +516,7 @@ impl Shared {
                 .zip(names)
                 .map(|(c, type_name)| ResultColumn { name: c.name().to_owned(), type_name })
                 .collect();
-            let mut stream = std::pin::pin!(client.query_raw(&stmt, NO_PARAMS).await.map_err(clean)?);
+            let mut stream = std::pin::pin!(client.query_raw(&stmt, NO_PARAMS).await.map_err(fail)?);
             let mut collector = RowCollector::new(max_rows);
             while let Some(row) = stream.next().await {
                 if collector.is_full() {
@@ -481,14 +527,24 @@ impl Shared {
                     }
                     break;
                 }
-                collector.append(cells(&row.map_err(clean)?)?);
+                collector.append(cells(&row.map_err(fail)?)?);
             }
             let (rows, truncated) = collector.into_rows();
-            Ok(QueryResult { columns, rows, truncated, ..QueryResult::default() })
+            let notices = std::mem::take(&mut *lock(&lease.conn.notices));
+            Ok(QueryResult { columns, rows, truncated, notices, ..QueryResult::default() })
         })
         .await?;
         result.elapsed_ms = started.elapsed().as_millis() as u64;
         Ok(result)
+    }
+
+    /// A statement error. One the server didn't send (an unexpected message, a lost socket) leaves the connection
+    /// unusable or out of step, so it is discarded and the next request opens a fresh one.
+    fn failed(&self, conn: &Arc<Conn>, e: tokio_postgres::Error) -> DbError {
+        if e.as_db_error().is_none() {
+            self.discard(conn);
+        }
+        clean(e)
     }
 
     /// Display names for result column types: Swift's table, then `format_type` (cached per session; unknown → "oid N").
@@ -615,6 +671,24 @@ impl DatabaseSession for PostgresSession {
         self.0.run(database, statement, self.0.profile.max_rows.max(1) as usize, true, cancel).await
     }
 
+    async fn run_statement(
+        &self,
+        database: &str,
+        statement: &Statement,
+        max_rows: usize,
+        cancel: &CancellationToken,
+    ) -> Result<QueryResult> {
+        let Statement::Sql(sql) = statement else {
+            return Err(DbError::Unsupported("Mongo shell statements on a PostgreSQL connection".into()));
+        };
+        if copies_through_the_client(sql) {
+            return Err(DbError::Unsupported(
+                "COPY … FROM STDIN / TO STDOUT streams data through the client; use a server file or psql".into(),
+            ));
+        }
+        self.0.run(database, sql, max_rows, true, cancel).await
+    }
+
     async fn close(&self) {
         let conns: Vec<Arc<Conn>> = {
             let mut s = lock(&self.0.state);
@@ -653,6 +727,16 @@ mod tests {
         for (t, rec, ro, want) in cases {
             assert_eq!(accepts(t, rec, ro), want, "{t:?} recovery={rec} read_only={ro}");
         }
+    }
+
+    #[test]
+    fn copy_through_the_client_is_recognised() {
+        assert!(
+            copies_through_the_client("COPY t FROM STDIN") && copies_through_the_client("copy (select 1) to stdout")
+        );
+        assert!(
+            !copies_through_the_client("COPY t FROM '/tmp/stdin.csv'") && !copies_through_the_client("SELECT 'stdin'")
+        );
     }
 
     #[test]

@@ -1,0 +1,242 @@
+{
+  "input" : {
+    "database" : "shop",
+    "dialect" : "mysql",
+    "scripts" : [
+      "select 'it\\'s; fine';\nDELIMITER //\nCREATE PROCEDURE p() BEGIN SELECT 1; SELECT 2; END //\nDELIMITER ;\nselect `a;b` from t # comment ;",
+      "-- header; comment\n/*!40101 SET NAMES utf8mb4 */;\nCREATE TABLE `a;b` (x text DEFAULT 'it''s; \\'ok\\'');\nDELIMITER ;;\nCREATE TRIGGER t BEFORE INSERT ON x FOR EACH ROW BEGIN SET NEW.a = 1; SET NEW.b = 2; END ;;\nDELIMITER ;\nINSERT INTO x VALUES (1,'a'),(2,'b;c'); # trailing\n/* only a comment */",
+      "SELECT 1--1; SELECT 2",
+      "SELECT 1 -- c;\nFROM t; SELECT 2",
+      "select 'it\\'s; fine'; select \"a;b\"; select `c;d`",
+      "USE shop2; SELECT 1; USE `my``db`; SELECT 2; use other ; SELECT 3",
+      "/*!40101 SET NAMES utf8mb4 */; /* plain */; SELECT 1",
+      "delimiter $$\nCREATE PROCEDURE p() BEGIN SELECT 1; END$$\ndelimiter ;\nSELECT 2",
+      "DELIMITER\nSELECT 1; SELECT 2",
+      "SELECT 1; # comment ; more\nSELECT 2",
+      "/*M!100100 SELECT 1 */; SELECT 2",
+      "SELECT $$; SELECT 2",
+      "  DELIMITER //\nSELECT 1//\nSELECT 2 //",
+      "SELECT 1 DELIMITER ; SELECT 2",
+      "SELECT 'a\\\\'; SELECT 2",
+      "SELECT \"it\"\"s;\"; SELECT 'x''y;'",
+      "DELIMITER //",
+      "SELECT 1;-- no space\nSELECT 2",
+      "SELECT 1 #x\n; SELECT 'é; ü' -- end",
+      "SELECT 'unterminated; SELECT 2"
+    ]
+  },
+  "output" : [
+    {
+      "databases" : [
+        "shop",
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "select 'it\\'s; fine'",
+        "CREATE PROCEDURE p() BEGIN SELECT 1; SELECT 2; END",
+        "select `a;b` from t # comment ;"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop",
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "-- header; comment\n/*!40101 SET NAMES utf8mb4 */",
+        "CREATE TABLE `a;b` (x text DEFAULT 'it''s; \\'ok\\'')",
+        "CREATE TRIGGER t BEFORE INSERT ON x FOR EACH ROW BEGIN SET NEW.a = 1; SET NEW.b = 2; END",
+        "INSERT INTO x VALUES (1,'a'),(2,'b;c')"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1--1",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1 -- c;\nFROM t",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "select 'it\\'s; fine'",
+        "select \"a;b\"",
+        "select `c;d`"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop2",
+        "shop2",
+        "my`db",
+        "my`db",
+        "other"
+      ],
+      "statements" : [
+        "USE shop2",
+        "SELECT 1",
+        "USE `my``db`",
+        "SELECT 2",
+        "use other",
+        "SELECT 3"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "/*!40101 SET NAMES utf8mb4 */",
+        "SELECT 1"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "CREATE PROCEDURE p() BEGIN SELECT 1; END",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "DELIMITER\nSELECT 1",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1",
+        "# comment ; more\nSELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "/*M!100100 SELECT 1 */",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT $$",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1 DELIMITER",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 'a\\\\'",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT \"it\"\"s;\"",
+        "SELECT 'x''y;'"
+      ]
+    },
+    {
+      "databases" : [
+
+      ],
+      "statements" : [
+
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1",
+        "-- no space\nSELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1 #x",
+        "SELECT 'é; ü' -- end"
+      ]
+    },
+    {
+      "databases" : [
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 'unterminated; SELECT 2"
+      ]
+    }
+  ]
+}

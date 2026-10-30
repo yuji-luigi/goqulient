@@ -1,0 +1,382 @@
+{
+  "input" : {
+    "database" : "shop",
+    "kind" : "mongodb",
+    "scripts" : [
+      "db.t.deleteMany({})",
+      "db.t.deleteMany({ a: 1 })",
+      "db.t.drop(); db.dropDatabase()",
+      "db.t.find(",
+      "db.runCommand({ delete: 'orders', deletes: [{ q: {}, limit: 0 }] })",
+      "db.runCommand({ update: 'orders', updates: [{ q: {}, u: { $set: { a: 1 } }, multi: true }] })",
+      "db.orders.aggregate([{ $out: 'customers' }])",
+      "db.orders.aggregate([{ $merge: { into: 'customers' } }])",
+      "{ aggregate: 'orders', pipeline: [{ $out: 'customers' }], cursor: {} }",
+      "db.adminCommand({ bulkWrite: 1, ops: [], nsInfo: [] })",
+      "db.orders.renameCollection('customers', true)",
+      "db.adminCommand({ renameCollection: 'shop.orders', to: 'shop.customers', dropTarget: true })",
+      "{ mapReduce: 'orders', map: 'f', reduce: 'g', out: 'customers' }",
+      "{ applyOps: [] }",
+      "db.orders.bulkWrite([])",
+      "db.runCommand({ delete: 'orders', deletes: [{ q: { _id: 1 }, limit: 0 }] })",
+      "db.runCommand({ delete: 'orders', deletes: [{ q: {}, limit: 1 }] })",
+      "db.orders.renameCollection('archive')",
+      "{ mapReduce: 'orders', map: 'f', reduce: 'g', out: { inline: 1 } }",
+      "db.orders.aggregate([{ $match: {} }])",
+      "{ createIndexes: 'orders', indexes: [] }",
+      "db.orders.aggregate([{ $merge: { into: { db: 'x', coll: 'y' } } }])",
+      "use other; db.t.deleteMany({})",
+      "db.adminCommand({ dropDatabase: 1 })",
+      "db.t.updateMany({}, { $set: { a: 1 } })",
+      "db.t.updateMany({ a: 1 }, { $set: { a: 2 } })",
+      "db.t.remove({})",
+      "db.t.deleteOne({})",
+      "db.t.updateOne({}, { $set: { a: 1 } })",
+      "db.t.replaceOne({}, { a: 1 })",
+      "db.getCollection('x').drop()",
+      "db.createCollection('x')",
+      "{ dropIndexes: 'x', index: '*' }",
+      "db.t.dropIndex('a_1')",
+      "{ killOp: 1, op: 5 }",
+      "db.runCommand({ usersInfo: 1 })",
+      "db.t.find({})",
+      "db.t.aggregate([{ $out: { db: 'other', coll: 'y' } }])",
+      "{ mapReduce: 'orders', map: 'f', reduce: 'g', out: { replace: 'r', db: 'x' } }",
+      "db.runCommand({ renameCollection: 'shop.a', to: 'shop.b' })",
+      "show dbs; db.getName()",
+      "{ mapReduce: 'orders', map: 'f', reduce: 'g' }",
+      "{ drop: 'orders' }",
+      "{ update: 'o', updates: [{ q: { a: 1 }, u: {}, multi: true }, { u: {}, multi: true }] }",
+      "{ delete: 'o', deletes: [{ limit: 0 }] }",
+      "db.t.insertOne({ a: 1 })",
+      "{ explain: { delete: 'x', deletes: [{ q: {}, limit: 0 }] } }",
+      "",
+      "db.orders.find({ note: 'a very long text that goes on and on and on so that the shown statement gets clipped' }).limit("
+    ]
+  },
+  "output" : [
+    [
+      {
+        "action" : "deletes every document in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "db.t.deleteMany({})",
+        "warning" : "Deletes every document in t"
+      }
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "drops collection",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "db.t.drop()",
+        "warning" : "Drops collection t"
+      },
+      {
+        "action" : "drops database",
+        "database" : "shop",
+        "statement" : "db.dropDatabase()",
+        "warning" : "Drops the whole database"
+      }
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "db.t.find(",
+        "warning" : "Can't tell what this changes (the script doesn't parse): db.t.find("
+      }
+    ],
+    [
+      {
+        "action" : "deletes every document in",
+        "database" : "shop",
+        "object" : "orders",
+        "statement" : "db.runCommand({ delete: 'orders', deletes: [{ q: {}, limit: 0 }] })",
+        "warning" : "Deletes every document in orders"
+      }
+    ],
+    [
+      {
+        "action" : "updates every document in",
+        "database" : "shop",
+        "object" : "orders",
+        "statement" : "db.runCommand({ update: 'orders', updates: [{ q: {}, u: { $set: { a: 1 } }, multi: true }] })",
+        "warning" : "Updates every document in orders"
+      }
+    ],
+    [
+      {
+        "action" : "replaces collection",
+        "database" : "shop",
+        "object" : "customers",
+        "statement" : "db.orders.aggregate([{ $out: 'customers' }])",
+        "warning" : "Replaces collection customers ($out)"
+      }
+    ],
+    [
+      {
+        "action" : "merges into collection",
+        "database" : "shop",
+        "object" : "customers",
+        "statement" : "db.orders.aggregate([{ $merge: { into: 'customers' } }])",
+        "warning" : "Merges into collection customers ($merge)"
+      }
+    ],
+    [
+      {
+        "action" : "replaces collection",
+        "database" : "shop",
+        "object" : "customers",
+        "statement" : "{ aggregate: 'orders', pipeline: [{ $out: 'customers' }], cursor: {} }",
+        "warning" : "Replaces collection customers ($out)"
+      }
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "admin",
+        "statement" : "db.adminCommand({ bulkWrite: 1, ops: [], nsInfo: [] })",
+        "warning" : "Can't tell what this changes (bulkWrite): db.adminCommand({ bulkWrite: 1, ops: [], nsInfo: [] })"
+      }
+    ],
+    [
+      {
+        "action" : "replaces collection",
+        "database" : "shop",
+        "object" : "customers",
+        "statement" : "db.orders.renameCollection('customers', true)",
+        "warning" : "Replaces collection customers (dropTarget)"
+      }
+    ],
+    [
+      {
+        "action" : "replaces collection",
+        "database" : "admin",
+        "object" : "customers",
+        "statement" : "db.adminCommand({ renameCollection: 'shop.orders', to: 'shop.customers', dropTarget: true })",
+        "warning" : "Replaces collection customers (dropTarget)"
+      }
+    ],
+    [
+      {
+        "action" : "overwrites collection",
+        "database" : "shop",
+        "object" : "customers",
+        "statement" : "{ mapReduce: 'orders', map: 'f', reduce: 'g', out: 'customers' }",
+        "warning" : "mapReduce writes into collection customers"
+      }
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "{ applyOps: [] }",
+        "warning" : "Can't tell what this changes (applyOps): { applyOps: [] }"
+      }
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "db.orders.bulkWrite([])",
+        "warning" : "Can't tell what this changes (the script doesn't parse): db.orders.bulkWrite([])"
+      }
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "merges into collection",
+        "database" : "shop",
+        "object" : "y",
+        "statement" : "db.orders.aggregate([{ $merge: { into: { db: 'x', coll: 'y' } } }])",
+        "warning" : "Merges into collection y ($merge)"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every document in",
+        "database" : "other",
+        "object" : "t",
+        "statement" : "db.t.deleteMany({})",
+        "warning" : "Deletes every document in t"
+      }
+    ],
+    [
+      {
+        "action" : "drops database",
+        "database" : "admin",
+        "statement" : "db.adminCommand({ dropDatabase: 1 })",
+        "warning" : "Drops the whole database"
+      }
+    ],
+    [
+      {
+        "action" : "updates every document in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "db.t.updateMany({}, { $set: { a: 1 } })",
+        "warning" : "Updates every document in t"
+      }
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "deletes every document in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "db.t.remove({})",
+        "warning" : "Deletes every document in t"
+      }
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "drops collection",
+        "database" : "shop",
+        "object" : "x",
+        "statement" : "db.getCollection('x').drop()",
+        "warning" : "Drops collection x"
+      }
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "{ killOp: 1, op: 5 }",
+        "warning" : "Can't tell what this changes (killOp): { killOp: 1, op: 5 }"
+      }
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "db.runCommand({ usersInfo: 1 })",
+        "warning" : "Can't tell what this changes (usersInfo): db.runCommand({ usersInfo: 1 })"
+      }
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "replaces collection",
+        "database" : "shop",
+        "object" : "y",
+        "statement" : "db.t.aggregate([{ $out: { db: 'other', coll: 'y' } }])",
+        "warning" : "Replaces collection y ($out)"
+      }
+    ],
+    [
+      {
+        "action" : "overwrites collection",
+        "database" : "shop",
+        "object" : "r",
+        "statement" : "{ mapReduce: 'orders', map: 'f', reduce: 'g', out: { replace: 'r', db: 'x' } }",
+        "warning" : "mapReduce writes into collection r"
+      }
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "overwrites collection",
+        "database" : "shop",
+        "statement" : "{ mapReduce: 'orders', map: 'f', reduce: 'g' }",
+        "warning" : "mapReduce writes into collection ?"
+      }
+    ],
+    [
+      {
+        "action" : "drops collection",
+        "database" : "shop",
+        "object" : "orders",
+        "statement" : "{ drop: 'orders' }",
+        "warning" : "Drops collection orders"
+      }
+    ],
+    [
+      {
+        "action" : "updates every document in",
+        "database" : "shop",
+        "object" : "o",
+        "statement" : "{ update: 'o', updates: [{ q: { a: 1 }, u: {}, multi: true }, { u: {}, multi: true }] }",
+        "warning" : "Updates every document in o"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every document in",
+        "database" : "shop",
+        "object" : "o",
+        "statement" : "{ delete: 'o', deletes: [{ limit: 0 }] }",
+        "warning" : "Deletes every document in o"
+      }
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "{ explain: { delete: 'x', deletes: [{ q: {}, limit: 0 }] } }",
+        "warning" : "Can't tell what this changes (explain): { explain: { delete: 'x', deletes: [{ q: {}, limit: 0 }] } }"
+      }
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "db.orders.find({ note: 'a very long text that goes on and on and on so that the shown statement gets clipped' }).limit(",
+        "warning" : "Can't tell what this changes (the script doesn't parse): db.orders.find({ note: 'a very long text that goes on and on and on so that the …"
+      }
+    ]
+  ]
+}

@@ -2,20 +2,20 @@
 
 JSON snapshots of GokuCore behaviour (the engine of the Goku macOS app, written in Swift) that the Rust engine
 (`engine/`, see [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)) must reproduce. The Rust tests that read them are
-`engine/crates/goku-engine/tests/parity_{schema,mongo_inference,er_layout}.rs`.
+`engine/crates/goku-engine/tests/parity_{schema,mongo_inference,er_layout,query}.rs`.
 
 **Generated, never edited by hand.** The files are written and checked by the app's test suite
-(`ParityFixtureTests.swift` in the Goku app's repository): every app test run compares its output with them, so a
+(`ParityFixtureTests.swift` and `ParityQueryFixtureTests.swift` in the Goku app's repository): every app test run compares its output with them, so a
 GokuCore change that alters them fails there until they are regenerated. Updates reach this repository as a **sync pull
 request from the app's repository** that replaces the changed files (and the seeds in `docker/*/init/` when those
 changed too), so both engines move together. If a Rust change breaks a parity test here, fix the Rust side, or open an
 issue if you think GokuCore is wrong; don't change the JSON.
 
 ```bash
-scripts/dev.sh up && scripts/dev.sh engine test   # includes the three parity tests
+scripts/dev.sh up && scripts/dev.sh engine test   # includes the parity tests
 ```
-`er-layout` needs no database; the other two need the Docker services and are skipped without `GOKU_IT=1` (set in the
-`engine` container). The Rust tests iterate every `*.json` in each directory, so a sync PR also deletes stale files.
+`er-layout`, `sql-split`, `sql-safety`, `danger` and `mongo-shell` need no database; `schema` and `mongo-inference`
+need the Docker services and are skipped without `GOKU_IT=1` (set in the `engine` container). The Rust tests iterate every `*.json` in each directory, so a sync PR also deletes stale files.
 
 ## Files
 
@@ -28,6 +28,11 @@ scripts/dev.sh up && scripts/dev.sh engine test   # includes the three parity te
 | `schema/mysql.json` | `introspect(database: "shop")` on the seed plus the same `parity_*` tables | `mysql-primary` |
 | `schema/mysql-analytics.json` | `analytics`: cross-database FK → warning, no relationship | `mysql-primary` |
 | `schema/mongodb.json` | inference on the seeded `shop` database | `mongo` |
+| `sql-split/{postgres,mysql}.json` | `SQLSplitter.splitTrackingDatabase(script, database: "shop")` per script: quotes, doubled quotes, backslash and `E''` escapes, nested comments, dollar quoting, `DELIMITER`, `/*! */`, `#` and MySQL `--`, `USE` tracking, CRLF, unterminated strings and comments, non-ASCII | none |
+| `sql-safety/{postgres,mysql}.json` | per statement: `NormalizedSQL` (text, executable comment, leading keyword), `isPotentiallyWriting`, `returnsRows`, `useTarget`, and `checkSQL` with `readOnly` on and with only the `rules` | none |
+| `danger/{postgres,mysql,mongodb}.json` | `DangerCheck.findings(for:kind:database: "shop")` per script (CTEs with writes, `EXPLAIN ANALYZE`, `DO`/`CALL`/`EXECUTE`, executable comments, `USE`/`use`, `$out`/`$merge`, untargeted Mongo writes, unparseable scripts) | none |
+| `mongo-shell/values.json` | `MongoShellParser.parseValue` per text: relaxed JSON, numbers, strings and escapes, regex literals, constructors, Extended JSON wrappers, duplicate keys, errors with line and column | none |
+| `mongo-shell/statements.json` | `MongoShellParser.parseScript(script, database: "shop")` per script: each statement's text, database (after `use`), `MongoCall`, `isWrite` and `writeTargets`, or the parse error | none |
 
 The database outputs depend on the Docker image versions (PostgreSQL 17, MySQL 8.4, MongoDB 7): type spellings such as
 `character varying(20)` or MySQL's `datetime DEFAULT_GENERATED` come from the server.
@@ -69,6 +74,33 @@ input:  { database, schemas: [String],
           entities: [String] }                       // ids kept in output (see Normalization)
 output: SchemaModel
 ```
+
+### `sql-split`, `sql-safety`, `danger`
+```
+sql-split:  input  { dialect: "postgres"|"mysql", database, scripts: [String] }
+            output [ { statements: [String], databases: [String] } ]          // one per script; databases follow USE
+sql-safety: input  { dialect, database, rules: [ { database, table } ], statements: [String] }
+            output [ { normalized, executableComment, keyword, writes, returnsRows, useTarget?,
+                       readOnlyRefusal?, rulesRefusal? } ]                     // refusals: DBError.displayMessage
+danger:     input  { kind: "postgres"|"mysql"|"mongodb", database, scripts: [String] }
+            output [ [ { warning, action, object?, database, statement } ] ]   // DangerFinding per script
+```
+
+### `mongo-shell`
+```
+values:     input  { values: [String] }
+            output [ { value? | error? } ]       // value: canonical Extended JSON (ExtendedJSON.string) of the parsed value
+statements: input  { database, scripts: [String] }
+            output [ { statements?: [ { text, database, call, isWrite, writeTargets?: [ { database, collection? } ] } ],
+                       error? } ]                // error: the parse error's displayMessage ("Parse error: … at line l, column c")
+call:       { kind: "showDatabases"|"showCollections"|"getName"|"use"|"command"|"adminCommand"|"find"|"aggregate"|"count"
+                    |"insert"|"update"|"delete"|"renameCollection",
+              name?, collection?, document?, filter?, projection?, sort?, skip?, limit?, explain?, pipeline?, documents?,
+              update?, multi?, upsert?, from?, to?, dropTarget? }
+```
+Documents in `call` are canonical Extended JSON strings, so key order and BSON types are exact; compare them as ordered
+documents. `writeTargets` absent = the target can't be told (`nil`), `[]` = no target. A `command` whose argument was an
+array (`db.runCommand([1, 2])`) holds a BSON array.
 
 ### `SchemaModel` (Swift `Codable`, `SchemaModel.swift` in the Goku app)
 ```

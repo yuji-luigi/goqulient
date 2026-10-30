@@ -1,0 +1,2340 @@
+{
+  "input" : {
+    "database" : "shop",
+    "scripts" : [
+      "show dbs\nuse shop;\ndb.orders.find({ status: 'paid' }, { total: 1 }).sort({ total: -1 }).limit(5).skip(2)\ndb.getCollection(\"weird.name\").countDocuments({})\ndb[\"x\"].insertOne({ a: 1 })\ndb.system.users.find()\n{ ping: 1 }\ndb.orders.aggregate([{ $match: {} }, { $out: \"copy\" }])",
+      "db.orders.find()",
+      "db.orders.findOne({ a: 1 }, { b: 1 })",
+      "db.orders.find({}).sort({ a: -1 }).limit(10).skip(5).projection({ a: 1 }).pretty().toArray()",
+      "db.orders.find().count()",
+      "db.orders.find().itcount()",
+      "db.orders.find().size()",
+      "db.orders.find().explain()",
+      "db.orders.find().limit(2.5)",
+      "db.orders.find().limit(NumberLong(3)).skip(NumberLong(4))",
+      "db.orders.find().limit()",
+      "db.orders.find().sort()",
+      "db.orders.find().limit(0)",
+      "db.orders.find({ _id: ObjectId('507f1f77bcf86cd799439011'), at: { $gte: ISODate('2024-01-01') }, name: /^a/i })",
+      "db.orders.aggregate([{ $match: { a: 1 } }, { $group: { _id: '$b', n: { $sum: 1 } } }])",
+      "db.orders.aggregate([{ $merge: { into: 'm' } }])",
+      "db.orders.aggregate({ $match: {} })",
+      "db.orders.aggregate()",
+      "db.orders.countDocuments({ a: 1 })",
+      "db.orders.count()",
+      "db.orders.estimatedDocumentCount()",
+      "db.orders.distinct('status')",
+      "db.orders.distinct('status', { a: 1 })",
+      "db.orders.distinct(5)",
+      "db.orders.insertOne({ _id: 1, a: 1 })",
+      "db.orders.insert([{ a: 1 }, { b: 2 }])",
+      "db.orders.insertMany([{ a: 1 }, 5, { b: 2 }])",
+      "db.orders.insertMany({ a: 1 })",
+      "db.orders.insertOne()",
+      "db.orders.insertOne(5)",
+      "db.orders.updateOne({ a: 1 }, { $set: { b: 2 } })",
+      "db.orders.updateMany({}, { $inc: { n: 1 } }, { upsert: true })",
+      "db.orders.replaceOne({ _id: 1 }, { a: 2 })",
+      "db.orders.updateOne({ a: 1 }, [{ $set: { b: 2 } }])",
+      "db.orders.updateOne({ a: 1 })",
+      "db.orders.updateOne({}, { $set: { a: 1 } }, [1])",
+      "db.orders.updateOne({}, { $set: { a: 1 } }, { upsert: 1 })",
+      "db.orders.deleteOne({ a: 1 })",
+      "db.orders.deleteMany({})",
+      "db.orders.remove({ a: 1 })",
+      "db.orders.deleteMany()",
+      "db.orders.getIndexes()",
+      "db.orders.createIndex({ a: 1, b: -1 })",
+      "db.orders.createIndex({ a: 1 }, { unique: true, name: 'ua' })",
+      "db.orders.createIndex({ 'x.y': 'text', z: NumberLong(1) })",
+      "db.orders.dropIndex('a_1')",
+      "db.orders.dropIndex()",
+      "db.orders.dropIndex({ a: 1 })",
+      "db.orders.drop()",
+      "db.orders.stats()",
+      "db.orders.renameCollection('o2')",
+      "db.orders.renameCollection('o2', true)",
+      "db.orders.renameCollection('o2', 'yes')",
+      "db.orders.renameCollection(5)",
+      "db.runCommand({ ping: 1 })",
+      "db.adminCommand({ listDatabases: 1 })",
+      "db.getCollectionNames()",
+      "db.getCollectionInfos()",
+      "db.createCollection('c', { capped: true, size: 1024 })",
+      "db.createCollection('c')",
+      "db.createCollection(5)",
+      "db.dropDatabase()",
+      "db.stats()",
+      "db.serverStatus()",
+      "db.hello()",
+      "db.isMaster()",
+      "db.version()",
+      "db.getName()",
+      "db.foo()",
+      "db.runCommand('ping')",
+      "show collections",
+      "show tables",
+      "show databases",
+      "show users",
+      "show",
+      "use other\ndb.orders.find()",
+      "use other;db.x.find()",
+      "use  spaced  \ndb.x.find()",
+      "use",
+      "db.getCollection('a.b').find({})",
+      "db.getCollection(5).find()",
+      "db.getCollection('a')",
+      "db['weird name'].find()",
+      "db['x']['y'].find()",
+      "db.x.y.z.find()",
+      "db.getCollection('a').getIndexes()",
+      "db.",
+      "db.x.find(",
+      "db.x",
+      "db.x.foo()",
+      "db.x.find().limit('a').foo()",
+      "db.x.count().limit(1)",
+      "db.x.insertOne({ a: 1 }).pretty()",
+      "db.x.insertOne({ a: 1 }).toArray()",
+      "foo.bar()",
+      "1 + 1",
+      "[1, 2]",
+      "{ ping: 1 } { ping: 2 }",
+      "db.x.find() db.y.find()",
+      "// header\ndb.x.find() /* c */ ;; db.y.find()",
+      "db.x.find().foo",
+      "db.x.find()\n.sort({ a: 1 })\n.limit(3)",
+      "db[5].find()",
+      "{ explain: { delete: 'x', deletes: [] } }",
+      "{ explain: { find: 'x' } }",
+      "{ explain: 1 }",
+      "{ insert: 'x', documents: [] }",
+      "{ createUser: 'u', pwd: 'p', roles: [] }",
+      "{ renameCollection: 'a.b', to: 'c.d' }",
+      "{ renameCollection: 'ab', to: 'c.d' }",
+      "{ cloneCollectionAsCapped: 'a', toCollection: 'b', size: 1 }",
+      "{ mapReduce: 'a', map: 'f', reduce: 'g', out: { inline: 1 } }",
+      "{ mapReduce: 'a', out: { merge: 'm', db: 'o' } }",
+      "{ mapReduce: 'a', out: 'x' }",
+      "{ mapReduce: 'a' }",
+      "db.adminCommand({ dropDatabase: 1 })",
+      "{ applyOps: [] }",
+      "{ aggregate: 'a', pipeline: [{ $merge: { into: { db: 'o', coll: 'c' } } }], cursor: {} }",
+      "db.a.aggregate([{ $out: 5 }])",
+      "db.a.aggregate([{ $out: { db: 'o', coll: 'c' } }, { $merge: { into: 'm', db: 'p' } }])",
+      "{ drop: 5 }",
+      "{}",
+      "{ drop: 'x' }",
+      "use admin; { dropUser: 'u' }",
+      "db.adminCommand({ renameCollection: 'shop.a', to: 'other.b' })",
+      "{ find: 'x', filter: {} }",
+      "{ aggregate: 'a', pipeline: { s: { $out: 'z' } } }",
+      "{ count: 'x' }",
+      "{ getMore: 1, collection: 'x' }",
+      "{ currentOp: 1 }",
+      "db.runCommand([1, 2])"
+    ]
+  },
+  "output" : [
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "showDatabases"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "show dbs",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "kind" : "use",
+            "name" : "shop"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "use shop",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : false,
+            "filter" : "{\"status\":\"paid\"}",
+            "kind" : "find",
+            "limit" : 5,
+            "projection" : "{\"total\":{\"$numberInt\":\"1\"}}",
+            "skip" : 2,
+            "sort" : "{\"total\":{\"$numberInt\":\"-1\"}}"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find({ status: 'paid' }, { total: 1 }).sort({ total: -1 }).limit(5).skip(2)",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "collection" : "weird.name",
+            "filter" : "{}",
+            "kind" : "count"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.getCollection(\"weird.name\").countDocuments({})",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "collection" : "x",
+            "documents" : [
+              "{\"a\":{\"$numberInt\":\"1\"}}"
+            ],
+            "kind" : "insert"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db[\"x\"].insertOne({ a: 1 })",
+          "writeTargets" : [
+            {
+              "collection" : "x",
+              "database" : "shop"
+            }
+          ]
+        },
+        {
+          "call" : {
+            "collection" : "system.users",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.system.users.find()",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "document" : "{\"ping\":{\"$numberInt\":\"1\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "{ ping: 1 }",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "collection" : "orders",
+            "kind" : "aggregate",
+            "pipeline" : "[{\"$match\":{}},{\"$out\":\"copy\"}]"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.aggregate([{ $match: {} }, { $out: \"copy\" }])",
+          "writeTargets" : [
+            {
+              "collection" : "copy",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : false,
+            "filter" : "{\"a\":{\"$numberInt\":\"1\"}}",
+            "kind" : "find",
+            "limit" : 1,
+            "projection" : "{\"b\":{\"$numberInt\":\"1\"}}",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.findOne({ a: 1 }, { b: 1 })",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "limit" : 10,
+            "projection" : "{\"a\":{\"$numberInt\":\"1\"}}",
+            "skip" : 5,
+            "sort" : "{\"a\":{\"$numberInt\":\"-1\"}}"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find({}).sort({ a: -1 }).limit(10).skip(5).projection({ a: 1 }).pretty().toArray()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{}",
+            "kind" : "count"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find().count()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{}",
+            "kind" : "count"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find().itcount()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{}",
+            "kind" : "count"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find().size()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : true,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find().explain()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find().limit(2.5)",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "limit" : 3,
+            "skip" : 4
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find().limit(NumberLong(3)).skip(NumberLong(4))",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find().limit()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find().sort()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "limit" : 0,
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find().limit(0)",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : false,
+            "filter" : "{\"_id\":{\"$oid\":\"507f1f77bcf86cd799439011\"},\"at\":{\"$gte\":{\"$date\":{\"$numberLong\":\"1704067200000\"}}},\"name\":{\"$regularExpression\":{\"pattern\":\"^a\",\"options\":\"i\"}}}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.find({ _id: ObjectId('507f1f77bcf86cd799439011'), at: { $gte: ISODate('2024-01-01') }, name: /^a/i })",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "kind" : "aggregate",
+            "pipeline" : "[{\"$match\":{\"a\":{\"$numberInt\":\"1\"}}},{\"$group\":{\"_id\":\"$b\",\"n\":{\"$sum\":{\"$numberInt\":\"1\"}}}}]"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.aggregate([{ $match: { a: 1 } }, { $group: { _id: '$b', n: { $sum: 1 } } }])",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "kind" : "aggregate",
+            "pipeline" : "[{\"$merge\":{\"into\":\"m\"}}]"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.aggregate([{ $merge: { into: 'm' } }])",
+          "writeTargets" : [
+            {
+              "collection" : "m",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: aggregate() expects an array pipeline at line 1, column 36"
+    },
+    {
+      "error" : "Parse error: aggregate() expects an array pipeline at line 1, column 22"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{\"a\":{\"$numberInt\":\"1\"}}",
+            "kind" : "count"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.countDocuments({ a: 1 })",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{}",
+            "kind" : "count"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.count()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"count\":\"orders\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.estimatedDocumentCount()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"distinct\":\"orders\",\"key\":\"status\",\"query\":{}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.distinct('status')",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"distinct\":\"orders\",\"key\":\"status\",\"query\":{\"a\":{\"$numberInt\":\"1\"}}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.distinct('status', { a: 1 })",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: distinct(field) expects a string at line 1, column 22"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "documents" : [
+              "{\"_id\":{\"$numberInt\":\"1\"},\"a\":{\"$numberInt\":\"1\"}}"
+            ],
+            "kind" : "insert"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.insertOne({ _id: 1, a: 1 })",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "documents" : [
+              "{\"a\":{\"$numberInt\":\"1\"}}",
+              "{\"b\":{\"$numberInt\":\"2\"}}"
+            ],
+            "kind" : "insert"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.insert([{ a: 1 }, { b: 2 }])",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "documents" : [
+              "{\"a\":{\"$numberInt\":\"1\"}}",
+              "{\"b\":{\"$numberInt\":\"2\"}}"
+            ],
+            "kind" : "insert"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.insertMany([{ a: 1 }, 5, { b: 2 }])",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: insertMany() expects an array at line 1, column 31"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "documents" : [
+              "{}"
+            ],
+            "kind" : "insert"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.insertOne()",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: insertOne() argument 1 must be a document at line 1, column 23"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{\"a\":{\"$numberInt\":\"1\"}}",
+            "kind" : "update",
+            "multi" : false,
+            "update" : "{\"$set\":{\"b\":{\"$numberInt\":\"2\"}}}",
+            "upsert" : false
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.updateOne({ a: 1 }, { $set: { b: 2 } })",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{}",
+            "kind" : "update",
+            "multi" : true,
+            "update" : "{\"$inc\":{\"n\":{\"$numberInt\":\"1\"}}}",
+            "upsert" : true
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.updateMany({}, { $inc: { n: 1 } }, { upsert: true })",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{\"_id\":{\"$numberInt\":\"1\"}}",
+            "kind" : "update",
+            "multi" : false,
+            "update" : "{\"a\":{\"$numberInt\":\"2\"}}",
+            "upsert" : false
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.replaceOne({ _id: 1 }, { a: 2 })",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{\"a\":{\"$numberInt\":\"1\"}}",
+            "kind" : "update",
+            "multi" : false,
+            "update" : "[{\"$set\":{\"b\":{\"$numberInt\":\"2\"}}}]",
+            "upsert" : false
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.updateOne({ a: 1 }, [{ $set: { b: 2 } }])",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: updateOne(filter, update) expects two arguments at line 1, column 30"
+    },
+    {
+      "error" : "Parse error: updateOne() argument 3 must be a document at line 1, column 49"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{}",
+            "kind" : "update",
+            "multi" : false,
+            "update" : "{\"$set\":{\"a\":{\"$numberInt\":\"1\"}}}",
+            "upsert" : false
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.updateOne({}, { $set: { a: 1 } }, { upsert: 1 })",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{\"a\":{\"$numberInt\":\"1\"}}",
+            "kind" : "delete",
+            "multi" : false
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.deleteOne({ a: 1 })",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{}",
+            "kind" : "delete",
+            "multi" : true
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.deleteMany({})",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{\"a\":{\"$numberInt\":\"1\"}}",
+            "kind" : "delete",
+            "multi" : true
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.remove({ a: 1 })",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "orders",
+            "filter" : "{}",
+            "kind" : "delete",
+            "multi" : true
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.deleteMany()",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"listIndexes\":\"orders\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.getIndexes()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"createIndexes\":\"orders\",\"indexes\":[{\"name\":\"a_1_b_-1\",\"key\":{\"a\":{\"$numberInt\":\"1\"},\"b\":{\"$numberInt\":\"-1\"}}}]}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.createIndex({ a: 1, b: -1 })",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"createIndexes\":\"orders\",\"indexes\":[{\"unique\":true,\"name\":\"ua\",\"key\":{\"a\":{\"$numberInt\":\"1\"}}}]}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.createIndex({ a: 1 }, { unique: true, name: 'ua' })",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"createIndexes\":\"orders\",\"indexes\":[{\"name\":\"x.y_text_z_NumberLong(1)\",\"key\":{\"x.y\":\"text\",\"z\":{\"$numberLong\":\"1\"}}}]}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.createIndex({ 'x.y': 'text', z: NumberLong(1) })",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"dropIndexes\":\"orders\",\"index\":\"a_1\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.dropIndex('a_1')",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"dropIndexes\":\"orders\",\"index\":\"*\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.dropIndex()",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"dropIndexes\":\"orders\",\"index\":{\"a\":{\"$numberInt\":\"1\"}}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.dropIndex({ a: 1 })",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"drop\":\"orders\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.drop()",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"collStats\":\"orders\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.orders.stats()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "dropTarget" : false,
+            "from" : "orders",
+            "kind" : "renameCollection",
+            "to" : "o2"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.renameCollection('o2')",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            },
+            {
+              "collection" : "o2",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "dropTarget" : true,
+            "from" : "orders",
+            "kind" : "renameCollection",
+            "to" : "o2"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.renameCollection('o2', true)",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            },
+            {
+              "collection" : "o2",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "dropTarget" : false,
+            "from" : "orders",
+            "kind" : "renameCollection",
+            "to" : "o2"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.orders.renameCollection('o2', 'yes')",
+          "writeTargets" : [
+            {
+              "collection" : "orders",
+              "database" : "shop"
+            },
+            {
+              "collection" : "o2",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: renameCollection(newName) expects a string at line 1, column 30"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"ping\":{\"$numberInt\":\"1\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.runCommand({ ping: 1 })",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"listDatabases\":{\"$numberInt\":\"1\"}}",
+            "kind" : "adminCommand"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.adminCommand({ listDatabases: 1 })",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "showCollections"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.getCollectionNames()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "showCollections"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.getCollectionInfos()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"create\":\"c\",\"capped\":true,\"size\":{\"$numberInt\":\"1024\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.createCollection('c', { capped: true, size: 1024 })",
+          "writeTargets" : [
+            {
+              "collection" : "c",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"create\":\"c\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.createCollection('c')",
+          "writeTargets" : [
+            {
+              "collection" : "c",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: createCollection(name) expects a string at line 1, column 23"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"dropDatabase\":{\"$numberInt\":\"1\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.dropDatabase()",
+          "writeTargets" : [
+            {
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"dbStats\":{\"$numberInt\":\"1\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.stats()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"serverStatus\":{\"$numberInt\":\"1\"}}",
+            "kind" : "adminCommand"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.serverStatus()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"hello\":{\"$numberInt\":\"1\"}}",
+            "kind" : "adminCommand"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.hello()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"hello\":{\"$numberInt\":\"1\"}}",
+            "kind" : "adminCommand"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.isMaster()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"buildInfo\":{\"$numberInt\":\"1\"}}",
+            "kind" : "adminCommand"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.version()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "getName"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.getName()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: Unsupported db method foo() at line 1, column 9"
+    },
+    {
+      "error" : "Parse error: runCommand expects a document at line 1, column 22"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "showCollections"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "show collections",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "showCollections"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "show tables",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "showDatabases"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "show databases",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: Unsupported: show users at line 1, column 11"
+    },
+    {
+      "error" : "Parse error: show what? (dbs, collections) at line 1, column 5"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "use",
+            "name" : "other"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "use other",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "collection" : "orders",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "other",
+          "isWrite" : false,
+          "text" : "db.orders.find()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "use",
+            "name" : "other"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "use other",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "collection" : "x",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "other",
+          "isWrite" : false,
+          "text" : "db.x.find()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "use",
+            "name" : "spaced"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "use  spaced",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "collection" : "x",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "spaced",
+          "isWrite" : false,
+          "text" : "db.x.find()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "use",
+            "name" : ""
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "use",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "a.b",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.getCollection('a.b').find({})",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: getCollection(name) expects a string at line 1, column 20"
+    },
+    {
+      "error" : "Parse error: Expected a method after getCollection() at line 1, column 22"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "weird name",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db['weird name'].find()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "x.y",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db['x']['y'].find()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "x.y.z",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.x.y.z.find()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"listIndexes\":\"a\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.getCollection('a').getIndexes()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: Expected a name after '.' at line 1, column 4"
+    },
+    {
+      "error" : "Parse error: Expected a value at line 1, column 11"
+    },
+    {
+      "error" : "Parse error: Incomplete statement: expected a method call such as .find() at line 1, column 5"
+    },
+    {
+      "error" : "Parse error: Unsupported collection method foo() at line 1, column 11"
+    },
+    {
+      "error" : "Parse error: Unsupported cursor method .foo() at line 1, column 29"
+    },
+    {
+      "error" : "Parse error: .limit() is only supported after find() at line 1, column 22"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "x",
+            "documents" : [
+              "{\"a\":{\"$numberInt\":\"1\"}}"
+            ],
+            "kind" : "insert"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.x.insertOne({ a: 1 }).pretty()",
+          "writeTargets" : [
+            {
+              "collection" : "x",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "x",
+            "documents" : [
+              "{\"a\":{\"$numberInt\":\"1\"}}"
+            ],
+            "kind" : "insert"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.x.insertOne({ a: 1 }).toArray()",
+          "writeTargets" : [
+            {
+              "collection" : "x",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: Expected '(' at line 1, column 4"
+    },
+    {
+      "error" : "Parse error: Expected db.<collection>.<method>(...), show/use, or a command document at line 1, column 2"
+    },
+    {
+      "error" : "Parse error: Expected db.<collection>.<method>(...), show/use, or a command document at line 1, column 7"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"ping\":{\"$numberInt\":\"1\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "{ ping: 1 }",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "document" : "{\"ping\":{\"$numberInt\":\"2\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "{ ping: 2 }",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "x",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.x.find()",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "collection" : "y",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.y.find()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "x",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.x.find() /* c */",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "collection" : "y",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "skip" : 0
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.y.find()",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: Expected '(' at line 1, column 16"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "x",
+            "explain" : false,
+            "filter" : "{}",
+            "kind" : "find",
+            "limit" : 3,
+            "skip" : 0,
+            "sort" : "{\"a\":{\"$numberInt\":\"1\"}}"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "db.x.find()\n.sort({ a: 1 })\n.limit(3)",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "error" : "Parse error: Expected a string at line 1, column 4"
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"explain\":{\"delete\":\"x\",\"deletes\":[]}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ explain: { delete: 'x', deletes: [] } }"
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"explain\":{\"find\":\"x\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "{ explain: { find: 'x' } }",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"explain\":{\"$numberInt\":\"1\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ explain: 1 }"
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"insert\":\"x\",\"documents\":[]}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ insert: 'x', documents: [] }",
+          "writeTargets" : [
+            {
+              "collection" : "x",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"createUser\":\"u\",\"pwd\":\"p\",\"roles\":[]}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ createUser: 'u', pwd: 'p', roles: [] }",
+          "writeTargets" : [
+            {
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"renameCollection\":\"a.b\",\"to\":\"c.d\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ renameCollection: 'a.b', to: 'c.d' }",
+          "writeTargets" : [
+            {
+              "collection" : "b",
+              "database" : "a"
+            },
+            {
+              "collection" : "d",
+              "database" : "c"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"renameCollection\":\"ab\",\"to\":\"c.d\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ renameCollection: 'ab', to: 'c.d' }"
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"cloneCollectionAsCapped\":\"a\",\"toCollection\":\"b\",\"size\":{\"$numberInt\":\"1\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ cloneCollectionAsCapped: 'a', toCollection: 'b', size: 1 }",
+          "writeTargets" : [
+            {
+              "collection" : "a",
+              "database" : "shop"
+            },
+            {
+              "collection" : "b",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"mapReduce\":\"a\",\"map\":\"f\",\"reduce\":\"g\",\"out\":{\"inline\":{\"$numberInt\":\"1\"}}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ mapReduce: 'a', map: 'f', reduce: 'g', out: { inline: 1 } }",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"mapReduce\":\"a\",\"out\":{\"merge\":\"m\",\"db\":\"o\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ mapReduce: 'a', out: { merge: 'm', db: 'o' } }",
+          "writeTargets" : [
+            {
+              "collection" : "m",
+              "database" : "o"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"mapReduce\":\"a\",\"out\":\"x\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ mapReduce: 'a', out: 'x' }",
+          "writeTargets" : [
+            {
+              "collection" : "x",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"mapReduce\":\"a\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ mapReduce: 'a' }"
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"dropDatabase\":{\"$numberInt\":\"1\"}}",
+            "kind" : "adminCommand"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.adminCommand({ dropDatabase: 1 })",
+          "writeTargets" : [
+            {
+              "database" : "admin"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"applyOps\":[]}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ applyOps: [] }"
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"aggregate\":\"a\",\"pipeline\":[{\"$merge\":{\"into\":{\"db\":\"o\",\"coll\":\"c\"}}}],\"cursor\":{}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ aggregate: 'a', pipeline: [{ $merge: { into: { db: 'o', coll: 'c' } } }], cursor: {} }",
+          "writeTargets" : [
+            {
+              "collection" : "c",
+              "database" : "o"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "a",
+            "kind" : "aggregate",
+            "pipeline" : "[{\"$out\":{\"$numberInt\":\"5\"}}]"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.a.aggregate([{ $out: 5 }])"
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "collection" : "a",
+            "kind" : "aggregate",
+            "pipeline" : "[{\"$out\":{\"db\":\"o\",\"coll\":\"c\"}},{\"$merge\":{\"into\":\"m\",\"db\":\"p\"}}]"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.a.aggregate([{ $out: { db: 'o', coll: 'c' } }, { $merge: { into: 'm', db: 'p' } }])",
+          "writeTargets" : [
+            {
+              "collection" : "c",
+              "database" : "o"
+            },
+            {
+              "collection" : "m",
+              "database" : "p"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"drop\":{\"$numberInt\":\"5\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ drop: 5 }"
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "{}",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"drop\":\"x\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ drop: 'x' }",
+          "writeTargets" : [
+            {
+              "collection" : "x",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "kind" : "use",
+            "name" : "admin"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "use admin",
+          "writeTargets" : [
+
+          ]
+        },
+        {
+          "call" : {
+            "document" : "{\"dropUser\":\"u\"}",
+            "kind" : "command"
+          },
+          "database" : "admin",
+          "isWrite" : true,
+          "text" : "{ dropUser: 'u' }",
+          "writeTargets" : [
+            {
+              "database" : "admin"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"renameCollection\":\"shop.a\",\"to\":\"other.b\"}",
+            "kind" : "adminCommand"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.adminCommand({ renameCollection: 'shop.a', to: 'other.b' })",
+          "writeTargets" : [
+            {
+              "collection" : "a",
+              "database" : "shop"
+            },
+            {
+              "collection" : "b",
+              "database" : "other"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"find\":\"x\",\"filter\":{}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "{ find: 'x', filter: {} }",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"aggregate\":\"a\",\"pipeline\":{\"s\":{\"$out\":\"z\"}}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ aggregate: 'a', pipeline: { s: { $out: 'z' } } }",
+          "writeTargets" : [
+            {
+              "collection" : "z",
+              "database" : "shop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"count\":\"x\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "{ count: 'x' }",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"getMore\":{\"$numberInt\":\"1\"},\"collection\":\"x\"}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : false,
+          "text" : "{ getMore: 1, collection: 'x' }",
+          "writeTargets" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "{\"currentOp\":{\"$numberInt\":\"1\"}}",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "{ currentOp: 1 }"
+        }
+      ]
+    },
+    {
+      "statements" : [
+        {
+          "call" : {
+            "document" : "[{\"$numberInt\":\"1\"},{\"$numberInt\":\"2\"}]",
+            "kind" : "command"
+          },
+          "database" : "shop",
+          "isWrite" : true,
+          "text" : "db.runCommand([1, 2])"
+        }
+      ]
+    }
+  ]
+}

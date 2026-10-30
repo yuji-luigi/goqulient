@@ -6,6 +6,7 @@ use crate::error::Result;
 use crate::limits::Paging;
 use crate::model::{Attribute, ObjectRef, QueryResult, SchemaModel, ServerInfo, Sort};
 use crate::profile::{ConnectionProfile, Credentials, DatabaseKind};
+use crate::query::Statement;
 use async_trait::async_trait;
 use tokio_util::sync::CancellationToken;
 
@@ -34,6 +35,16 @@ pub trait DatabaseSession: Send + Sync {
     /// Runs one statement as is (tests and, from M2, the query editor behind the read-only/destructive checks).
     /// The server session still refuses writes on a read-only profile.
     async fn execute(&self, database: &str, statement: &str, cancel: &CancellationToken) -> Result<QueryResult>;
+    /// One statement of a `query/run` script, after `query::run` checked it (read-only, rules, confirmation): rows
+    /// capped at `max_rows` (the server stops streaming the rest), the affected count, or a message; notices included.
+    /// A statement of the other language is `Unsupported`.
+    async fn run_statement(
+        &self,
+        database: &str,
+        statement: &Statement,
+        max_rows: usize,
+        cancel: &CancellationToken,
+    ) -> Result<QueryResult>;
     /// Closes the connection(s) and any SSH tunnel. Never fails; idempotent.
     async fn close(&self);
 }

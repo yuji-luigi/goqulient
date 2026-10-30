@@ -12,8 +12,8 @@ lives in the app's repository, not here. The two engines are kept in step by sha
 [TESTING.md](TESTING.md#parity-fixtures)); this repo can be built, tested and changed without the app.
 
 Status: PostgreSQL, MySQL/MariaDB and MongoDB drivers, the sidebar tree, the table viewer, ER diagrams, connections from
-settings and `.env`, and an end-to-end test in a real VS Code. No SSH tunnels and no query editor yet (see
-[Roadmap](#roadmap)).
+settings and `.env`, query execution in the engine (`query/run`), and an end-to-end test in a real VS Code. No SSH
+tunnels and no query editor UI yet (see [Roadmap](#roadmap)).
 
 ## Files
 | Concern | File |
@@ -24,13 +24,18 @@ settings and `.env`, and an end-to-end test in a real VS Code. No SSH tunnels an
 | `RowCollector`, `clip`, `Paging`, limits | `engine/crates/goku-engine/src/limits.rs` |
 | ER layout (port of `ERLayout.swift`, checked against `parity/er-layout`) | `engine/crates/goku-engine/src/er.rs`, `tests/parity_er_layout.rs` |
 | PostgreSQL driver: connect + host selection + pool + cancel (`mod.rs`), rustls modes (`tls.rs`), `PGValueFormatter` port (`format.rs`), catalog + introspection (`introspect.rs`); integration tests | `engine/crates/goku-engine/src/drivers/postgres/`, `tests/postgres.rs` |
+| Query execution (`query/run`): `run` (split/parse, confirmation, client read-only check, statement loop), result shapes (`StatementResult`, `RunOutcome`, `Span`) | `engine/crates/goku-engine/src/query/mod.rs` |
+| SQL splitter with spans (port of `SQLStatementStream` / `SQLSplitter`), `Normalized` (`SQLNormalizer.swift`), `is_potentially_writing`, `check_sql` (read-only + rules, `AccessRules.swift`) | `engine/crates/goku-engine/src/query/sql.rs` |
+| Danger check (port of `DangerCheck.swift`): SQL and Mongo findings | `engine/crates/goku-engine/src/query/danger.rs` |
+| Query parity (splitting, safety, danger, Mongo shell) and `query/run` per engine | `engine/crates/goku-engine/tests/{parity_query,query_run}.rs` |
 | `secrets` / `uri` redaction (same patterns as `Redaction.swift`) | `engine/crates/goku-engine/src/redact.rs` |
 | `ConnectionProfile` + tolerant decoding, `validate`, `decode_profiles`, `Credentials` (masked `Debug`) | `engine/crates/goku-engine/src/profile.rs` |
 | MySQL/MariaDB driver (`mysql_async` + rustls/ring): connect, host selection, TLS modes, `editor`/`meta` connections, `KILL QUERY`; catalog + introspection; cell formatting (`MySQLValueFormatter` port) | `engine/crates/goku-engine/src/drivers/mysql/{mod,catalog,format}.rs`, `tests/mysql.rs` |
-| MongoDB session: connect (single/multi-host/SRV/URI, TLS, URI password injection), catalog, browse, `execute` (one JSON command), read-only check | `engine/crates/goku-engine/src/drivers/mongo/mod.rs` |
+| MongoDB session: connect (single/multi-host/SRV/URI, TLS, URI password injection), catalog, browse, `execute` (one JSON command), `run_call` (one shell call, port of `MongoSession.run`), read-only check | `engine/crates/goku-engine/src/drivers/mongo/mod.rs` |
 | BSON → shell text and the Mongo grid (port of `BSONFormat.swift`) | `engine/crates/goku-engine/src/drivers/mongo/format.rs` |
 | Mongo inference (port of `MongoSchemaInference.swift`) | `engine/crates/goku-engine/src/drivers/mongo/infer.rs` |
 | Extended JSON → BSON keeping key order (`parse_document`) | `engine/crates/goku-engine/src/drivers/mongo/extjson.rs` |
+| Mongo shell parser (port of `MongoShellParser.swift`): values, statements, `MongoCall` with `is_write` / `write_targets`, `check_mongo` | `engine/crates/goku-engine/src/drivers/mongo/shell.rs` |
 | Mongo tests: integration, inference parity, optional Atlas; helpers `support/mongo.rs`, `support/parity.rs` (shared normalization) | `engine/crates/goku-engine/tests/{mongo,parity_mongo_inference,atlas}.rs` |
 | Framing (LSP `Content-Length`, 16 MiB cap) | `engine/crates/goku-engine-server/src/framing.rs` |
 | Dispatch, error codes, methods | `engine/crates/goku-engine-server/src/server.rs` |
@@ -54,7 +59,7 @@ settings and `.env`, and an end-to-end test in a real VS Code. No SSH tunnels an
 | Webview entry points `openTable` / `openErDiagram` (for the sidebar) | `vscode/src/views/index.ts` |
 | Table panel (paging, cancel, copy to clipboard), ER panel (introspect, `er/layout`, saved positions, export) | `vscode/src/views/{tablePanel,erPanel}.ts` |
 | Panel setup (CSP, `localResourceRoots`), HTML shell + nonce, saved-position merge | `vscode/src/views/{panel,html,layout}.ts` |
-| Message types (both directions) + engine shapes (`QueryResult`, `SchemaModel`) | `vscode/src/views/protocol.ts` |
+| Message types (both directions) + engine shapes (`QueryResult`, `SchemaModel`, `query/run`'s `QueryRunParams` / `QueryRunResult`) | `vscode/src/views/protocol.ts` |
 | Webview code: grid, ER diagram, DOM helpers, styles (`tsc -p webview`, bundled to `dist/webview/`) | `vscode/webview/{table,er,host}.ts`, `*.css` |
 | Pure webview helpers (grid virtualisation, TSV; ER geometry, crow's foot, pan/zoom) | `vscode/webview/lib/{grid,er}.ts` |
 | Dev harness (fake `acquireVsCodeApi`, fixtures, fake themes) + Playwright screenshots | `vscode/webview-dev/` |
@@ -121,7 +126,7 @@ VS Code (extension host, Node)                         goku-engine-server (Rust,
 | App binding (planned) | `uniffi` |
 
 ### Protocol (`protocolVersion` 1)
-Implemented: everything in the table except `query/run` (planned), plus `debug/wait` in debug builds only (tests). Session
+Implemented: everything in the table, plus `debug/wait` in debug builds only (tests). Session
 methods live in `goku-engine-server/src/sessions.rs`; an unknown `sessionId` is `NotConnected` (`kind: "notConnected"`),
 which the tree treats as "the engine restarted" and reconnects.
 
@@ -135,7 +140,7 @@ which the tree treats as "the engine restarted" and reconnects.
 | `table/page {sessionId, object, offset, limit, sort?}` | rows, capped; truncated cells flagged |
 | `schema/introspect {sessionId, database, schemas?, sampleSize?}` | `SchemaModel` JSON |
 | `er/layout {entities, sizes, edges?, options?}` | `{rects: {id: {origin: {x, y}, size: {width, height}}}}`; same numbers as `ERLayout.layout` |
-| `query/run` (planned) | results; destructive → `needsConfirmation` |
+| `query/run {sessionId, text, database?, confirmed?, maxRows?}` | `{outcome: "results", results: [StatementResult]}` or `{outcome: "needsConfirmation", findings: [{warning, action, object?, database, statement, span}]}` (see [Query execution](#query-execution)) |
 | `$/cancelRequest` | cancels on the server (`pg_cancel_backend`, `KILL QUERY`, kill the Mongo op) |
 
 Errors: `-32001` engine error (`message` = the `DbError` display message with secrets removed, `data` = `{kind, detail}`,
@@ -152,6 +157,39 @@ e.g. `kind: "timeout"`), `-32800` cancelled, `-32002` before `initialize`, `-320
   and without secrets in argv or env.
 - `ConnectionProfile` decoding mirrors the Goku app exactly (AGENTS.md, "Profiles"); a new field needs a default in
   `from_fields` and a test, here and in the app.
+
+## Query execution
+`query/run` runs a script (`query::run`, `query/mod.rs`); the shapes are in `vscode/src/views/protocol.ts`.
+1. **Split or parse**: SQL with the splitter (quotes, comments, dollar quoting, `DELIMITER`, `/*! */`; each statement
+   with the database it runs in after `USE`), MongoDB with the shell parser (`use x` likewise). A Mongo script that
+   doesn't parse is one `error` result and nothing runs. An empty script (or only comments) has no results.
+2. **Confirmation**: unless `confirmed`, the danger check (same rules as the app) runs over every statement; any finding
+   answers `needsConfirmation` with the findings and their spans, and **nothing runs**, not even the statements before
+   it. Skipped for read-only profiles (their writes are refused anyway), as in the app.
+3. **Statements in order**, each: the client read-only check (`check_sql` / `check_mongo`: read-only mode, then
+   `readOnlyRules`) refuses before anything is sent; then `DatabaseSession::run_statement` (the driver's deadline,
+   server-side cancel, `maxRows` cap via `RowCollector`, clipped cells). The **first error is the last result**; later
+   statements don't run. The server session stays read-only as before (PostgreSQL `default_transaction_read_only`,
+   MySQL `SET SESSION TRANSACTION READ ONLY`), so a write the client check can't see (`SELECT nextval(…)`) is refused
+   by the server (`serverReadOnly`).
+4. **Cancel** (`$/cancelRequest`) answers `-32800` (like every request) and stops the running statement on the server
+   (PostgreSQL cancel, MySQL `KILL QUERY`, MongoDB: the operation is dropped and `maxTimeMS` ends it); results of the
+   statements that already ran are not returned. A timeout is that statement's `error` result (`kind: "timeout"`, or the
+   server's own limit: PostgreSQL 57014, MySQL 3024, MongoDB code 50).
+
+`StatementResult`: `kind` (`rows` | `affected` | `message` | `error`), `statement` (trimmed; SQL keeps leading comments),
+`span` (`{start, end}` UTF-16 offsets into `text`, end exclusive), `database`, `columns`, `rows`, `truncated`,
+`affectedRows?`, `documents?` (Mongo), `message?` (`inserted _id 1`, `matched 1, modified 1`, `switched to db x`),
+`notices` (PostgreSQL `NOTICE`/`WARNING`, at most 100, clipped), `elapsedMs`, `error?` (`{message, kind}`, redacted).
+- `maxRows` defaults to the profile's, capped at 100,000. PostgreSQL `SET`/`BEGIN` report `affected` with 0 (the driver
+  doesn't expose the command tag). MySQL and MongoDB have no notices yet.
+- PostgreSQL `COPY … FROM STDIN` / `TO STDOUT` is refused (`unsupported`) before it is sent: tokio-postgres' query API
+  can't serve the copy sub-protocol and would drop the connection. Any statement error the server didn't send (lost
+  socket, unexpected message) discards that pooled connection.
+- Transactions: statements run on the session's pooled data/editor connection, so `BEGIN` in one request and `COMMIT`
+  in a later one work while that connection lives (a cancel, timeout or row cap drops it, which rolls back), as in the app.
+- ⚠ Not ported: GokuCore's per-statement read-only transaction for agents (`ExecuteOptions.readOnlyTransaction`) and
+  `pinLexing`; the editor formatter (`QueryFormat.swift`) belongs to the editor UI.
 
 ## PostgreSQL driver (gotchas)
 - A request that times out or is cancelled sends `CancelToken::cancel_query` and then **drops its connection** (the
@@ -192,8 +230,19 @@ Official `mongodb` crate 3.9 with `bson-3`, rustls on **ring** (no aws-lc-rs, no
   a user and no password (`inject_password`, like `MongoSession.connectionString`); no user in the URI = no auth (the
   profile's `user` is ignored, as in the app). **SRV mode** puts the user (never the password) into the SRV URI, because
   the driver applies the TXT record's `authSource` (Atlas: `admin`) only to a credential carried by the URI.
-- **Read-only**: client check only, in `execute` (allowlist = `MongoCall.readCommands`; `$out`/`$merge` are writes). Any
-  read-only rule for the database blocks writes there (per-collection targets come with the shell parser).
+- **Read-only**: client check only. `query/run` uses `check_mongo` on the parsed call (allowlist =
+  `MongoCall.readCommands`, `$out`/`$merge` are writes, per-collection targets from `write_targets`; a write whose
+  target can't be told is refused when any rule exists). `execute` (one JSON command, tests) refuses writes on a
+  read-only profile or a database with rules.
+- **Shell syntax** (`shell.rs`, `parity/mongo-shell`): `show dbs|collections`, `use x`, a bare `{…}` command,
+  `db.coll.<method>(…)` / `db["name"]` / `db.getCollection(n)`: `find`/`findOne` (+ `sort limit skip projection explain
+  count toArray pretty`), `aggregate`, `countDocuments`/`count`, `estimatedDocumentCount`, `distinct`,
+  `insertOne`/`insertMany`/`insert`, `updateOne`/`updateMany`/`replaceOne`, `deleteOne`/`deleteMany`/`remove`,
+  `getIndexes`, `createIndex`, `dropIndex`, `drop`, `stats`, `renameCollection`; db-level `runCommand`, `adminCommand`,
+  `getCollectionNames`, `createCollection`, `dropDatabase`, `stats`, `serverStatus`, `hello`, `version`, `getName`. Dates
+  follow the app on Linux (an RFC 3339 date-time, else a leading `yyyy-MM-dd` at midnight UTC; milliseconds truncated
+  like MongoKitten). `find` asks for `limit + 1` (truncated only without the user's own `.limit`), commands get
+  `maxTimeMS` when they read, an answer with `writeErrors` is an error (the server says `ok: 1`).
 - `execute` takes one Extended JSON command document (`{"find": "c", "filter": {}}`); a cursor reply shows its first
   batch (capped) and kills the server cursor. `parse_document` keeps key order; serde_json's `Map` would sort the keys.
 - `browse`: page size capped by `maxRows`; `truncated` is set when more documents exist (GokuCore's `browse` never sets it).
@@ -400,7 +449,8 @@ These are the rules in [AGENTS.md](../AGENTS.md#safety), as the engine implement
    result into memory.
 3. Read-only is enforced by the client check **and** the server session (`default_transaction_read_only`,
    `SET SESSION TRANSACTION READ ONLY`); MongoDB has the client check only, as in the app.
-4. Destructive statements need confirmation (the same statement list as the Goku app), once the query editor exists.
+4. Destructive statements need confirmation (the same statement list as the Goku app): `query/run` answers
+   `needsConfirmation` and runs nothing until it is called again with `confirmed`.
 5. A grid edit must hit exactly one row or the whole batch rolls back, once grid editing exists.
 6. At most 8 pooled connections per PostgreSQL session.
 7. Secrets never reach logs; logged statements and URIs are masked.
@@ -408,14 +458,15 @@ These are the rules in [AGENTS.md](../AGENTS.md#safety), as the engine implement
 ## Roadmap
 | Milestone | Scope |
 |---|---|
-| Done | Engine + protocol, PostgreSQL, MySQL/MariaDB and MongoDB drivers (no SSH), `er/layout` with parity tests, connections (settings, SecretStorage, `.env`, Workspace Trust), sidebar tree, table viewer, ER diagram, packaging for six targets, end-to-end test |
-| Next | SSH tunnels; query editor (SQL + Mongo shell, CodeLens Run, results, destructive confirmation, cancel) |
+| Done | Engine + protocol, PostgreSQL, MySQL/MariaDB and MongoDB drivers (no SSH), `er/layout` with parity tests, connections (settings, SecretStorage, `.env`, Workspace Trust), sidebar tree, table viewer, ER diagram, packaging for six targets, end-to-end test, query execution in the engine (`query/run`: SQL + Mongo shell, confirmation, read-only, caps, cancel) |
+| Next | SSH tunnels; query editor UI on `query/run` (CodeLens Run, results, destructive confirmation, cancel) |
 | Later | Grid editing, filter builder, export CSV/JSON, cluster host selection, import of Goku app connections |
 | Experiment | The Mac app on this Rust engine through uniffi |
 
 ## Risks / open questions
-- MySQL cancel and MariaDB differences in `mysql_async`, and the Mongo shell syntax of the query editor (a port of the
-  app's `MongoShellParser`), are the largest porting risks.
+- MySQL cancel and MariaDB differences in `mysql_async` are the largest porting risk. The Mongo shell parser is ported
+  and checked against `parity/mongo-shell`; what the fixtures don't cover (hex floats in `Double('0x10')`, exotic date
+  spellings) may still differ from Foundation.
 - Windows CI can't run Linux service containers: database integration tests run on Linux only.
 - Native macOS/Windows engine builds and the arm64 cross builds are only exercised in CI.
 - Inherited from GokuCore: Mongo inference on collections over 100 documents uses `$sample`, so it isn't deterministic

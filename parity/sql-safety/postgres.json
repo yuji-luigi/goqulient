@@ -1,0 +1,674 @@
+{
+  "input" : {
+    "database" : "shop",
+    "dialect" : "postgres",
+    "rules" : [
+      {
+        "database" : "shop",
+        "table" : "orders"
+      },
+      {
+        "database" : "archive",
+        "table" : ""
+      },
+      {
+        "database" : "shop",
+        "table" : "inventory.stock"
+      },
+      {
+        "database" : "shop",
+        "table" : "my-table"
+      }
+    ],
+    "statements" : [
+      "SELECT * FROM t",
+      "  -- hi\n (select 1)",
+      "update t set a = 1",
+      "WITH x AS (DELETE FROM t RETURNING *) SELECT * FROM x",
+      "WITH x AS (SELECT 1) SELECT * FROM x",
+      "SELECT * INTO newtable FROM t",
+      "SELECT a INTO @v FROM t",
+      "insert into t values (1) returning id",
+      "insert into t values (1)",
+      "SELECT 'DELETE FROM t' FROM x",
+      "WITH x AS (SELECT 'drop' AS a) SELECT * FROM x",
+      "WITH x AS (SELECT 1) SELECT * INTO t2 FROM x",
+      "VALUES (1)",
+      "TABLE t INTO t2",
+      "TABLE t",
+      "EXPLAIN DELETE FROM t",
+      "EXPLAIN ANALYZE DELETE FROM t",
+      "EXPLAIN ANALYSE UPDATE t SET a = 1",
+      "EXPLAIN ANALYZE SELECT 1",
+      "COPY t FROM STDIN",
+      "COPY (SELECT 1) TO STDOUT",
+      "SET search_path = x",
+      "SHOW ALL",
+      "BEGIN",
+      "START TRANSACTION",
+      "COMMIT",
+      "ROLLBACK",
+      "DO $$ BEGIN DROP TABLE x; END $$",
+      "CALL p()",
+      "GRANT SELECT ON t TO u",
+      "VACUUM t",
+      "ANALYZE t",
+      "FETCH ALL FROM c",
+      "SELECT set_config('default_transaction_read_only', 'off', false)",
+      "SELECT \"set_config\"(1)",
+      "SELECT U&\"\\0073et_config\"(1)",
+      "DELETE FROM t AS \"where\"",
+      "SELECT/**/1 -- tail\n  FROM\tt",
+      "SELECT /* outer /* nested */ still */ 1",
+      "SELECT 'it''s -- not a comment', E'a\\'b', $$x; DROP$$, $t$y$t$",
+      "SELECT U&'d\\0061t' FROM t",
+      "SELECT $1, a$b FROM t",
+      "SELECT U&\"a\\+000062\\\\\" FROM t",
+      "SELECT \"we\"\"ird name\" FROM \"Orders\"",
+      "WITH x AS (SELECT 1 WHERE'\\' <> ''), d AS (DELETE FROM orders RETURNING 1) SELECT 1 --'",
+      "SELECT * FROM t WHERE a LIKE'\\' AND b = 1",
+      "SELECT E'a\\'b' , 1",
+      "SELECT 1--1\n, 2",
+      "SELECT U&\"d!0062link_exec\" UESCAPE '!'('x')",
+      "SELECT U&\"a\\0062\" FROM t",
+      "SELECT /*! x */ 1",
+      "SELECT 1 # not a comment in pg",
+      "INSERT INTO orders SELECT * FROM archive",
+      "UPDATE \"Orders\" SET a = 1",
+      "SELECT * FROM orders FOR UPDATE",
+      "CREATE TABLE t (a int)",
+      "DROP TABLE orders",
+      "TRUNCATE orders",
+      "ALTER TABLE orders DROP COLUMN a",
+      "MERGE INTO orders USING x ON true WHEN MATCHED THEN DELETE",
+      "SELECT * FROM inventory.orders",
+      "select * from shop_orders",
+      "INSERT INTO shop_orders VALUES (1)",
+      "INSERT INTO \"my-table\" VALUES (1)",
+      "INSERT INTO my_table VALUES (1)",
+      "DELETE FROM inventory.stock WHERE id = 1",
+      "LISTEN x",
+      "PREPARE p AS DELETE FROM t",
+      "EXECUTE p",
+      "(SELECT 1)",
+      "",
+      "-- only",
+      "select 'é' as \"ünï\" from \"Ordér\"",
+      "SELECT 1",
+      "UPDATE t SET note = 'where' -- WHERE id = 1"
+    ]
+  },
+  "output" : [
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT * FROM t",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "(select 1)",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "UPDATE",
+      "normalized" : "update t set a = 1",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "WITH",
+      "normalized" : "WITH x AS (DELETE FROM t RETURNING *) SELECT * FROM x",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : true,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "WITH",
+      "normalized" : "WITH x AS (SELECT 1) SELECT * FROM x",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT * INTO newtable FROM t",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : true,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT a INTO @v FROM t",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "INSERT",
+      "normalized" : "insert into t values (1) returning id",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : true,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "INSERT",
+      "normalized" : "insert into t values (1)",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT '?' FROM x",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "WITH",
+      "normalized" : "WITH x AS (SELECT '?' AS a) SELECT * FROM x",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "WITH",
+      "normalized" : "WITH x AS (SELECT 1) SELECT * INTO t2 FROM x",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : true,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "VALUES",
+      "normalized" : "VALUES (1)",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "TABLE",
+      "normalized" : "TABLE t INTO t2",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : true,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "TABLE",
+      "normalized" : "TABLE t",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "EXPLAIN",
+      "normalized" : "EXPLAIN DELETE FROM t",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "EXPLAIN",
+      "normalized" : "EXPLAIN ANALYZE DELETE FROM t",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : true,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "EXPLAIN",
+      "normalized" : "EXPLAIN ANALYSE UPDATE t SET a = 1",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : true,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "EXPLAIN",
+      "normalized" : "EXPLAIN ANALYZE SELECT 1",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "COPY",
+      "normalized" : "COPY t FROM STDIN",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "COPY",
+      "normalized" : "COPY (SELECT 1) TO STDOUT",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SET",
+      "normalized" : "SET search_path = x",
+      "returnsRows" : false,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SHOW",
+      "normalized" : "SHOW ALL",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "BEGIN",
+      "normalized" : "BEGIN",
+      "returnsRows" : false,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "START",
+      "normalized" : "START TRANSACTION",
+      "returnsRows" : false,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "COMMIT",
+      "normalized" : "COMMIT",
+      "returnsRows" : false,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "ROLLBACK",
+      "normalized" : "ROLLBACK",
+      "returnsRows" : false,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "DO",
+      "normalized" : "DO '?'",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "CALL",
+      "normalized" : "CALL p()",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : true,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "GRANT",
+      "normalized" : "GRANT SELECT ON t TO u",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "VACUUM",
+      "normalized" : "VACUUM t",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "ANALYZE",
+      "normalized" : "ANALYZE t",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : true,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "FETCH",
+      "normalized" : "FETCH ALL FROM c",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : true,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT set_config('?', '?', false)",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT set_config(1)",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT set_config(1)",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "DELETE",
+      "normalized" : "DELETE FROM t AS where_",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT 1 FROM t",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT 1",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT '?', E'?', '?', '?'",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT '?' FROM t",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT $1, a$b FROM t",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT ab_ FROM t",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT we_ird_name FROM Orders",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "WITH",
+      "normalized" : "WITH x AS (SELECT 1 WHERE'?' <> '?'), d AS (DELETE FROM orders RETURNING 1) SELECT 1",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : true,
+      "rulesRefusal" : "“orders” in “shop” is read-only in this connection's settings (Advanced → Read-only databases and tables).",
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT * FROM t WHERE a LIKE'?' AND b = 1",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT E'?' , 1",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT 1 , 2",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT dblink_exec('?')",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT ab FROM t",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT 1",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT 1 # not a comment in pg",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "INSERT",
+      "normalized" : "INSERT INTO orders SELECT * FROM archive",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "rulesRefusal" : "“orders” in “shop” is read-only in this connection's settings (Advanced → Read-only databases and tables).",
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "UPDATE",
+      "normalized" : "UPDATE Orders SET a = 1",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "rulesRefusal" : "“orders” in “shop” is read-only in this connection's settings (Advanced → Read-only databases and tables).",
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT * FROM orders FOR UPDATE",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "CREATE",
+      "normalized" : "CREATE TABLE t (a int)",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "DROP",
+      "normalized" : "DROP TABLE orders",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "rulesRefusal" : "“orders” in “shop” is read-only in this connection's settings (Advanced → Read-only databases and tables).",
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "TRUNCATE",
+      "normalized" : "TRUNCATE orders",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "rulesRefusal" : "“orders” in “shop” is read-only in this connection's settings (Advanced → Read-only databases and tables).",
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "ALTER",
+      "normalized" : "ALTER TABLE orders DROP COLUMN a",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "rulesRefusal" : "“orders” in “shop” is read-only in this connection's settings (Advanced → Read-only databases and tables).",
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "MERGE",
+      "normalized" : "MERGE INTO orders USING x ON true WHEN MATCHED THEN DELETE",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "rulesRefusal" : "“orders” in “shop” is read-only in this connection's settings (Advanced → Read-only databases and tables).",
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT * FROM inventory.orders",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "select * from shop_orders",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "INSERT",
+      "normalized" : "INSERT INTO shop_orders VALUES (1)",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "INSERT",
+      "normalized" : "INSERT INTO my_table VALUES (1)",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "rulesRefusal" : "“my-table” in “shop” is read-only in this connection's settings (Advanced → Read-only databases and tables).",
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "INSERT",
+      "normalized" : "INSERT INTO my_table VALUES (1)",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "rulesRefusal" : "“my-table” in “shop” is read-only in this connection's settings (Advanced → Read-only databases and tables).",
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "DELETE",
+      "normalized" : "DELETE FROM inventory.stock WHERE id = 1",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "rulesRefusal" : "“inventory.stock” in “shop” is read-only in this connection's settings (Advanced → Read-only databases and tables).",
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "LISTEN",
+      "normalized" : "LISTEN x",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "PREPARE",
+      "normalized" : "PREPARE p AS DELETE FROM t",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "EXECUTE",
+      "normalized" : "EXECUTE p",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "(SELECT 1)",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "",
+      "normalized" : "",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "",
+      "normalized" : "",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "select '?' as ünï from Ordér",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "SELECT",
+      "normalized" : "SELECT 1",
+      "returnsRows" : true,
+      "writes" : false
+    },
+    {
+      "executableComment" : false,
+      "keyword" : "UPDATE",
+      "normalized" : "UPDATE t SET note = '?'",
+      "readOnlyRefusal" : "This connection is read-only. Disable read-only mode in the connection settings to modify data.",
+      "returnsRows" : false,
+      "writes" : true
+    }
+  ]
+}

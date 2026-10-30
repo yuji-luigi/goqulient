@@ -62,7 +62,8 @@ leak secrets.
   Nothing loads a whole result into memory.
 - Read-only is enforced twice: the client check **and** the server session (`default_transaction_read_only`,
   `SET SESSION TRANSACTION READ ONLY`). MongoDB has no server-side read-only, so its client check must stay strict.
-- Destructive statements need explicit confirmation (`needsConfirmation`), once the query editor exists.
+- Destructive statements need explicit confirmation: `query/run` answers `needsConfirmation` and runs nothing until
+  it is called again with `confirmed`.
 - A grid edit must hit exactly one row, or the whole batch rolls back, once editing exists.
 - One tokio runtime per process, built by the server; the library never creates a runtime and never prints. stdout
   carries only protocol frames.

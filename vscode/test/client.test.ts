@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { CancellationTokenSource } from 'vscode-jsonrpc/node.js';
 import { CrashBudget, EngineClient, EngineError, ErrorCode, type Log } from '../src/engine/client.ts';
+import type { QueryRunParams, QueryRunResult } from '../src/views/protocol.ts';
 
 test('crash budget allows max restarts per window', () => {
   let now = 0;
@@ -52,6 +53,11 @@ describe('with the real engine', { skip: bin ? false : 'GOKU_ENGINE_BIN not set'
       const info = await c.info();
       assert.equal(info.protocolVersion, 1);
       assert.ok(info.capabilities.methods.includes('profile/validate'));
+      assert.ok(info.capabilities.methods.includes('query/run'));
+      await assert.rejects(c.request<QueryRunResult>('query/run', { sessionId: 'nope', text: 'SELECT 1' } satisfies QueryRunParams), (e: EngineError) => {
+        assert.equal(e.kind, 'notConnected');
+        return true;
+      });
       const r = await c.request<{ endpoint: string }>('profile/validate', {
         profile: { name: 'm', kind: 'mongodb', mode: 'uri', uri: 'mongodb://u:hunter2@h/db' },
       });

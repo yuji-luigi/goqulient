@@ -192,3 +192,64 @@ async fn session_methods_need_an_open_session() {
     assert_eq!(r["error"]["data"]["kind"], "invalidConfiguration");
     assert_eq!(c.call(4, "connection/close", json!({"sessionId": "nope"})).await["result"], Value::Null);
 }
+
+#[tokio::test]
+async fn query_run_is_listed_and_checks_its_params() {
+    let mut c = Client::initialized().await;
+    let r = c.call(2, "initialize", json!({"protocolVersion": PROTOCOL_VERSION})).await;
+    assert!(r["result"]["capabilities"]["methods"].as_array().unwrap().contains(&json!("query/run")));
+    assert_eq!(c.call(3, "query/run", json!({"sessionId": "s1"})).await["error"]["code"], code::INVALID_PARAMS);
+    let r = c.call(4, "query/run", json!({"sessionId": "nope", "text": "SELECT 1"})).await;
+    assert_eq!(r["error"]["data"]["kind"], "notConnected");
+}
+
+/// `query/run` end to end against the Docker PostgreSQL (GOKU_IT=1, set in the `engine` container): result shapes,
+/// confirmation, and `$/cancelRequest` stopping a running statement.
+#[tokio::test]
+async fn query_run_results_confirmation_and_cancel() {
+    if std::env::var("GOKU_IT").as_deref() != Ok("1") {
+        return;
+    }
+    let host = std::env::var("PG_HOST").unwrap_or_else(|_| "pg-primary".into());
+    let mut c = Client::initialized().await;
+    let profile = json!({"name": "it", "kind": "postgres", "hosts": [{"host": host, "port": 5432}], "user": "dbc",
+                         "database": "shop", "ssl": {"mode": "disable"}, "queryTimeoutSeconds": 30});
+    let r = c.call(2, "connection/open", json!({"profile": profile, "credentials": {"password": "dbcpass"}})).await;
+    let session = r["result"]["sessionId"].as_str().expect("connection/open").to_owned();
+
+    let text = "SELECT 1 AS a;\n-- é\nSELECT 'x' AS b, NULL AS c";
+    let r = c.call(3, "query/run", json!({"sessionId": session, "text": text, "maxRows": 10})).await;
+    let results = &r["result"]["results"];
+    assert_eq!(r["result"]["outcome"], "results");
+    assert_eq!(results.as_array().unwrap().len(), 2);
+    assert_eq!(results[0]["kind"], "rows");
+    assert_eq!(results[0]["columns"], json!([{"name": "a", "typeName": "int4"}]));
+    assert_eq!(results[1]["rows"], json!([["x", null]]));
+    assert_eq!(results[1]["statement"], "-- é\nSELECT 'x' AS b, NULL AS c");
+    assert_eq!(results[1]["span"], json!({"start": 15, "end": 46}));
+    assert_eq!((results[1]["database"].clone(), results[1]["truncated"].clone()), (json!("shop"), json!(false)));
+    assert!(results[1]["elapsedMs"].is_u64() && results[1]["notices"] == json!([]));
+
+    let r = c.call(4, "query/run", json!({"sessionId": session, "text": "SELECT 1; TRUNCATE rs_pg_proto_none"})).await;
+    let found = &r["result"];
+    assert_eq!(found["outcome"], "needsConfirmation");
+    assert_eq!(found["findings"][0]["action"], "truncates table");
+    assert_eq!(found["findings"][0]["object"], "rs_pg_proto_none");
+    assert_eq!(found["findings"][0]["span"], json!({"start": 10, "end": 35}));
+    let r = c
+        .call(5, "query/run", json!({"sessionId": session, "text": "TRUNCATE rs_pg_proto_none", "confirmed": true}))
+        .await;
+    assert_eq!(r["result"]["results"][0]["kind"], "error", "confirmed: it runs (and fails: no such table)");
+    assert_eq!(r["result"]["results"][0]["error"]["kind"], "query");
+
+    c.request(6, "query/run", json!({"sessionId": session, "text": "SELECT pg_sleep(20)"})).await;
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    let started = std::time::Instant::now();
+    c.send(json!({"jsonrpc": "2.0", "method": "$/cancelRequest", "params": {"id": 6}})).await;
+    let r = c.next().await;
+    assert_eq!((r["id"].clone(), r["error"]["code"].clone()), (json!(6), json!(code::REQUEST_CANCELLED)));
+    assert!(started.elapsed() < std::time::Duration::from_secs(2));
+    let r = c.call(7, "query/run", json!({"sessionId": session, "text": "SELECT 2"})).await;
+    assert_eq!(r["result"]["results"][0]["rows"], json!([["2"]]), "the session keeps working");
+    c.call(8, "connection/close", json!({"sessionId": session})).await;
+}

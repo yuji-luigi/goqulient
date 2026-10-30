@@ -8,15 +8,18 @@
 mod extjson;
 pub mod format;
 pub mod infer;
+pub mod shell;
 
 pub use extjson::parse_document;
+use shell::{MongoCall, command_writes};
 
 use crate::deadline::with_deadline;
 use crate::drivers::lock;
 use crate::error::{DbError, Result};
 use crate::limits::{HARD_MAX_ROWS, Paging, RowCollector, clip};
-use crate::model::{Attribute, ObjectKind, ObjectRef, QueryResult, SchemaModel, ServerInfo, Sort};
+use crate::model::{Attribute, ObjectKind, ObjectRef, QueryResult, ResultColumn, SchemaModel, ServerInfo, Sort};
 use crate::profile::{ConnectionProfile, Credentials, MongoReadPreference, SslMode, TopologyMode};
+use crate::query::Statement;
 use crate::redact;
 use crate::session::DatabaseSession;
 use async_trait::async_trait;
@@ -279,52 +282,6 @@ fn int(v: Option<&Bson>) -> Option<i64> {
     }
 }
 
-/// Commands that only read: the app's `MongoCall.readCommands` (everything else counts as a write).
-const READ_COMMANDS: &[&str] = &[
-    "find",
-    "aggregate",
-    "count",
-    "distinct",
-    "getMore",
-    "explain",
-    "listCollections",
-    "listIndexes",
-    "listDatabases",
-    "listSearchIndexes",
-    "dbStats",
-    "collStats",
-    "dataSize",
-    "dbHash",
-    "serverStatus",
-    "hello",
-    "isMaster",
-    "ismaster",
-    "buildInfo",
-    "buildinfo",
-    "ping",
-    "connectionStatus",
-    "hostInfo",
-    "whatsmyuri",
-    "getParameter",
-    "top",
-    "lockInfo",
-    "replSetGetStatus",
-    "replSetGetConfig",
-    "rolesInfo",
-];
-
-/// Port of `MongoCall.commandWrites`: the first key names the command; `$out`/`$merge` make an aggregation a write.
-fn command_writes(d: &Document) -> bool {
-    let Some((key, value)) = d.iter().next() else { return false };
-    match key.as_str() {
-        "aggregate" => d.get_array("pipeline").is_ok_and(|p| {
-            p.iter().any(|s| s.as_document().is_some_and(|s| s.contains_key("$out") || s.contains_key("$merge")))
-        }),
-        "explain" => value.as_document().is_none_or(command_writes),
-        k => !READ_COMMANDS.contains(&k),
-    }
-}
-
 pub struct MongoSession {
     profile: ConnectionProfile,
     client: Client,
@@ -361,6 +318,184 @@ impl MongoSession {
             db.run_command(cmd).selection_criteria(self.read_criteria()).await
         })
         .await
+    }
+
+    /// A command for `query/run`: writes go to the primary, reads follow the profile's read preference. Fails on
+    /// `ok: 0` and, like the app, on the first `writeErrors` entry (the server answers those with `ok: 1`).
+    async fn run_command(
+        &self,
+        database: &str,
+        cmd: Document,
+        writable: bool,
+        cancel: &CancellationToken,
+    ) -> Result<Document> {
+        let db = self.client.database(database);
+        let criteria =
+            if writable { SelectionCriteria::ReadPreference(ReadPreference::Primary) } else { self.read_criteria() };
+        let reply = self
+            .run("MongoDB command", cancel, async { db.run_command(cmd).selection_criteria(criteria).await })
+            .await?;
+        if let Ok(errors) = reply.get_array("writeErrors")
+            && let Some(first) = errors.first().and_then(Bson::as_document)
+        {
+            let code = int(first.get("code")).map(|c| format!(" (code {c})")).unwrap_or_default();
+            return Err(DbError::Query(redact::secrets(
+                &(first.get_str("errmsg").unwrap_or("Write error").to_owned() + &code),
+            )));
+        }
+        Ok(reply)
+    }
+
+    /// The first batch of a cursor reply, and whether the server had more; a cursor left open is killed.
+    async fn first_batch(&self, reply: &Document, database: &str, cancel: &CancellationToken) -> (Vec<Document>, bool) {
+        let Ok(cursor) = reply.get_document("cursor") else { return (Vec::new(), false) };
+        let docs: Vec<Document> = cursor
+            .get_array("firstBatch")
+            .map(|b| b.iter().filter_map(|d| d.as_document().cloned()).collect())
+            .unwrap_or_default();
+        let id = int(cursor.get("id")).unwrap_or(0);
+        if id != 0
+            && let Some((_, coll)) = cursor.get_str("ns").ok().and_then(|ns| ns.split_once('.'))
+        {
+            let kill = doc! {"killCursors": coll, "cursors": [id]};
+            let _ = self.command(database, kill, cancel).await; // best effort, like the app's `try?`
+        }
+        (docs, id != 0)
+    }
+
+    /// Port of `MongoSession.run`: one parsed shell call, capped at `cap` documents (reads ask for `cap + 1` to tell
+    /// truncation and carry `maxTimeMS`).
+    async fn run_call(
+        &self,
+        call: &MongoCall,
+        db: &str,
+        cap: usize,
+        cancel: &CancellationToken,
+    ) -> Result<QueryResult> {
+        let started = Instant::now();
+        let cap = cap.clamp(1, HARD_MAX_ROWS);
+        let max_time_ms = self.max_time().as_millis() as i64;
+        match call {
+            MongoCall::Use(name) => Ok(message_result(None, format!("switched to db {name}"), started)),
+            MongoCall::GetName => Ok(column_result("db", "string", vec![db.to_owned()], started)),
+            MongoCall::ShowDatabases => {
+                let cmd = doc! {"listDatabases": 1, "authorizedDatabases": true};
+                let reply = self.run_command("admin", cmd, false, cancel).await?;
+                let docs: Vec<Document> = reply
+                    .get_array("databases")
+                    .map(|a| a.iter().filter_map(|d| d.as_document().cloned()).collect())
+                    .unwrap_or_default();
+                Ok(documents_result(&docs, cap, false, started))
+            }
+            MongoCall::ShowCollections => {
+                let names = self.list_objects(db, cancel).await?.into_iter().map(|o| o.name).collect();
+                Ok(column_result("collection", "string", names, started))
+            }
+            MongoCall::Command(d) | MongoCall::AdminCommand(d) => {
+                let target = call.database(db);
+                let mut cmd = d.clone();
+                if let Some(name) = cmd.keys().next()
+                    && ["find", "aggregate", "count", "distinct"].contains(&name.as_str())
+                    && !cmd.contains_key("maxTimeMS")
+                {
+                    cmd.insert("maxTimeMS", max_time_ms);
+                }
+                let reply = self.run_command(target, cmd, call.is_write(), cancel).await?;
+                if reply.get_document("cursor").is_ok() {
+                    let (docs, more) = self.first_batch(&reply, target, cancel).await;
+                    return Ok(documents_result(&docs, cap, more, started));
+                }
+                Ok(documents_result(std::slice::from_ref(&reply), cap, false, started))
+            }
+            MongoCall::Find(f) => {
+                let limit = f.limit.map_or(cap as i64, |l| if l == 0 { cap as i64 } else { l }).min(cap as i64);
+                let mut cmd = doc! {"find": f.collection.clone(), "filter": f.filter.clone()};
+                if let Some(p) = f.projection.as_ref().filter(|p| !p.is_empty()) {
+                    cmd.insert("projection", p.clone());
+                }
+                if let Some(s) = f.sort.as_ref().filter(|s| !s.is_empty()) {
+                    cmd.insert("sort", s.clone());
+                }
+                if f.skip > 0 {
+                    cmd.insert("skip", f.skip);
+                }
+                cmd.insert("limit", limit + 1);
+                cmd.insert("batchSize", limit + 1);
+                cmd.insert("singleBatch", true);
+                cmd.insert("maxTimeMS", max_time_ms);
+                if f.explain {
+                    let explain = doc! {"explain": cmd, "verbosity": "queryPlanner"};
+                    let reply = self.run_command(db, explain, false, cancel).await?;
+                    return Ok(documents_result(std::slice::from_ref(&reply), cap, false, started));
+                }
+                let reply = self.run_command(db, cmd, false, cancel).await?;
+                let (docs, _) = self.first_batch(&reply, db, cancel).await;
+                let shown = usize::try_from(limit).unwrap_or(0).min(docs.len());
+                let mut r = documents_result(docs.get(..shown).unwrap_or_default(), cap, false, started);
+                // A `.limit(n)` of the user's own is a complete answer.
+                r.truncated = docs.len() > shown && f.limit.is_none();
+                Ok(r)
+            }
+            MongoCall::Aggregate { collection, pipeline } => {
+                let cmd = doc! {
+                    "aggregate": collection.clone(), "pipeline": pipeline.clone(),
+                    "cursor": {"batchSize": cap as i64 + 1}, "maxTimeMS": max_time_ms,
+                };
+                let reply = self.run_command(db, cmd, call.is_write(), cancel).await?;
+                let (docs, more) = self.first_batch(&reply, db, cancel).await;
+                Ok(documents_result(&docs, cap, more, started))
+            }
+            MongoCall::Count { collection, filter } => {
+                let pipeline = [doc! {"$match": filter.clone()}, doc! {"$count": "n"}];
+                let cmd = doc! {"aggregate": collection.clone(), "pipeline": pipeline, "cursor": {}, "maxTimeMS": max_time_ms};
+                let reply = self.run_command(db, cmd, false, cancel).await?;
+                let (docs, _) = self.first_batch(&reply, db, cancel).await;
+                let n = int(docs.first().and_then(|d| d.get("n"))).unwrap_or(0);
+                Ok(column_result("count", "int", vec![n.to_string()], started))
+            }
+            MongoCall::Insert { collection, documents } => {
+                if documents.is_empty() {
+                    return Err(DbError::InvalidConfiguration("Nothing to insert.".into()));
+                }
+                let with_ids: Vec<Document> = documents
+                    .iter()
+                    .map(|d| {
+                        if d.contains_key("_id") {
+                            return d.clone();
+                        }
+                        let mut out = doc! {"_id": bson::oid::ObjectId::new()};
+                        out.extend(d.clone());
+                        out
+                    })
+                    .collect();
+                let one_id = match with_ids.as_slice() {
+                    [only] => only.get("_id").map(|id| format::literal(id, None)),
+                    _ => None,
+                };
+                let cmd = doc! {"insert": collection.clone(), "documents": with_ids, "ordered": true};
+                let reply = self.run_command(db, cmd, true, cancel).await?;
+                let message = one_id.map_or_else(|| "inserted".to_owned(), |id| format!("inserted _id {id}"));
+                Ok(message_result(int(reply.get("n")), message, started))
+            }
+            MongoCall::Update { collection, filter, update, multi, upsert } => {
+                let u = doc! {"q": filter.clone(), "u": update.clone(), "multi": *multi, "upsert": *upsert};
+                let reply =
+                    self.run_command(db, doc! {"update": collection.clone(), "updates": [u]}, true, cancel).await?;
+                let (matched, modified) = (int(reply.get("n")).unwrap_or(0), int(reply.get("nModified")).unwrap_or(0));
+                Ok(message_result(Some(modified), format!("matched {matched}, modified {modified}"), started))
+            }
+            MongoCall::Delete { collection, filter, multi } => {
+                let d = doc! {"q": filter.clone(), "limit": if *multi { 0 } else { 1 }};
+                let reply =
+                    self.run_command(db, doc! {"delete": collection.clone(), "deletes": [d]}, true, cancel).await?;
+                Ok(message_result(int(reply.get("n")), "deleted".into(), started))
+            }
+            MongoCall::RenameCollection { from, to, drop_target } => {
+                let cmd = doc! {"renameCollection": format!("{db}.{from}"), "to": format!("{db}.{to}"), "dropTarget": *drop_target};
+                self.run_command("admin", cmd, true, cancel).await?;
+                Ok(message_result(None, "renamed".into(), started))
+            }
+        }
     }
 
     async fn list_objects(&self, database: &str, cancel: &CancellationToken) -> Result<Vec<ObjectRef>> {
@@ -474,9 +609,28 @@ fn documents_result(docs: &[Document], cap: usize, more: bool, started: Instant)
         columns,
         rows,
         truncated,
-        affected_rows: None,
         documents: Some(shown.iter().map(|d| clip(&format::document_literal(d, Some(2)))).collect()),
         elapsed_ms: started.elapsed().as_millis() as u64,
+        ..QueryResult::default()
+    }
+}
+
+/// A one-column result (`show collections`, `db.getName()`, a count).
+fn column_result(name: &str, type_name: &str, values: Vec<String>, started: Instant) -> QueryResult {
+    QueryResult {
+        columns: vec![ResultColumn { name: name.into(), type_name: type_name.into() }],
+        rows: values.into_iter().map(|v| vec![Some(clip(&v))]).collect(),
+        elapsed_ms: started.elapsed().as_millis() as u64,
+        ..QueryResult::default()
+    }
+}
+
+fn message_result(affected: Option<i64>, message: String, started: Instant) -> QueryResult {
+    QueryResult {
+        affected_rows: affected.map(|n| n.max(0) as u64),
+        message: Some(message),
+        elapsed_ms: started.elapsed().as_millis() as u64,
+        ..QueryResult::default()
     }
 }
 
@@ -625,6 +779,19 @@ impl DatabaseSession for MongoSession {
             let _ = self.command(db_name, kill, cancel).await;
         }
         Ok(documents_result(&docs, cap, id != 0, started))
+    }
+
+    async fn run_statement(
+        &self,
+        database: &str,
+        statement: &Statement,
+        max_rows: usize,
+        cancel: &CancellationToken,
+    ) -> Result<QueryResult> {
+        let Statement::Mongo(call) = statement else {
+            return Err(DbError::Unsupported("SQL on a MongoDB connection".into()));
+        };
+        self.run_call(call, database, max_rows, cancel).await
     }
 
     async fn close(&self) {

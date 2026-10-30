@@ -1,0 +1,183 @@
+{
+  "input" : {
+    "database" : "shop",
+    "kind" : "mysql",
+    "scripts" : [
+      "update t set a = 1; drop table x; truncate y",
+      "alter table t drop column c",
+      "/*!DROP TABLE orders*/",
+      "/*!50001 SELECT 1 */",
+      "USE archive; DROP TABLE t",
+      "DROP DATABASE shop",
+      "DELETE FROM `orders`",
+      "DELETE FROM shop.orders WHERE 1",
+      "DROP TABLE `a b`",
+      "DROP TEMPORARY TABLE IF EXISTS t",
+      "DELIMITER //\nCREATE PROCEDURE p() BEGIN DELETE FROM t; END //\nDELIMITER ;",
+      "UPDATE t SET a = 'where'",
+      "DELETE t FROM t JOIN u ON t.id = u.id",
+      "CALL cleanup()",
+      "SELECT 1 # DROP TABLE x",
+      "TRUNCATE TABLE `shop`.`orders`",
+      "UPDATE t SET a = 1 -- WHERE id = 1",
+      "DELETE FROM t WHERE id = 1; USE other; UPDATE u SET b = 2"
+    ]
+  },
+  "output" : [
+    [
+      {
+        "action" : "updates every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "update t set a = 1",
+        "warning" : "UPDATE without WHERE affects every row: update t set a = 1"
+      },
+      {
+        "action" : "drops table",
+        "database" : "shop",
+        "object" : "x",
+        "statement" : "drop table x",
+        "warning" : "DROP: drop table x"
+      },
+      {
+        "action" : "truncates table",
+        "database" : "shop",
+        "object" : "y",
+        "statement" : "truncate y",
+        "warning" : "TRUNCATE: truncate y"
+      }
+    ],
+    [
+      {
+        "action" : "alters table",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "alter table t drop column c",
+        "warning" : "ALTER … DROP: alter table t drop column c"
+      }
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "/*!DROP TABLE orders*/",
+        "warning" : "Can't tell what this changes (MySQL executable comment): /*!DROP TABLE orders*/"
+      }
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "/*!50001 SELECT 1 */",
+        "warning" : "Can't tell what this changes (MySQL executable comment): /*!50001 SELECT 1 */"
+      }
+    ],
+    [
+      {
+        "action" : "drops table",
+        "database" : "archive",
+        "object" : "t",
+        "statement" : "DROP TABLE t",
+        "warning" : "DROP: DROP TABLE t"
+      }
+    ],
+    [
+      {
+        "action" : "drops database",
+        "database" : "shop",
+        "object" : "shop",
+        "statement" : "DROP DATABASE shop",
+        "warning" : "DROP: DROP DATABASE shop"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "orders",
+        "statement" : "DELETE FROM `orders`",
+        "warning" : "DELETE without WHERE affects every row: DELETE FROM `orders`"
+      }
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "drops table",
+        "database" : "shop",
+        "object" : "a_b",
+        "statement" : "DROP TABLE `a b`",
+        "warning" : "DROP: DROP TABLE `a b`"
+      }
+    ],
+    [
+      {
+        "action" : "drops temporary",
+        "database" : "shop",
+        "object" : "TABLE",
+        "statement" : "DROP TEMPORARY TABLE IF EXISTS t",
+        "warning" : "DROP: DROP TEMPORARY TABLE IF EXISTS t"
+      }
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "updates every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "UPDATE t SET a = 'where'",
+        "warning" : "UPDATE without WHERE affects every row: UPDATE t SET a = 'where'"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "DELETE t FROM t JOIN u ON t.id = u.id",
+        "warning" : "DELETE without WHERE affects every row: DELETE t FROM t JOIN u ON t.id = u.id"
+      }
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "CALL cleanup()",
+        "warning" : "Can't tell what this changes (CALL runs code this check can't see): CALL cleanup()"
+      }
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "truncates table",
+        "database" : "shop",
+        "object" : "shop.orders",
+        "statement" : "TRUNCATE TABLE `shop`.`orders`",
+        "warning" : "TRUNCATE: TRUNCATE TABLE `shop`.`orders`"
+      }
+    ],
+    [
+      {
+        "action" : "updates every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "UPDATE t SET a = 1 -- WHERE id = 1",
+        "warning" : "UPDATE without WHERE affects every row: UPDATE t SET a = 1 -- WHERE id = 1"
+      }
+    ],
+    [
+      {
+        "action" : "updates every row in",
+        "database" : "other",
+        "object" : "u",
+        "statement" : "UPDATE u SET b = 2",
+        "warning" : "UPDATE without WHERE affects every row: UPDATE u SET b = 2"
+      }
+    ]
+  ]
+}

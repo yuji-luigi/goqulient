@@ -21,6 +21,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"
 tokio-util = "0.7"
 uuid = { version = "1", features = ["v4"] }
 fancy-regex = "0.14"
+base64 = "0.22"
 unicode-segmentation = "1"
 # TLS everywhere is rustls with the ring provider only (no C toolchain on Windows, no aws-lc-rs/openssl); drivers call
 # `rustls::crypto::ring::default_provider().install_default()` before building a ClientConfig.
