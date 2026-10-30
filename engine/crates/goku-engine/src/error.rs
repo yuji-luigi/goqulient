@@ -29,6 +29,26 @@ pub enum DbError {
     Query(String),
     #[error("Parse error: {0}")]
     Parse(String),
+    /// The SSH server rejected the password or the key (worded as GokuCore's `connectionFailed`, so the text is the
+    /// app's). Its own kind so a client can ask for the SSH password again rather than the database's.
+    #[error("Connection failed: {0}")]
+    SshAuthentication(String),
+    /// The SSH private key is encrypted and no passphrase was given, or the passphrase is wrong.
+    #[error("Invalid configuration: {0}")]
+    SshKeyLocked(String),
+    /// The profile pins no host key (`ssh.trustedHostKey` is empty): nothing was sent to the server. A client shows the
+    /// fingerprint, and on the user's yes saves `host_key` as `trustedHostKey` and connects again.
+    #[error("The SSH host {host}:{port} is not trusted yet. Its {key_type} key fingerprint is {fingerprint}.")]
+    #[serde(rename_all = "camelCase")]
+    UnknownHostKey {
+        host: String,
+        port: i64,
+        key_type: String,
+        /// OpenSSH format ("ssh-ed25519 AAAA…"), ready for `trustedHostKey`.
+        host_key: String,
+        /// `SHA256:…`, as `ssh-keygen -lf` prints it.
+        fingerprint: String,
+    },
 }
 
 impl DbError {

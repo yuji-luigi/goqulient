@@ -10,7 +10,7 @@ use crate::error::{DbError, Result};
 use crate::limits::{Paging, RowCollector};
 use crate::model::{Attribute, ObjectRef, QueryResult, ResultColumn, SchemaModel, ServerInfo, Sort};
 use crate::profile::{ConnectionProfile, Credentials, HostPort, SslMode, SslSettings, TargetSession};
-use crate::session::DatabaseSession;
+use crate::session::{DatabaseSession, Endpoint};
 use async_trait::async_trait;
 use mysql_async::prelude::{Protocol, Queryable};
 use mysql_async::{ClientIdentity, Conn, DriverError, Opts, OptsBuilder, Params, SslOpts};
@@ -22,14 +22,13 @@ use tokio_util::sync::CancellationToken;
 /// Rows read and thrown away after the cap before the query is killed instead (browse asks for one extra row).
 const DRAIN_ROWS: usize = 1000;
 
+/// Connects to the first of `endpoints` (one per profile host, in order) whose role matches `targetSession`.
 pub async fn connect(
     profile: ConnectionProfile,
     credentials: Credentials,
+    endpoints: Vec<Endpoint>,
     cancel: &CancellationToken,
 ) -> Result<Box<dyn DatabaseSession>> {
-    if profile.ssh.enabled {
-        return Err(DbError::Unsupported("SSH tunnels aren't available in the engine yet".into()));
-    }
     // mysql_async builds its rustls config with the process-wide provider; pick one in case several are compiled in.
     let _ = rustls::crypto::ring::default_provider().install_default();
     let tls = ssl_opts(&profile.ssl)?;
@@ -39,9 +38,9 @@ pub async fn connect(
     };
     let mut failures = Vec::new();
     for pass in passes {
-        for i in 0..profile.hosts.len() {
-            let host = profile.hosts[i].clone();
-            let (mut live, opts) = match open(&profile, &credentials, &host, tls.clone(), cancel).await {
+        for endpoint in &endpoints {
+            let host = endpoint.display.clone();
+            let (mut live, opts) = match open(&profile, &credentials, endpoint, tls.clone(), cancel).await {
                 Ok(v) => v,
                 Err(DbError::Cancelled) => return Err(DbError::Cancelled),
                 Err(e) => {
@@ -77,7 +76,7 @@ pub async fn connect(
             failures.push(format!("{host}: {role} does not match {}", target_name(pass)));
         }
     }
-    if profile.hosts.len() == 1 && failures.len() == 1 {
+    if endpoints.len() == 1 && failures.len() == 1 {
         return Err(DbError::ConnectionFailed(failures.remove(0)));
     }
     Err(DbError::NoSuitableHost(failures.join("\n")))
@@ -140,10 +139,13 @@ fn expand(path: &str) -> String {
     }
 }
 
-fn build_opts(profile: &ConnectionProfile, credentials: &Credentials, host: &HostPort, tls: Option<SslOpts>) -> Opts {
+/// Behind a tunnel the connection dials the local end, and TLS checks the certificate against the profile's host name.
+fn build_opts(profile: &ConnectionProfile, credentials: &Credentials, at: &Endpoint, tls: Option<SslOpts>) -> Opts {
+    let tls =
+        tls.map(|o| if at.tunnelled { o.with_danger_tls_hostname_override(Some(at.display.host.clone())) } else { o });
     OptsBuilder::default()
-        .ip_or_hostname(host.host.clone())
-        .tcp_port(host.port as u16)
+        .ip_or_hostname(at.dial.host.clone())
+        .tcp_port(at.dial.port as u16)
         .user(Some(profile.user.clone()))
         .pass(credentials.password.clone())
         .db_name((!profile.database.is_empty()).then(|| profile.database.clone()))
@@ -157,16 +159,17 @@ fn build_opts(profile: &ConnectionProfile, credentials: &Credentials, host: &Hos
 async fn open(
     profile: &ConnectionProfile,
     credentials: &Credentials,
-    host: &HostPort,
+    at: &Endpoint,
     tls: Option<SslOpts>,
     cancel: &CancellationToken,
 ) -> Result<(Live, Opts)> {
-    let opts = build_opts(profile, credentials, host, tls);
+    let host = &at.display;
+    let opts = build_opts(profile, credentials, at, tls);
     let conn = match dial(&opts, host, profile, cancel).await? {
         Err(mysql_async::Error::Driver(DriverError::NoClientSslFlagFromServer))
             if profile.ssl.mode == SslMode::Prefer =>
         {
-            let plain = build_opts(profile, credentials, host, None);
+            let plain = build_opts(profile, credentials, at, None);
             let conn = dial(&plain, host, profile, cancel).await?.map_err(|e| clean(&e))?;
             return Ok((setup(conn, profile, cancel).await?, plain));
         }

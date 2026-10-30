@@ -185,7 +185,8 @@ pub struct SshSettings {
     pub user: String,
     pub auth: SshAuthKind,
     pub private_key_path: String,
-    /// Expected host key in OpenSSH format ("ssh-ed25519 AAAA..."). Empty = trust on first use.
+    /// Expected host key in OpenSSH format ("ssh-ed25519 AAAA..."). Empty: `connect` fails with `UnknownHostKey`, so the
+    /// client can ask the user (GokuCore trusts the first key it sees).
     pub trusted_host_key: String,
 }
 

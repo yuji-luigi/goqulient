@@ -2,6 +2,7 @@
 //! - every network wait goes through `deadline::with_deadline`, whose `on_timeout` closes the socket or cancels the query;
 //! - results go through `limits::RowCollector` (row cap + cell clipping);
 //! - secrets never reach a log, an error or an endpoint summary (`redact`);
+//! - SSH tunnels (`tunnel`) listen on 127.0.0.1 only and close with their session;
 //! - no stdout and no runtime of its own: the host (the stdio server, later the app) owns the one tokio runtime.
 pub mod deadline;
 pub mod drivers;
@@ -12,6 +13,7 @@ pub mod model;
 pub mod profile;
 pub mod redact;
 pub mod session;
+pub mod tunnel;
 
 pub use error::{DbError, Result};
 

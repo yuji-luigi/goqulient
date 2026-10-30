@@ -19,3 +19,5 @@ tokio-util.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
+# An in-process SSH server for the host-key error shape (tests.rs).
+russh.workspace = true

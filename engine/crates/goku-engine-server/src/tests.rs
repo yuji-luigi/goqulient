@@ -192,3 +192,64 @@ async fn session_methods_need_an_open_session() {
     assert_eq!(r["error"]["data"]["kind"], "invalidConfiguration");
     assert_eq!(c.call(4, "connection/close", json!({"sessionId": "nope"})).await["result"], Value::Null);
 }
+
+/// Accepts one SSH connection with a host key made for this test (every authentication is refused). Returns its port
+/// and the host key as "type base64".
+async fn ssh_server() -> (u16, String) {
+    struct Refuse;
+    impl russh::server::Handler for Refuse {
+        type Error = russh::Error;
+    }
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let key =
+        russh::keys::PrivateKey::random(&mut russh::keys::key::safe_rng(), russh::keys::Algorithm::Ed25519).unwrap();
+    let public = key.public_key().to_openssh().unwrap();
+    let config = std::sync::Arc::new(russh::server::Config { keys: vec![key], ..Default::default() });
+    tokio::spawn(async move {
+        let (socket, _) = listener.accept().await.unwrap();
+        if let Ok(session) = russh::server::run_stream(config, socket, Refuse).await {
+            let _ = session.await;
+        }
+    });
+    (port, public.split_whitespace().take(2).collect::<Vec<_>>().join(" "))
+}
+
+fn ssh_profile(port: u16, trusted: &str) -> Value {
+    json!({
+        "name": "t", "kind": "postgres", "hosts": [{"host": "db.internal", "port": 5432}], "user": "u",
+        "connectTimeoutSeconds": 5,
+        "ssh": {"enabled": true, "host": "127.0.0.1", "port": port, "user": "bob", "trustedHostKey": trusted}
+    })
+}
+
+#[tokio::test]
+async fn an_unknown_ssh_host_key_has_a_stable_error_shape() {
+    let (port, host_key) = ssh_server().await;
+    let mut c = Client::initialized().await;
+    let params = json!({"profile": ssh_profile(port, ""), "credentials": {"sshPassword": "s3cret-ssh"}});
+    let r = c.call(2, "connection/open", params).await;
+    let e = &r["error"];
+    assert_eq!(e["code"], code::ENGINE_ERROR);
+    assert_eq!(e["data"]["kind"], "unknownHostKey");
+    let d = &e["data"]["detail"];
+    assert_eq!((d["host"].as_str(), d["port"].as_u64()), (Some("127.0.0.1"), Some(u64::from(port))));
+    assert_eq!(d["keyType"], "ssh-ed25519");
+    assert_eq!(d["hostKey"], host_key);
+    let fingerprint = d["fingerprint"].as_str().unwrap();
+    assert!(fingerprint.starts_with("SHA256:"));
+    assert!(e["message"].as_str().unwrap().contains(fingerprint));
+    assert!(!r.to_string().contains("s3cret-ssh"));
+}
+
+#[tokio::test]
+async fn a_trusted_ssh_host_key_goes_on_to_authentication() {
+    let (port, host_key) = ssh_server().await;
+    let mut c = Client::initialized().await;
+    let trusted = format!("{host_key} saved comment");
+    let params = json!({"profile": ssh_profile(port, &trusted), "credentials": {"sshPassword": "s3cret-ssh"}});
+    let r = c.call(2, "connection/open", params).await;
+    assert_eq!(r["error"]["data"]["kind"], "sshAuthentication", "{r}");
+    assert!(r["error"]["message"].as_str().unwrap().contains("bob@127.0.0.1"));
+    assert!(!r.to_string().contains("s3cret-ssh"));
+}

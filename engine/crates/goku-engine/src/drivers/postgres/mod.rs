@@ -11,9 +11,9 @@ use crate::drivers::lock;
 use crate::error::{DbError, Result};
 use crate::limits::{Paging, RowCollector};
 use crate::model::{Attribute, ObjectKind, ObjectRef, QueryResult, ResultColumn, SchemaModel, ServerInfo, Sort};
-use crate::profile::{ConnectionProfile, Credentials, HostPort, SslMode, TargetSession};
+use crate::profile::{ConnectionProfile, Credentials, SslMode, TargetSession};
 use crate::redact;
-use crate::session::DatabaseSession;
+use crate::session::{DatabaseSession, Endpoint};
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use std::collections::HashMap;
@@ -37,22 +37,17 @@ const NO_PARAMS: [&(dyn ToSql + Sync); 0] = [];
 /// The connection a request holds, for its `on_timeout`.
 type Slot = Arc<Mutex<Option<Arc<Conn>>>>;
 
+/// Connects to the first of `endpoints` (one per profile host, in order) whose role matches `targetSession`.
 pub async fn connect(
     profile: ConnectionProfile,
     credentials: Credentials,
+    endpoints: Vec<Endpoint>,
     cancel: &CancellationToken,
 ) -> Result<Box<dyn DatabaseSession>> {
-    if profile.ssh.enabled {
-        return Err(DbError::Unsupported("SSH tunnels aren't available in the engine yet".into()));
-    }
     let tls = tls::connector(&profile.ssl)?;
-    let shared = Shared {
-        password: credentials.password,
-        endpoint: profile.hosts[0].clone(),
-        tls,
-        state: Mutex::new(State::default()),
-        profile,
-    };
+    let first = endpoints.first().cloned().ok_or_else(|| DbError::InvalidConfiguration("No host.".into()))?;
+    let shared =
+        Shared { password: credentials.password, endpoint: first, tls, state: Mutex::new(State::default()), profile };
     let database = shared.database("").to_owned();
     let passes: &[TargetSession] = match shared.profile.target_session {
         TargetSession::PreferStandby => &[TargetSession::Standby, TargetSession::Any],
@@ -61,10 +56,11 @@ pub async fn connect(
     let mut failures = Vec::new();
     let mut chosen = None;
     'passes: for &pass in passes {
-        for host in &shared.profile.hosts {
-            match shared.probe(host, &database, pass, cancel).await {
+        for endpoint in &endpoints {
+            let host = &endpoint.display;
+            match shared.probe(endpoint, &database, pass, cancel).await {
                 Ok(Ok(conn)) => {
-                    chosen = Some((host.clone(), conn));
+                    chosen = Some((endpoint.clone(), conn));
                     break 'passes;
                 }
                 Ok(Err(recovery)) => failures.push(format!(
@@ -78,7 +74,7 @@ pub async fn connect(
         }
     }
     let Some((endpoint, conn)) = chosen else {
-        if shared.profile.hosts.len() == 1 && failures.len() == 1 {
+        if endpoints.len() == 1 && failures.len() == 1 {
             return Err(DbError::ConnectionFailed(failures.remove(0)));
         }
         return Err(DbError::NoSuitableHost(failures.join("\n")));
@@ -164,7 +160,7 @@ struct Shared {
     profile: ConnectionProfile,
     password: Option<String>,
     /// The host chosen by `connect`; every later connection goes there (no failover, as in GokuCore).
-    endpoint: HostPort,
+    endpoint: Endpoint,
     tls: MakeRustlsConnect,
     state: Mutex<State>,
 }
@@ -249,8 +245,10 @@ impl Shared {
     }
 
     /// Opens a connection (no session settings yet) within `connect_timeout_seconds`. A connect that finishes after the
-    /// deadline has its connection task aborted, which closes the socket.
-    async fn open(&self, host: &HostPort, database: &str, cancel: &CancellationToken) -> Result<Conn> {
+    /// deadline has its connection task aborted, which closes the socket. Behind a tunnel it dials the local end
+    /// (`hostaddr`) while TLS still checks the certificate against the profile's host name (`host`).
+    async fn open(&self, endpoint: &Endpoint, database: &str, cancel: &CancellationToken) -> Result<Conn> {
+        let host = &endpoint.display;
         let seconds = self.profile.connect_timeout_seconds as f64;
         let slot: Arc<Mutex<Option<AbortHandle>>> = Arc::default();
         let late = slot.clone();
@@ -262,7 +260,7 @@ impl Shared {
         with_deadline(seconds, &format!("Connecting to {host}"), cancel, abort, async {
             let mut cfg = Config::new();
             cfg.host(&host.host)
-                .port(u16::try_from(host.port).map_err(|_| DbError::InvalidConfiguration("port".into()))?)
+                .port(u16::try_from(endpoint.dial.port).map_err(|_| DbError::InvalidConfiguration("port".into()))?)
                 .user(&self.profile.user)
                 .dbname(database)
                 .application_name(APPLICATION_NAME)
@@ -274,6 +272,10 @@ impl Shared {
                 });
             if let Some(p) = &self.password {
                 cfg.password(p);
+            }
+            if endpoint.tunnelled {
+                let local = endpoint.dial.host.parse().map_err(|_| DbError::InvalidConfiguration("tunnel".into()))?;
+                cfg.hostaddr(local);
             }
             let (client, connection) = cfg.connect(self.tls.clone()).await.map_err(clean)?;
             let task = tokio::spawn(async move {
@@ -309,7 +311,7 @@ impl Shared {
     /// whether the server is in recovery (the probe connection is dropped).
     async fn probe(
         &self,
-        host: &HostPort,
+        host: &Endpoint,
         database: &str,
         target: TargetSession,
         cancel: &CancellationToken,
@@ -553,7 +555,7 @@ impl DatabaseSession for PostgresSession {
         Ok(ServerInfo {
             product: product.into(),
             version: full.split(' ').filter(|s| !s.is_empty()).nth(1).map(str::to_owned).unwrap_or(full.clone()),
-            connected_host: self.0.endpoint.to_string(),
+            connected_host: self.0.endpoint.display.to_string(),
             current_user: row[1].clone().unwrap_or_default(),
             is_read_only_node: row[3].as_deref() == Some("true"),
         })
