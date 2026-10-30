@@ -60,7 +60,8 @@ databases or host ports:
 ## Rust tests (`engine/`)
 - Unit tests live next to the code; protocol tests (framing, dispatch, cancellation, error codes) run the server over an
   in-memory pipe (`goku-engine-server/src/tests.rs`).
-- **Database integration tests** (`tests/{postgres,mysql,mongo}.rs`) run only with `GOKU_IT=1` (set in the `engine`
+- **Database integration tests** (`tests/{postgres,mysql,mongo}.rs`, and `tests/query_run.rs` for `query/run` on all
+  three) run only with `GOKU_IT=1` (set in the `engine`
   container), so a plain `cargo test` on macOS or Windows skips them. Helpers: `tests/support/`. Scratch objects are named
   `rs_pg_*`, `rs_my_*`, `rs_mg_<random>` and dropped. Every test body runs under a hard deadline (`support::run`).
 - The test databases are shared by everything that uses the compose project: don't run two test runs at once in one

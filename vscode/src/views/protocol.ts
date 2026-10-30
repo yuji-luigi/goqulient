@@ -32,6 +32,67 @@ export interface QueryResult {
   elapsedMs: number;
 }
 
+// `query/run` (engine/crates/goku-engine/src/query/mod.rs). Not used by a webview yet: the query editor builds on it.
+
+export interface QueryRunParams {
+  sessionId: string;
+  /** One or more statements (SQL, or Mongo shell syntax). */
+  text: string;
+  /** The database to start in; the connection's when absent. */
+  database?: string;
+  /** The user agreed to the statements of a previous `needsConfirmation` answer. */
+  confirmed?: boolean;
+  /** Row cap per statement; the profile's `maxRows` when absent, at most 100,000. */
+  maxRows?: number;
+}
+
+/** UTF-16 offsets into `QueryRunParams.text`, `end` exclusive (`TextDocument.positionAt` takes them as they are). */
+export interface TextSpan {
+  start: number;
+  end: number;
+}
+
+export type StatementKind = 'rows' | 'affected' | 'message' | 'error';
+
+export interface StatementResult {
+  kind: StatementKind;
+  /** The statement as written (trimmed; SQL keeps its leading comments). */
+  statement: string;
+  span: TextSpan;
+  /** The database it ran in (after `USE` / `use`). */
+  database: string;
+  columns: ResultColumn[];
+  rows: (string | null)[][];
+  /** More rows existed than `maxRows`; the server was stopped. */
+  truncated: boolean;
+  affectedRows?: number;
+  /** MongoDB: one shell-style document per row. */
+  documents?: string[];
+  /** "inserted _id 1", "switched to db x", … */
+  message?: string;
+  /** Server notices (PostgreSQL `NOTICE` / `WARNING`). */
+  notices: string[];
+  elapsedMs: number;
+  /** Set when `kind` is `error`; nothing after this statement ran. */
+  error?: { message: string; kind: string };
+}
+
+/** A destructive statement (the Goku app's danger check), shown before anything runs. */
+export interface DangerFinding {
+  warning: string;
+  /** What it does, in words: "drops table", "deletes every row in". */
+  action: string;
+  /** The table or collection, when it can be told. */
+  object?: string;
+  database: string;
+  statement: string;
+  span: TextSpan;
+}
+
+export type QueryRunResult =
+  | { outcome: 'results'; results: StatementResult[] }
+  | { outcome: 'needsConfirmation'; findings: DangerFinding[] };
+
 export interface Attribute {
   name: string;
   type: string;

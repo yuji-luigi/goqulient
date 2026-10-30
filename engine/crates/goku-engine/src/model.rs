@@ -61,6 +61,12 @@ pub struct QueryResult {
     /// MongoDB: the documents as shell-style text, one per row, for a document view.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub documents: Option<Vec<String>>,
+    /// A statement's outcome in words ("inserted _id 1", "switched to db x"), for `query/run`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    /// Server notices the statement raised (PostgreSQL `NOTICE`, `WARNING`), for `query/run`.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub notices: Vec<String>,
     pub elapsed_ms: u64,
 }
 

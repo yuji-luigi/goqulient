@@ -2,9 +2,10 @@
 use crate::server::lock;
 use crate::server::{RpcError, params};
 use goku_engine::DbError;
-use goku_engine::limits::Paging;
+use goku_engine::limits::{HARD_MAX_ROWS, Paging};
 use goku_engine::model::{ObjectRef, Sort};
 use goku_engine::profile::{ConnectionProfile, Credentials};
+use goku_engine::query::{self, RunOptions};
 use goku_engine::session::{self, DatabaseSession};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -21,6 +22,17 @@ struct Open {
     profile: Value,
     #[serde(default)]
     credentials: Credentials,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Run {
+    session_id: String,
+    text: String,
+    database: Option<String>,
+    #[serde(default)]
+    confirmed: bool,
+    max_rows: Option<i64>,
 }
 
 #[derive(Deserialize)]
@@ -50,6 +62,7 @@ impl Sessions {
         "catalog/columns",
         "table/page",
         "schema/introspect",
+        "query/run",
     ];
 
     fn get(&self, id: &str) -> Result<Arc<dyn DatabaseSession>, RpcError> {
@@ -81,6 +94,17 @@ impl Sessions {
             let id = uuid_like();
             lock(&self.0).insert(id.clone(), s);
             return Ok(json!({"sessionId": id, "serverInfo": info, "endpoint": endpoint}));
+        }
+        if method == "query/run" {
+            let r: Run = params(p)?;
+            let s = self.get(&r.session_id)?;
+            let options = RunOptions {
+                database: r.database,
+                confirmed: r.confirmed,
+                max_rows: r.max_rows.map(|n| n.clamp(1, HARD_MAX_ROWS as i64) as usize),
+            };
+            let outcome = query::run(s.as_ref(), &r.text, &options, cancel).await?;
+            return Ok(serde_json::to_value(outcome).unwrap_or(Value::Null));
         }
         let t: Target = params(p)?;
         if method == "connection/close" {

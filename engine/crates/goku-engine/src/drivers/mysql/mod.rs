@@ -10,6 +10,7 @@ use crate::error::{DbError, Result};
 use crate::limits::{Paging, RowCollector};
 use crate::model::{Attribute, ObjectRef, QueryResult, ResultColumn, SchemaModel, ServerInfo, Sort};
 use crate::profile::{ConnectionProfile, Credentials, HostPort, SslMode, SslSettings, TargetSession};
+use crate::query::Statement;
 use crate::session::DatabaseSession;
 use async_trait::async_trait;
 use mysql_async::prelude::{Protocol, Queryable};
@@ -579,6 +580,19 @@ impl DatabaseSession for MySqlSession {
     async fn execute(&self, database: &str, statement: &str, cancel: &CancellationToken) -> Result<QueryResult> {
         let max_rows = self.profile.max_rows.max(1) as usize;
         self.run(Purpose::Editor, Some(database), statement, Params::Empty, max_rows, cancel).await
+    }
+
+    async fn run_statement(
+        &self,
+        database: &str,
+        statement: &Statement,
+        max_rows: usize,
+        cancel: &CancellationToken,
+    ) -> Result<QueryResult> {
+        let Statement::Sql(sql) = statement else {
+            return Err(DbError::Unsupported("Mongo shell statements on a MySQL connection".into()));
+        };
+        self.run(Purpose::Editor, Some(database), sql, Params::Empty, max_rows, cancel).await
     }
 
     async fn close(&self) {
