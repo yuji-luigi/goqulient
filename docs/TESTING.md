@@ -31,9 +31,16 @@ deletes them.
 | `pg-primary` | `postgres:17` | 25432 | `pg-primary:5432` | `dbc` / `dbcpass`, database `shop` (schemas `public`, `inventory`) |
 | `mysql-primary` | `mysql:8.4` (self-signed TLS) | 23306 | `mysql-primary:3306` | `dbc` / `dbcpass` (root: `rootpass`), databases `shop`, `analytics` |
 | `mongo` | `mongo:7` | 27217 | `mongo:27017` | no auth, database `shop` |
-| `engine` | `rust:1.99.1-bookworm` | – | – | `GOKU_IT=1`, `PG_HOST`, `MYSQL_HOST`, `MONGO_HOST` |
+| `ssh-bastion` | `docker/ssh` (Alpine + OpenSSH) | 22222 | `ssh-bastion:22` | `dbc` / `sshpass`; keys in the `ssh-keys` volume |
+| `engine` | `rust:1.99.1-bookworm` | – | – | `GOKU_IT=1`, `PG_HOST`, `MYSQL_HOST`, `MONGO_HOST`, `SSH_HOST`, `SSH_KEYS` (`ssh-keys` mounted read-only at `/ssh-keys`) |
 | `vscode` | `node:24-bookworm` | – | – | `GOKU_ENGINE_BIN` = the engine's Linux debug build |
 | `vscode-e2e` (profile `e2e`) | `docker/vscode-e2e` (Node + xvfb + VS Code's libraries) | – | – | started by `vscode e2e` only |
+
+The bastion runs by default (`up` starts it with the databases; 64 MB, a quarter CPU). At first start it writes test
+key pairs into the `ssh-keys` volume (`id_ed25519` without a passphrase, `id_ed25519_enc` and the 3072-bit `id_rsa`
+with the passphrase `keypass`, all in `authorized_keys`) and copies its host keys there (`host_{ed25519,ecdsa,rsa}.pub`).
+It forwards to the databases by service name, so a native VS Code can try a tunnel too: SSH host `127.0.0.1`, port
+22222, user `dbc`, password `sshpass`, database host `pg-primary:5432`.
 
 Build output stays in volumes (`engine-target`, `engine-cargo`, `vscode-node-modules`, `vscode-test`), so a Linux build
 never lands in your checkout. The host ports are for trying the extension in your own VS Code against the test
@@ -45,8 +52,8 @@ databases or host ports:
 - `dev.sh` exports `COMPOSE_PROJECT_NAME`: `goqulient` in the main checkout (and in CI, or a copy without `.git`), the
   worktree's folder name in a linked worktree (`git worktree add ../goqulient-tunnels` → project `goqulient-tunnels`).
   Each project has its own containers, volumes (so the first build in a new worktree is a cold one) and `./` mount.
-- A linked worktree publishes the databases on ports derived from its name (25432/23306/27217 plus the same offset,
-  1–999); `GOKU_PG_PORT`, `GOKU_MYSQL_PORT` and `GOKU_MONGO_PORT` override them. `scripts/dev.sh env` prints the name,
+- A linked worktree publishes the databases and the bastion on ports derived from its name (25432/23306/27217/22222
+  plus the same offset, 1–999); `GOKU_PG_PORT`, `GOKU_MYSQL_PORT`, `GOKU_MONGO_PORT` and `GOKU_SSH_PORT` override them. `scripts/dev.sh env` prints the name,
   ports and limits as `export` lines: `eval "$(scripts/dev.sh env)"` before a bare `docker compose` command (such as
   the Atlas one above) so it reaches the same project.
 - A linked worktree's `engine` container defaults to 3 GB and 2 CPUs (`GOKU_ENGINE_MEM`, `GOKU_ENGINE_CPUS`; the main
@@ -65,6 +72,13 @@ databases or host ports:
   `rs_pg_*`, `rs_my_*`, `rs_mg_<random>` and dropped. Every test body runs under a hard deadline (`support::run`).
 - The test databases are shared by everything that uses the compose project: don't run two test runs at once in one
   checkout (each worktree has its own project).
+- **SSH tunnels** (`tests/tunnel.rs`) go through `ssh-bastion`: unknown and mismatched host keys (the key a client
+  would pin is learnt from the `unknownHostKey` error and checked against the bastion's host key files), password and
+  key auth (plain and encrypted ed25519, encrypted RSA), wrong password and passphrase, an unreachable target, a
+  "bastion" that never sends its banner (a local listener: the connect deadline fires), closing the tunnel, and each
+  driver behind it. Each driver test checks on the server that the client address is the bastion's. Unit tests in
+  `tunnel.rs` and the protocol tests (an in-process russh server) cover the deadline, cancel, key files and the error
+  shape without Docker.
 - The PostgreSQL server has no TLS, so `tests/postgres.rs` checks the verifying TLS modes only when `PG_TLS_HOST` and
   `PG_TLS_CA` point at a TLS server whose certificate names that host.
 - **Atlas** (optional, `tests/atlas.rs`): SRV + TLS against a MongoDB Atlas cluster. Put `GOKU_ATLAS_USER`,
