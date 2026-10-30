@@ -8,8 +8,10 @@
 mod extjson;
 pub mod format;
 pub mod infer;
+pub mod shell;
 
 pub use extjson::parse_document;
+use shell::command_writes;
 
 use crate::deadline::with_deadline;
 use crate::drivers::lock;
@@ -276,52 +278,6 @@ fn int(v: Option<&Bson>) -> Option<i64> {
         Bson::Int64(i) => Some(*i),
         Bson::Double(d) if d.is_finite() => Some(*d as i64),
         _ => None,
-    }
-}
-
-/// Commands that only read: the app's `MongoCall.readCommands` (everything else counts as a write).
-const READ_COMMANDS: &[&str] = &[
-    "find",
-    "aggregate",
-    "count",
-    "distinct",
-    "getMore",
-    "explain",
-    "listCollections",
-    "listIndexes",
-    "listDatabases",
-    "listSearchIndexes",
-    "dbStats",
-    "collStats",
-    "dataSize",
-    "dbHash",
-    "serverStatus",
-    "hello",
-    "isMaster",
-    "ismaster",
-    "buildInfo",
-    "buildinfo",
-    "ping",
-    "connectionStatus",
-    "hostInfo",
-    "whatsmyuri",
-    "getParameter",
-    "top",
-    "lockInfo",
-    "replSetGetStatus",
-    "replSetGetConfig",
-    "rolesInfo",
-];
-
-/// Port of `MongoCall.commandWrites`: the first key names the command; `$out`/`$merge` make an aggregation a write.
-fn command_writes(d: &Document) -> bool {
-    let Some((key, value)) = d.iter().next() else { return false };
-    match key.as_str() {
-        "aggregate" => d.get_array("pipeline").is_ok_and(|p| {
-            p.iter().any(|s| s.as_document().is_some_and(|s| s.contains_key("$out") || s.contains_key("$merge")))
-        }),
-        "explain" => value.as_document().is_none_or(command_writes),
-        k => !READ_COMMANDS.contains(&k),
     }
 }
 

@@ -10,6 +10,7 @@ pub mod error;
 pub mod limits;
 pub mod model;
 pub mod profile;
+pub mod query;
 pub mod redact;
 pub mod session;
 

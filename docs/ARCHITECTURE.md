@@ -24,6 +24,9 @@ settings and `.env`, and an end-to-end test in a real VS Code. No SSH tunnels an
 | `RowCollector`, `clip`, `Paging`, limits | `engine/crates/goku-engine/src/limits.rs` |
 | ER layout (port of `ERLayout.swift`, checked against `parity/er-layout`) | `engine/crates/goku-engine/src/er.rs`, `tests/parity_er_layout.rs` |
 | PostgreSQL driver: connect + host selection + pool + cancel (`mod.rs`), rustls modes (`tls.rs`), `PGValueFormatter` port (`format.rs`), catalog + introspection (`introspect.rs`); integration tests | `engine/crates/goku-engine/src/drivers/postgres/`, `tests/postgres.rs` |
+| SQL splitter with spans (port of `SQLStatementStream` / `SQLSplitter`), `Normalized` (`SQLNormalizer.swift`), `is_potentially_writing`, `check_sql` (read-only + rules, `AccessRules.swift`) | `engine/crates/goku-engine/src/query/sql.rs` |
+| Danger check (port of `DangerCheck.swift`): SQL and Mongo findings | `engine/crates/goku-engine/src/query/danger.rs` |
+| Query parity: splitting, SQL safety, danger check, Mongo shell (`parity/{sql-split,sql-safety,danger,mongo-shell}`) | `engine/crates/goku-engine/tests/parity_query.rs` |
 | `secrets` / `uri` redaction (same patterns as `Redaction.swift`) | `engine/crates/goku-engine/src/redact.rs` |
 | `ConnectionProfile` + tolerant decoding, `validate`, `decode_profiles`, `Credentials` (masked `Debug`) | `engine/crates/goku-engine/src/profile.rs` |
 | MySQL/MariaDB driver (`mysql_async` + rustls/ring): connect, host selection, TLS modes, `editor`/`meta` connections, `KILL QUERY`; catalog + introspection; cell formatting (`MySQLValueFormatter` port) | `engine/crates/goku-engine/src/drivers/mysql/{mod,catalog,format}.rs`, `tests/mysql.rs` |
@@ -31,6 +34,7 @@ settings and `.env`, and an end-to-end test in a real VS Code. No SSH tunnels an
 | BSON → shell text and the Mongo grid (port of `BSONFormat.swift`) | `engine/crates/goku-engine/src/drivers/mongo/format.rs` |
 | Mongo inference (port of `MongoSchemaInference.swift`) | `engine/crates/goku-engine/src/drivers/mongo/infer.rs` |
 | Extended JSON → BSON keeping key order (`parse_document`) | `engine/crates/goku-engine/src/drivers/mongo/extjson.rs` |
+| Mongo shell parser (port of `MongoShellParser.swift`): values, statements, `MongoCall` with `is_write` / `write_targets`, `check_mongo` | `engine/crates/goku-engine/src/drivers/mongo/shell.rs` |
 | Mongo tests: integration, inference parity, optional Atlas; helpers `support/mongo.rs`, `support/parity.rs` (shared normalization) | `engine/crates/goku-engine/tests/{mongo,parity_mongo_inference,atlas}.rs` |
 | Framing (LSP `Content-Length`, 16 MiB cap) | `engine/crates/goku-engine-server/src/framing.rs` |
 | Dispatch, error codes, methods | `engine/crates/goku-engine-server/src/server.rs` |
@@ -414,8 +418,9 @@ These are the rules in [AGENTS.md](../AGENTS.md#safety), as the engine implement
 | Experiment | The Mac app on this Rust engine through uniffi |
 
 ## Risks / open questions
-- MySQL cancel and MariaDB differences in `mysql_async`, and the Mongo shell syntax of the query editor (a port of the
-  app's `MongoShellParser`), are the largest porting risks.
+- MySQL cancel and MariaDB differences in `mysql_async` are the largest porting risk. The Mongo shell parser is ported
+  and checked against `parity/mongo-shell`; what the fixtures don't cover (hex floats in `Double('0x10')`, exotic date
+  spellings) may still differ from Foundation.
 - Windows CI can't run Linux service containers: database integration tests run on Linux only.
 - Native macOS/Windows engine builds and the arm64 cross builds are only exercised in CI.
 - Inherited from GokuCore: Mongo inference on collections over 100 documents uses `$sample`, so it isn't deterministic

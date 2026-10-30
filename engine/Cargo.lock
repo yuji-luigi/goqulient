@@ -819,6 +819,7 @@ name = "goku-engine"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "base64",
  "bson",
  "fancy-regex",
  "futures-util",
