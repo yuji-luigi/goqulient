@@ -1,0 +1,212 @@
+{
+  "input" : {
+    "values" : [
+      "{ name: 'Ann', 'a.b': 1, n: 3000000000, f: 1.5, ok: true, x: null, id: ObjectId('507f1f77bcf86cd799439011'), at: ISODate('2024-01-02T03:04:05Z'), r: /ab+c/i, tags: ['a', \"b\",], nested: { $gt: NumberLong(5) } }",
+      "{\"_id\": {\"$oid\": \"507f1f77bcf86cd799439011\"}, \"d\": {\"$date\": \"2024-01-02T03:04:05.123Z\"}, \"l\": {\"$numberLong\": \"42\"}}",
+      "[1, -1, +1, 0, -0, 2147483647, 2147483648, -2147483648, -2147483649, 9223372036854775807, 9223372036854775808, 1.0, 1e3, 1E-3, 1.5e+2, .5, -.5, 5., Infinity, -Infinity, +Infinity, NaN, 0.1, 1e300, 12345678901234567890]",
+      "[true, false, null, undefined]",
+      "['a\\nb', \"q\\\"\", `back`, 'u\\u00e9', 'sur\\ud83d\\ude00', 'x\\qy', '\\0', 'tab\\t', 'cr\\r', '\\b\\f', 'lone\\ud83d', \"日本\", '🇮🇹']",
+      "[/a\\/b/gim, /[/]x/, /a/zm, /\\d+/, /a/]",
+      "[ObjectId('507F1F77BCF86CD799439011'), new Date('2024-01-02'), ISODate('2024-01-02T03:04:05.123Z'), ISODate('2024-01-02T03:04:05+02:00'), ISODate('2024-01-02 03:04:05'), ISODate('2024-01-02T03:04:05'), ISODate('2024-01-02T03:04:05.123'), ISODate(0), Date(1700000000000), ISODate('2024-01-02T03:04:05.5Z'), ISODate(' 2024-01-02 '), ISODate(-1000), ISODate(1.5)]",
+      "[NumberLong('42'), NumberLong(7), Long(8), NumberInt('5'), Int32(6), NumberDecimal('9.99'), Decimal128('-1.5E+3'), NumberDecimal('NaN'), NumberDecimal('-Infinity'), NumberDecimal('0.000'), NumberDecimal('1e-3'), NumberDecimal(12), Double('2.5'), Double(3), new NumberLong('9'), NumberLong(-3000000000)]",
+      "[UUID('0e3c2d0e-4b6a-4c3e-9f0a-1b2c3d4e5f60'), UUID('0E3C2D0E-4B6A-4C3E-9F0A-1B2C3D4E5F60'), BinData(4, 'AQID'), BinData(0, ''), Timestamp(1700000000, 1), RegExp('a+', 'mi'), RegExp('b'), MinKey(), MaxKey()]",
+      "{a: {$oid: '507f1f77bcf86cd799439011'}, b: {$date: '2024-01-02T03:04:05Z'}, c: {$date: 0}, d: {$date: {$numberLong: '1700000000000'}}, e: {$numberLong: '5'}, f: {$numberInt: '6'}, g: {$numberDouble: '1.5'}, h: {$numberDecimal: '1.1'}, i: {$uuid: '0e3c2d0e-4b6a-4c3e-9f0a-1b2c3d4e5f60'}, j: {$binary: {base64: 'AQID', subType: '05'}}, k: {$regularExpression: {pattern: 'x', options: 'i'}}, l: {$timestamp: {t: 1, i: 2}}, m: {$minKey: 1}, n: {$maxKey: 1}, o: {$code: 'f()'}, p: {$code: 'g()', $scope: {x: 1}}, q: {$gt: 1}, r: {$oid: 'bad'}, s: {$numberLong: 5}, t: {$date: 'nope'}, u: {$numberDouble: 'NaN'}, v: {$binary: {base64: 'AQID', subType: '80'}}, w: {$timestamp: {t: -1, i: 3000000000}}}",
+      "{ /* c */ a: 1, // line\n b: 2 }",
+      "{a: 1, b: 2, a: 3}",
+      "{}",
+      "[]",
+      "[1,]",
+      "{a:1,}",
+      "{ café: 1, $x: 2, _y: 3, 'with space': 4, 1a: 5, a.b.c: 6 }",
+      "{ a: [ { b: [ 1, [ 2, { c: 3 } ] ] } ] }",
+      "{",
+      "{a:}",
+      "[1,2",
+      "'unterminated",
+      "ObjectId('zz')",
+      "/abc",
+      "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[",
+      "Foo()",
+      "new 5",
+      "NumberLong('x')",
+      "UUID('nope')",
+      "BinData(0)",
+      "Timestamp(1)",
+      "Date('garbage')",
+      "{a 1}",
+      "'\\u12'",
+      "-abc",
+      "1e",
+      "{a: 1} x",
+      "@",
+      "",
+      "[,]",
+      "{,}",
+      "NumberInt(3000000000)",
+      "ObjectId(5)",
+      "BinData(0, '!!')",
+      "{ 'a': 1 \n , \n b }",
+      "NumberDecimal('1.2.3')",
+      "new",
+      "Timestamp('a', 1)",
+      "- 5",
+      "+Infinity",
+      "-Infinityx"
+    ]
+  },
+  "output" : [
+    {
+      "value" : "{\"name\":\"Ann\",\"a.b\":{\"$numberInt\":\"1\"},\"n\":{\"$numberLong\":\"3000000000\"},\"f\":{\"$numberDouble\":\"1.5\"},\"ok\":true,\"x\":null,\"id\":{\"$oid\":\"507f1f77bcf86cd799439011\"},\"at\":{\"$date\":{\"$numberLong\":\"1704164645000\"}},\"r\":{\"$regularExpression\":{\"pattern\":\"ab+c\",\"options\":\"i\"}},\"tags\":[\"a\",\"b\"],\"nested\":{\"$gt\":{\"$numberLong\":\"5\"}}}"
+    },
+    {
+      "value" : "{\"_id\":{\"$oid\":\"507f1f77bcf86cd799439011\"},\"d\":{\"$date\":{\"$numberLong\":\"1704164645123\"}},\"l\":{\"$numberLong\":\"42\"}}"
+    },
+    {
+      "value" : "[{\"$numberInt\":\"1\"},{\"$numberInt\":\"-1\"},{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"},{\"$numberInt\":\"0\"},{\"$numberInt\":\"2147483647\"},{\"$numberLong\":\"2147483648\"},{\"$numberInt\":\"-2147483648\"},{\"$numberLong\":\"-2147483649\"},{\"$numberLong\":\"9223372036854775807\"},{\"$numberDouble\":\"9.223372036854776e+18\"},{\"$numberDouble\":\"1.0\"},{\"$numberDouble\":\"1000.0\"},{\"$numberDouble\":\"0.001\"},{\"$numberDouble\":\"150.0\"},{\"$numberDouble\":\"0.5\"},{\"$numberDouble\":\"-0.5\"},{\"$numberDouble\":\"5.0\"},{\"$numberDouble\":\"Infinity\"},{\"$numberDouble\":\"-Infinity\"},{\"$numberDouble\":\"Infinity\"},{\"$numberDouble\":\"NaN\"},{\"$numberDouble\":\"0.1\"},{\"$numberDouble\":\"1e+300\"},{\"$numberDouble\":\"1.2345678901234567e+19\"}]"
+    },
+    {
+      "value" : "[true,false,null,null]"
+    },
+    {
+      "value" : "[\"a\\nb\",\"q\\\"\",\"back\",\"ué\",\"sur😀\",\"xqy\",\"\\u0000\",\"tab\\t\",\"cr\\r\",\"\\u0008\\u000c\",\"lone\",\"日本\",\"🇮🇹\"]"
+    },
+    {
+      "value" : "[{\"$regularExpression\":{\"pattern\":\"a\\\\/b\",\"options\":\"gim\"}},{\"$regularExpression\":{\"pattern\":\"[/]x\",\"options\":\"\"}},{\"$regularExpression\":{\"pattern\":\"a\",\"options\":\"mz\"}},{\"$regularExpression\":{\"pattern\":\"\\\\d+\",\"options\":\"\"}},{\"$regularExpression\":{\"pattern\":\"a\",\"options\":\"\"}}]"
+    },
+    {
+      "value" : "[{\"$oid\":\"507f1f77bcf86cd799439011\"},{\"$date\":{\"$numberLong\":\"1704153600000\"}},{\"$date\":{\"$numberLong\":\"1704164645123\"}},{\"$date\":{\"$numberLong\":\"1704157445000\"}},{\"$date\":{\"$numberLong\":\"1704153600000\"}},{\"$date\":{\"$numberLong\":\"1704153600000\"}},{\"$date\":{\"$numberLong\":\"1704153600000\"}},{\"$date\":{\"$numberLong\":\"0\"}},{\"$date\":{\"$numberLong\":\"1700000000000\"}},{\"$date\":{\"$numberLong\":\"1704164645500\"}},{\"$date\":{\"$numberLong\":\"1704153600000\"}},{\"$date\":{\"$numberLong\":\"-1000\"}},{\"$date\":{\"$numberLong\":\"1\"}}]"
+    },
+    {
+      "value" : "[{\"$numberLong\":\"42\"},{\"$numberLong\":\"7\"},{\"$numberLong\":\"8\"},{\"$numberInt\":\"5\"},{\"$numberInt\":\"6\"},{\"$numberDecimal\":\"9.99\"},{\"$numberDecimal\":\"-1.5E+3\"},{\"$numberDecimal\":\"NaN\"},{\"$numberDecimal\":\"-Infinity\"},{\"$numberDecimal\":\"0.000\"},{\"$numberDecimal\":\"0.001\"},{\"$numberDecimal\":\"12\"},{\"$numberDouble\":\"2.5\"},{\"$numberDouble\":\"3.0\"},{\"$numberLong\":\"9\"},{\"$numberLong\":\"-3000000000\"}]"
+    },
+    {
+      "value" : "[{\"$binary\":{\"base64\":\"DjwtDktqTD6fChssPU5fYA==\",\"subType\":\"04\"}},{\"$binary\":{\"base64\":\"DjwtDktqTD6fChssPU5fYA==\",\"subType\":\"04\"}},{\"$binary\":{\"base64\":\"AQID\",\"subType\":\"00\"}},{\"$binary\":{\"base64\":\"\",\"subType\":\"00\"}},{\"$timestamp\":{\"t\":1700000000,\"i\":1}},{\"$regularExpression\":{\"pattern\":\"a+\",\"options\":\"mi\"}},{\"$regularExpression\":{\"pattern\":\"b\",\"options\":\"\"}},{\"$minKey\":1},{\"$maxKey\":1}]"
+    },
+    {
+      "value" : "{\"a\":{\"$oid\":\"507f1f77bcf86cd799439011\"},\"b\":{\"$date\":{\"$numberLong\":\"1704164645000\"}},\"c\":{\"$date\":{\"$numberLong\":\"0\"}},\"d\":{\"$date\":{\"$numberLong\":\"1700000000000\"}},\"e\":{\"$numberLong\":\"5\"},\"f\":{\"$numberInt\":\"6\"},\"g\":{\"$numberDouble\":\"1.5\"},\"h\":{\"$numberDecimal\":\"1.1\"},\"i\":{\"$binary\":{\"base64\":\"DjwtDktqTD6fChssPU5fYA==\",\"subType\":\"04\"}},\"j\":{\"$binary\":{\"base64\":\"AQID\",\"subType\":\"05\"}},\"k\":{\"$regularExpression\":{\"pattern\":\"x\",\"options\":\"i\"}},\"l\":{\"$timestamp\":{\"t\":1,\"i\":2}},\"m\":{\"$minKey\":1},\"n\":{\"$maxKey\":1},\"o\":{\"$code\":\"f()\"},\"p\":{\"$code\":\"g()\",\"$scope\":{\"x\":{\"$numberInt\":\"1\"}}},\"q\":{\"$gt\":{\"$numberInt\":\"1\"}},\"r\":{\"$oid\":\"bad\"},\"s\":{\"$numberLong\":{\"$numberInt\":\"5\"}},\"t\":{\"$date\":\"nope\"},\"u\":{\"$numberDouble\":\"NaN\"},\"v\":{\"$binary\":{\"base64\":\"AQID\",\"subType\":\"80\"}},\"w\":{\"$timestamp\":{\"t\":4294967295,\"i\":3000000000}}}"
+    },
+    {
+      "value" : "{\"a\":{\"$numberInt\":\"1\"},\"b\":{\"$numberInt\":\"2\"}}"
+    },
+    {
+      "value" : "{\"b\":{\"$numberInt\":\"2\"},\"a\":{\"$numberInt\":\"3\"}}"
+    },
+    {
+      "value" : "{}"
+    },
+    {
+      "value" : "[]"
+    },
+    {
+      "value" : "[{\"$numberInt\":\"1\"}]"
+    },
+    {
+      "value" : "{\"a\":{\"$numberInt\":\"1\"}}"
+    },
+    {
+      "value" : "{\"café\":{\"$numberInt\":\"1\"},\"$x\":{\"$numberInt\":\"2\"},\"_y\":{\"$numberInt\":\"3\"},\"with space\":{\"$numberInt\":\"4\"},\"1a\":{\"$numberInt\":\"5\"},\"a.b.c\":{\"$numberInt\":\"6\"}}"
+    },
+    {
+      "value" : "{\"a\":[{\"b\":[{\"$numberInt\":\"1\"},[{\"$numberInt\":\"2\"},{\"c\":{\"$numberInt\":\"3\"}}]]}]}"
+    },
+    {
+      "error" : "Parse error: Expected a field name at line 1, column 2"
+    },
+    {
+      "error" : "Parse error: Unexpected character '}' at line 1, column 4"
+    },
+    {
+      "error" : "Parse error: Expected ']' at line 1, column 5"
+    },
+    {
+      "error" : "Parse error: Unterminated string at line 1, column 14"
+    },
+    {
+      "error" : "Parse error: Invalid ObjectId at line 1, column 15"
+    },
+    {
+      "error" : "Parse error: Unterminated regular expression at line 1, column 5"
+    },
+    {
+      "error" : "Parse error: Nesting too deep at line 1, column 100"
+    },
+    {
+      "error" : "Parse error: Unknown function Foo() at line 1, column 6"
+    },
+    {
+      "error" : "Parse error: Expected constructor after 'new' at line 1, column 5"
+    },
+    {
+      "error" : "Parse error: Invalid NumberLong at line 1, column 16"
+    },
+    {
+      "error" : "Parse error: Invalid UUID at line 1, column 13"
+    },
+    {
+      "error" : "Parse error: BinData(subtype, base64) expected at line 1, column 11"
+    },
+    {
+      "error" : "Parse error: Timestamp(t, i) expected at line 1, column 13"
+    },
+    {
+      "error" : "Parse error: Invalid date at line 1, column 16"
+    },
+    {
+      "error" : "Parse error: Expected ':' at line 1, column 4"
+    },
+    {
+      "error" : "Parse error: Bad \\u escape at line 1, column 4"
+    },
+    {
+      "error" : "Parse error: Invalid number '-abc' at line 1, column 5"
+    },
+    {
+      "error" : "Parse error: Invalid number '1e' at line 1, column 3"
+    },
+    {
+      "error" : "Parse error: Unexpected trailing input at line 1, column 8"
+    },
+    {
+      "error" : "Parse error: Unexpected character '@' at line 1, column 1"
+    },
+    {
+      "error" : "Parse error: Expected a value at line 1, column 1"
+    },
+    {
+      "error" : "Parse error: Unexpected character ',' at line 1, column 2"
+    },
+    {
+      "error" : "Parse error: Expected a field name at line 1, column 2"
+    },
+    {
+      "error" : "Parse error: Invalid NumberInt at line 1, column 22"
+    },
+    {
+      "error" : "Parse error: Invalid ObjectId at line 1, column 12"
+    },
+    {
+      "error" : "Parse error: BinData(subtype, base64) expected at line 1, column 17"
+    },
+    {
+      "error" : "Parse error: Expected ':' at line 3, column 4"
+    },
+    {
+      "error" : "Parse error: Invalid NumberDecimal at line 1, column 23"
+    },
+    {
+      "error" : "Parse error: Expected constructor after 'new' at line 1, column 4"
+    },
+    {
+      "error" : "Parse error: Timestamp(t, i) expected at line 1, column 18"
+    },
+    {
+      "error" : "Parse error: Invalid number '- 5' at line 1, column 4"
+    },
+    {
+      "value" : "{\"$numberDouble\":\"Infinity\"}"
+    },
+    {
+      "error" : "Parse error: Invalid number '-Infinityx' at line 1, column 11"
+    }
+  ]
+}

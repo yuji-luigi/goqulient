@@ -1,0 +1,275 @@
+{
+  "input" : {
+    "database" : "shop",
+    "dialect" : "postgres",
+    "scripts" : [
+      "select 1; select 2 ;\n\n",
+      "select 'a;b', \"x;y\" -- c;d\n; /* e;f */ select 2; -- only comment",
+      "CREATE FUNCTION f() RETURNS int AS $$ BEGIN RETURN 1; END; $$ LANGUAGE plpgsql; SELECT f();",
+      "DO $body$ BEGIN PERFORM 1; END $body$; select $1",
+      "SELECT 1 WHERE'\\' <> ''; DELETE FROM t",
+      "CREATE FUNCTION f() RETURNS int AS $body$ BEGIN RETURN 1; END; $body$ LANGUAGE plpgsql; SELECT E'a\\';b'; SELECT 2",
+      "SELECT /* a /* b; */ c; */ 1; SELECT 2",
+      "-- only a comment",
+      "",
+      "   ;;; \n ; ",
+      "SELECT 1;\n-- trailing comment\n",
+      "/* lead */ SELECT 1; /* mid */ ; SELECT 2",
+      "COPY t FROM STDIN; SELECT 1",
+      "WITH d AS (DELETE FROM t RETURNING *) SELECT * FROM d; SELECT 'it''s'",
+      "SELECT $tag$ ; $notatag$ ; $tag$; SELECT 2",
+      "SELECT a$b; SELECT $1; SELECT $_x$;$_x$",
+      "SELECT 'unterminated; SELECT 2",
+      "SELECT \"weird\"\"name;\" FROM t; SELECT 2",
+      "select U&'d\\0061t;' from t; select 2",
+      "SELECT 'héllo; 世界'; SELECT '🇮🇹' AS flag",
+      "SELECT 1 # not a comment; SELECT 2",
+      "SELECT 1;\r\nSELECT 2\r\n",
+      "\n\n  SELECT 1  \n\n;\tSELECT\n2",
+      "SELECT 1 /* unterminated; SELECT 2",
+      "DELIMITER //\nSELECT 1//"
+    ]
+  },
+  "output" : [
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "select 1",
+        "select 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "select 'a;b', \"x;y\" -- c;d",
+        "/* e;f */ select 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "CREATE FUNCTION f() RETURNS int AS $$ BEGIN RETURN 1; END; $$ LANGUAGE plpgsql",
+        "SELECT f()"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "DO $body$ BEGIN PERFORM 1; END $body$",
+        "select $1"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1 WHERE'\\' <> ''",
+        "DELETE FROM t"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "CREATE FUNCTION f() RETURNS int AS $body$ BEGIN RETURN 1; END; $body$ LANGUAGE plpgsql",
+        "SELECT E'a\\';b'",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT /* a /* b; */ c; */ 1",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+
+      ],
+      "statements" : [
+
+      ]
+    },
+    {
+      "databases" : [
+
+      ],
+      "statements" : [
+
+      ]
+    },
+    {
+      "databases" : [
+
+      ],
+      "statements" : [
+
+      ]
+    },
+    {
+      "databases" : [
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "/* lead */ SELECT 1",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "COPY t FROM STDIN",
+        "SELECT 1"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "WITH d AS (DELETE FROM t RETURNING *) SELECT * FROM d",
+        "SELECT 'it''s'"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT $tag$ ; $notatag$ ; $tag$",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT a$b",
+        "SELECT $1",
+        "SELECT $_x$;$_x$"
+      ]
+    },
+    {
+      "databases" : [
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 'unterminated; SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT \"weird\"\"name;\" FROM t",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "select U&'d\\0061t;' from t",
+        "select 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 'héllo; 世界'",
+        "SELECT '🇮🇹' AS flag"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1 # not a comment",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1",
+        "SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop",
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1",
+        "SELECT\n2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop"
+      ],
+      "statements" : [
+        "SELECT 1 /* unterminated; SELECT 2"
+      ]
+    },
+    {
+      "databases" : [
+        "shop"
+      ],
+      "statements" : [
+        "DELIMITER //\nSELECT 1//"
+      ]
+    }
+  ]
+}

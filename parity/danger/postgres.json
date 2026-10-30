@@ -1,0 +1,384 @@
+{
+  "input" : {
+    "database" : "shop",
+    "kind" : "postgres",
+    "scripts" : [
+      "select 1; delete from t where id = 1",
+      "DELETE FROM t",
+      "-- DELETE FROM t\nSELECT 1",
+      "SELECT 1; DROP TABLE customers",
+      "DELETE   FROM \"Orders\"\n -- all of them",
+      "DELETE FROM orders -- WHERE id=1",
+      "UPDATE t SET note='where'",
+      "EXPLAIN ANALYZE DELETE FROM orders",
+      "WITH d AS (DELETE FROM orders RETURNING 1) SELECT 1",
+      "DO $$ BEGIN DROP TABLE orders; END $$",
+      "CALL cleanup()",
+      "UPDATE t SET a = (SELECT b FROM c WHERE c.id = t.id)",
+      "DELETE FROM t AS \"where\"",
+      "EXECUTE purge_all",
+      "DELETE FROM orders WHERE id = 1",
+      "EXPLAIN DELETE FROM orders",
+      "WITH d AS (DELETE FROM orders WHERE id = 1 RETURNING 1) SELECT 1",
+      "SELECT * FROM t FOR UPDATE",
+      "UPDATE t SET a = 1 WHERE id IN (SELECT id FROM u)",
+      "SELECT 'DROP TABLE x'",
+      "DROP TABLE IF EXISTS a, b",
+      "DROP MATERIALIZED VIEW mv",
+      "DROP INDEX CONCURRENTLY IF EXISTS i",
+      "DROP FOREIGN TABLE ft",
+      "DROP SCHEMA s CASCADE",
+      "TRUNCATE TABLE ONLY t",
+      "TRUNCATE t1, t2",
+      "ALTER TABLE ONLY t DROP CONSTRAINT c",
+      "ALTER TABLE IF EXISTS t DROP COLUMN c",
+      "ALTER TABLE t ADD COLUMN c int",
+      "ALTER INDEX i RENAME TO j",
+      "UPDATE ONLY t SET a = 1",
+      "DELETE FROM ONLY t",
+      "EXPLAIN ANALYZE UPDATE t SET a = 1",
+      "WITH a AS (UPDATE t SET x = 1), b AS (DELETE FROM u) SELECT 1",
+      "COPY t FROM STDIN",
+      "DELETE FROM t WHERE (a = 1)",
+      "DELETE FROM t USING u WHERE t.id = u.id",
+      "  delete from public.t;",
+      "(DELETE FROM t)",
+      "UPDATE accounts SET balance = 0, note = 'a very long text that goes on and on and on so the warning gets clipped at eighty'",
+      "DELETE FROM \"my schema\".\"Orders\"",
+      "SELECT 1; SELECT 2",
+      "",
+      "TRUNCATE ONLY \"Weird\"",
+      "ALTER TABLE t ALTER COLUMN c DROP DEFAULT"
+    ]
+  },
+  "output" : [
+    [
+
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "DELETE FROM t",
+        "warning" : "DELETE without WHERE affects every row: DELETE FROM t"
+      }
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "drops table",
+        "database" : "shop",
+        "object" : "customers",
+        "statement" : "DROP TABLE customers",
+        "warning" : "DROP: DROP TABLE customers"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "Orders",
+        "statement" : "DELETE   FROM \"Orders\"\n -- all of them",
+        "warning" : "DELETE without WHERE affects every row: DELETE FROM \"Orders\" -- all of them"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "orders",
+        "statement" : "DELETE FROM orders -- WHERE id=1",
+        "warning" : "DELETE without WHERE affects every row: DELETE FROM orders -- WHERE id=1"
+      }
+    ],
+    [
+      {
+        "action" : "updates every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "UPDATE t SET note='where'",
+        "warning" : "UPDATE without WHERE affects every row: UPDATE t SET note='where'"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "orders",
+        "statement" : "EXPLAIN ANALYZE DELETE FROM orders",
+        "warning" : "DELETE without WHERE affects every row: EXPLAIN ANALYZE DELETE FROM orders"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "orders",
+        "statement" : "WITH d AS (DELETE FROM orders RETURNING 1) SELECT 1",
+        "warning" : "DELETE without WHERE affects every row: WITH d AS (DELETE FROM orders RETURNING 1) SELECT 1"
+      }
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "DO $$ BEGIN DROP TABLE orders; END $$",
+        "warning" : "Can't tell what this changes (DO runs code this check can't see): DO $$ BEGIN DROP TABLE orders; END $$"
+      }
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "CALL cleanup()",
+        "warning" : "Can't tell what this changes (CALL runs code this check can't see): CALL cleanup()"
+      }
+    ],
+    [
+      {
+        "action" : "updates every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "UPDATE t SET a = (SELECT b FROM c WHERE c.id = t.id)",
+        "warning" : "UPDATE without WHERE affects every row: UPDATE t SET a = (SELECT b FROM c WHERE c.id = t.id)"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "DELETE FROM t AS \"where\"",
+        "warning" : "DELETE without WHERE affects every row: DELETE FROM t AS \"where\""
+      }
+    ],
+    [
+      {
+        "action" : "runs unchecked code in",
+        "database" : "shop",
+        "statement" : "EXECUTE purge_all",
+        "warning" : "Can't tell what this changes (EXECUTE runs code this check can't see): EXECUTE purge_all"
+      }
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "drops table",
+        "database" : "shop",
+        "object" : "a",
+        "statement" : "DROP TABLE IF EXISTS a, b",
+        "warning" : "DROP: DROP TABLE IF EXISTS a, b"
+      }
+    ],
+    [
+      {
+        "action" : "drops materialized view",
+        "database" : "shop",
+        "object" : "mv",
+        "statement" : "DROP MATERIALIZED VIEW mv",
+        "warning" : "DROP: DROP MATERIALIZED VIEW mv"
+      }
+    ],
+    [
+      {
+        "action" : "drops index",
+        "database" : "shop",
+        "object" : "i",
+        "statement" : "DROP INDEX CONCURRENTLY IF EXISTS i",
+        "warning" : "DROP: DROP INDEX CONCURRENTLY IF EXISTS i"
+      }
+    ],
+    [
+      {
+        "action" : "drops foreign table",
+        "database" : "shop",
+        "object" : "ft",
+        "statement" : "DROP FOREIGN TABLE ft",
+        "warning" : "DROP: DROP FOREIGN TABLE ft"
+      }
+    ],
+    [
+      {
+        "action" : "drops schema",
+        "database" : "shop",
+        "object" : "s",
+        "statement" : "DROP SCHEMA s CASCADE",
+        "warning" : "DROP: DROP SCHEMA s CASCADE"
+      }
+    ],
+    [
+      {
+        "action" : "truncates table",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "TRUNCATE TABLE ONLY t",
+        "warning" : "TRUNCATE: TRUNCATE TABLE ONLY t"
+      }
+    ],
+    [
+      {
+        "action" : "truncates table",
+        "database" : "shop",
+        "object" : "t1",
+        "statement" : "TRUNCATE t1, t2",
+        "warning" : "TRUNCATE: TRUNCATE t1, t2"
+      }
+    ],
+    [
+      {
+        "action" : "alters table",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "ALTER TABLE ONLY t DROP CONSTRAINT c",
+        "warning" : "ALTER … DROP: ALTER TABLE ONLY t DROP CONSTRAINT c"
+      }
+    ],
+    [
+      {
+        "action" : "alters table",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "ALTER TABLE IF EXISTS t DROP COLUMN c",
+        "warning" : "ALTER … DROP: ALTER TABLE IF EXISTS t DROP COLUMN c"
+      }
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "updates every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "UPDATE ONLY t SET a = 1",
+        "warning" : "UPDATE without WHERE affects every row: UPDATE ONLY t SET a = 1"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "DELETE FROM ONLY t",
+        "warning" : "DELETE without WHERE affects every row: DELETE FROM ONLY t"
+      }
+    ],
+    [
+      {
+        "action" : "updates every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "EXPLAIN ANALYZE UPDATE t SET a = 1",
+        "warning" : "UPDATE without WHERE affects every row: EXPLAIN ANALYZE UPDATE t SET a = 1"
+      }
+    ],
+    [
+      {
+        "action" : "updates every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "WITH a AS (UPDATE t SET x = 1), b AS (DELETE FROM u) SELECT 1",
+        "warning" : "UPDATE without WHERE affects every row: WITH a AS (UPDATE t SET x = 1), b AS (DELETE FROM u) SELECT 1"
+      },
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "u",
+        "statement" : "WITH a AS (UPDATE t SET x = 1), b AS (DELETE FROM u) SELECT 1",
+        "warning" : "DELETE without WHERE affects every row: WITH a AS (UPDATE t SET x = 1), b AS (DELETE FROM u) SELECT 1"
+      }
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "public.t",
+        "statement" : "delete from public.t",
+        "warning" : "DELETE without WHERE affects every row: delete from public.t"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "(DELETE FROM t)",
+        "warning" : "DELETE without WHERE affects every row: (DELETE FROM t)"
+      }
+    ],
+    [
+      {
+        "action" : "updates every row in",
+        "database" : "shop",
+        "object" : "accounts",
+        "statement" : "UPDATE accounts SET balance = 0, note = 'a very long text that goes on and on and on so the warning gets clipped at eighty'",
+        "warning" : "UPDATE without WHERE affects every row: UPDATE accounts SET balance = 0, note = 'a very long text that goes on and on an…"
+      }
+    ],
+    [
+      {
+        "action" : "deletes every row in",
+        "database" : "shop",
+        "object" : "my_schema.Orders",
+        "statement" : "DELETE FROM \"my schema\".\"Orders\"",
+        "warning" : "DELETE without WHERE affects every row: DELETE FROM \"my schema\".\"Orders\""
+      }
+    ],
+    [
+
+    ],
+    [
+
+    ],
+    [
+      {
+        "action" : "truncates table",
+        "database" : "shop",
+        "object" : "Weird",
+        "statement" : "TRUNCATE ONLY \"Weird\"",
+        "warning" : "TRUNCATE: TRUNCATE ONLY \"Weird\""
+      }
+    ],
+    [
+      {
+        "action" : "alters table",
+        "database" : "shop",
+        "object" : "t",
+        "statement" : "ALTER TABLE t ALTER COLUMN c DROP DEFAULT",
+        "warning" : "ALTER … DROP: ALTER TABLE t ALTER COLUMN c DROP DEFAULT"
+      }
+    ]
+  ]
+}
