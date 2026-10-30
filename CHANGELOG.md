@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.1](https://github.com/yuji-luigi/goqulient/compare/v0.1.0...v0.1.1) (2026-10-30)
+
+
+### Features
+
+* **vscode:** name a .env variable as a connection with a "# DATABASE_URL: Name" comment ([50acbf8](https://github.com/yuji-luigi/goqulient/commit/50acbf89de86b0af9a6bb62c91fa4cd6f762ef90))
+
+
+### Bug Fixes
+
+* **vscode:** accept a connection URL pasted into the Add Connection picker ([96804f7](https://github.com/yuji-luigi/goqulient/commit/96804f7c0e31353c9f579dc26026284d5901475b))
+* **vscode:** keep a selected table's relationships visible, and hide the others ([4c73adb](https://github.com/yuji-luigi/goqulient/commit/4c73adb95549c48aac94fef693469bf4c3eb5c79))
+
 ## [0.1.0](https://github.com/yuji-luigi/goqulient/releases/tag/v0.1.0) (2026-10-29)
 
 

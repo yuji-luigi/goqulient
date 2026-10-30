@@ -2,7 +2,7 @@
   "name": "goqulient",
   "displayName": "GoQulient",
   "description": "Browse PostgreSQL, MySQL/MariaDB and MongoDB databases and their ER diagrams, like the Goku app.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "yuji-luigi",
   "private": true,
   "license": "MIT",

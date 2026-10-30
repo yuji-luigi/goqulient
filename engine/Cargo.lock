@@ -816,7 +816,7 @@ dependencies = [
 
 [[package]]
 name = "goku-engine"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "bson",
@@ -839,7 +839,7 @@ dependencies = [
 
 [[package]]
 name = "goku-engine-server"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "goku-engine",
  "serde",
