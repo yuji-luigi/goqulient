@@ -40,7 +40,7 @@ connections from settings and `.env`, and an end-to-end test in a real VS Code. 
 | Extension entry: engine, store, tree, commands; the test API returned in test mode | `vscode/src/extension.ts` |
 | `EngineClient` (spawn, initialize, requests, cancel, stop, crash budget, `onDidStart`/`onDidStop`, `isRunning`), `EngineError` | `vscode/src/engine/client.ts` |
 | Sidebar `TreeDataProvider`: node types, catalog cache by node path, connection items | `vscode/src/tree/provider.ts` |
-| Sessions by connection id: lazy connect, cancel, password retry, engine stop, `sync` | `vscode/src/tree/sessions.ts` |
+| Sessions by connection id: lazy connect, cancel, password retry, SSH host-key trust and SSH secret retries, engine stop, `sync` | `vscode/src/tree/sessions.ts` |
 | Tree commands: open table (double-click/Enter), ER, refresh, disconnect, cancel, retry, copy name | `vscode/src/tree/commands.ts` |
 | Pure tree helpers: kind groups in app order, source groups, descriptions, `erLayoutKey`, `isAuthFailure` | `vscode/src/tree/model.ts` |
 | Activity bar icon | `vscode/media/activitybar.svg` |
@@ -50,7 +50,8 @@ connections from settings and `.env`, and an end-to-end test in a real VS Code. 
 | dotenv parser (no expansion) | `vscode/src/connections/envParse.ts` |
 | URL → profile + credentials, `.env` discovery, `goqulient.envConnections` | `vscode/src/connections/envProfiles.ts` |
 | Settings decoding (invalid entries kept), merge, trust filter, duplicate ids | `vscode/src/connections/model.ts` |
-| `ConnectionStore`: settings + `.env`, watcher, trust, SecretStorage, password prompt, engine validation | `vscode/src/connections/store.ts` |
+| `ConnectionStore`: settings + `.env`, watcher, trust, SecretStorage (password, SSH password, key passphrase), prompts, host-key pinning into settings, engine validation | `vscode/src/connections/store.ts` |
+| SSH helpers (no `vscode`): which SSH secret a profile needs, secret fingerprints, `unknownHostKey` detail, trust prompt text, `pinHostKey` settings rewrite | `vscode/src/connections/ssh.ts` |
 | `goqulient.addConnection`, `goqulient.forgetPassword` (also from a tree node), `goqulient.openSettings` | `vscode/src/connections/commands.ts` |
 | URI redaction (same rules as `redact::uri`) | `vscode/src/connections/redact.ts` |
 | Webview entry points `openTable` / `openErDiagram` (for the sidebar) | `vscode/src/views/index.ts` |
@@ -429,7 +430,18 @@ View `goqulient.connections` in the "GoQulient" activity bar container. `Connect
   connections keep it in SecretStorage under `goqulient.password.<id>` as `{fingerprint, password}`; the fingerprint
   (`secretFingerprint`: kind, servers, user) must still match, otherwise the user is asked again, so a changed host or a
   copied id never receives a saved password. The prompt (`showInputBox({password: true})`) offers "save" or "until VS Code
-  closes" (kept in memory only). `goqulient.forgetPassword` removes both.
+  closes" (kept in memory only). `goqulient.forgetPassword` removes both, and the SSH secrets below.
+- **SSH tunnels** (settings connections only; `.env` connections never have `ssh`): `ssh.auth: password` (or an unknown
+  value, as in the engine) asks for the SSH password up front; it is kept like the password under
+  `goqulient.sshPassword.<id>` with its own fingerprint (bastion host, port, user). A key passphrase is only asked for
+  when the engine answers `sshKeyLocked`, and kept under `goqulient.sshKeyPassphrase.<id>` (fingerprint: the key path).
+  `Sessions.open` handles each SSH answer once: `unknownHostKey` → a modal "Trust the SSH host h:p?" with the key type
+  and SHA-256 fingerprint; on "Trust and Connect" the connection's settings entry (same scope, same position, checked by
+  name and kind: `pinHostKey`) gets `ssh.trustedHostKey`, and the connect is retried with that profile. The entry's
+  session key is updated before the settings write, so the refresh that follows doesn't close the new session.
+  `sshKeyLocked` → passphrase prompt (once more if wrong); `sshAuthentication` with password auth → the SSH password
+  again (a saved one first offers "Enter SSH Password" / "Forget Saved SSH Password"); with key auth it just fails. These
+  never trigger the database password retry (`isAuthFailure` would match "SSH authentication failed").
 - **Workspace Trust**: untrusted → workspace `goqulient.connections` and every env file are ignored (user settings still
   apply); `goqulient.connections`, `goqulient.envFiles`, `goqulient.envConnections` are `restrictedConfigurations`.
   `onDidGrantWorkspaceTrust` refreshes.
@@ -437,7 +449,7 @@ View `goqulient.connections` in the "GoQulient" activity bar container. `Connect
   tests mirror `redact.rs`), errors name the variable and file, never the value.
 - **Goku app connections** (macOS, planned): import through the app's `goku` CLI (`connections` plus its agent-access
   rules), never by reading the app's Keychain directly.
-- ⚠ Not handled yet: SSH passwords/passphrases are never prompted (SSH tunnels are planned); a `tlsCertificateKeyFilePassword` in a Mongo
+- ⚠ Not handled yet: a `tlsCertificateKeyFilePassword` in a Mongo
   URI stays in the URI (redacted when shown); `PG*`/`MYSQL_*` part connections can't be renamed or made writable through
   `goqulient.envConnections`; Unix-socket hosts are rejected.
 

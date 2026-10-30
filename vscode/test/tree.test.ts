@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { CancellationToken } from 'vscode-jsonrpc/node.js';
 import type { Connection } from '../src/connections/model.ts';
+import type { Credentials, ProfileJson } from '../src/connections/profile.ts';
 import { EngineError } from '../src/engine/client.ts';
 import {
   columnDescription,
@@ -148,6 +149,95 @@ function setup(source: 'saved' | 'none' = 'saved', again: string | null = 'right
   sessions.onDidChange((id, collapsed) => events.push([id, collapsed]));
   return { engine, sessions, rejected, events };
 }
+
+const hostKey = { host: 'bastion', port: 22, keyType: 'ssh-ed25519', hostKey: 'ssh-ed25519 AAAA', fingerprint: 'SHA256:x' };
+const unknownHostKey = () => new EngineError(-32001, 'The SSH host bastion:22 is not trusted yet.', 'unknownHostKey', hostKey);
+const sshRejected = () => new EngineError(-32001, 'Connection failed: SSH authentication failed for u@bastion: wrong password, or the key is not in authorized_keys.', 'sshAuthentication');
+const keyLocked = () => new EngineError(-32001, 'Invalid configuration: The SSH private key at k is encrypted: enter its passphrase.', 'sshKeyLocked');
+
+/** Sessions over a tunnelled profile, with recording SSH hooks. */
+function sshSetup(credentials: Credentials, answers: { trust?: boolean; secrets?: (string | undefined)[] } = {}) {
+  const engine = new FakeEngine();
+  const log: string[] = [];
+  const profile: ProfileJson = { name: 'A', kind: 'postgres', ssh: { enabled: true, host: 'bastion', user: 'u' } };
+  const hooks: ConnectHooks = {
+    params: async () => ({ profile, credentials, source: 'saved', sources: { sshPassword: 'saved' } }),
+    rejected: async () => {
+      log.push('db password');
+      return { password: 'db2' };
+    },
+    sshSecret: async (_t, secret, _m, source) => {
+      log.push(`${secret} ${source ?? 'none'}`);
+      return answers.secrets?.shift();
+    },
+    trustHostKey: async (_t, info) => {
+      log.push(`trust ${info.fingerprint}`);
+      if (!answers.trust) return undefined;
+      const trusted = { ...profile, ssh: { ...(profile.ssh as object), trustedHostKey: info.hostKey } };
+      return { profile: trusted, save: async () => void log.push('saved') };
+    },
+  };
+  const sessions = new Sessions(engine, hooks);
+  const opened = () => engine.calls.filter((c) => c.method === 'connection/open').map((c) => c.params);
+  return { engine, sessions, log, opened };
+}
+
+describe('Sessions over an SSH tunnel', () => {
+  test('an unknown host key is trusted, saved, and the connect retried with it; the refresh keeps the session', async () => {
+    const { engine, sessions, log, opened } = sshSetup({ sshPassword: 'p' }, { trust: true });
+    engine.opens = [unknownHostKey(), 'ok'];
+    assert.equal((await sessions.connect(T)).status, 'connected');
+    assert.deepEqual(log, ['trust SHA256:x', 'saved']);
+    const second = opened()[1]!.profile as ProfileJson;
+    assert.equal((second.ssh as { trustedHostKey: string }).trustedHostKey, 'ssh-ed25519 AAAA');
+    assert.deepEqual(opened()[1]!.credentials, { sshPassword: 'p' });
+    // The settings write refreshes the tree with the pinned profile: same key, so the session stays.
+    await sessions.sync([{ ...T, key: JSON.stringify(second) }]);
+    assert.equal(sessions.state('a').status, 'connected');
+  });
+
+  test('a host key the user doesn’t trust fails with the engine message, asked once', async () => {
+    const { engine, sessions, log } = sshSetup({ sshPassword: 'p' }, { trust: false });
+    engine.opens = [unknownHostKey(), unknownHostKey()];
+    const state = await sessions.connect(T);
+    assert.equal(state.status, 'failed');
+    assert.match((state as { message: string }).message, /not trusted yet/);
+    assert.deepEqual(log, ['trust SHA256:x']);
+  });
+
+  test('a locked key asks for its passphrase, then once more when it is wrong', async () => {
+    const { engine, sessions, log, opened } = sshSetup({}, { secrets: ['bad', 'good'] });
+    engine.opens = [keyLocked(), keyLocked(), 'ok'];
+    assert.equal((await sessions.connect(T)).status, 'connected');
+    assert.deepEqual(log, ['sshKeyPassphrase none', 'sshKeyPassphrase typed']);
+    assert.deepEqual(opened().map((p) => p.credentials), [{}, { sshKeyPassphrase: 'bad' }, { sshKeyPassphrase: 'good' }]);
+  });
+
+  test('a rejected SSH password is asked for again (not the database password), once', async () => {
+    const { engine, sessions, log, opened } = sshSetup({ sshPassword: 'old', password: 'db' }, { secrets: ['new', 'newer'] });
+    engine.opens = [sshRejected(), sshRejected()];
+    const state = await sessions.connect(T);
+    assert.equal(state.status, 'failed');
+    assert.match((state as { message: string }).message, /SSH authentication failed/);
+    assert.deepEqual(log, ['sshPassword saved']);
+    assert.deepEqual(opened().map((p) => p.credentials), [{ sshPassword: 'old', password: 'db' }, { sshPassword: 'new', password: 'db' }]);
+  });
+
+  test('a rejected key is not a password problem: no prompt', async () => {
+    const { engine, sessions, log } = sshSetup({});
+    engine.opens = [sshRejected()];
+    assert.equal((await sessions.connect(T)).status, 'failed');
+    assert.deepEqual(log, []);
+  });
+
+  test('the database password behind the tunnel is still asked for again', async () => {
+    const { engine, sessions, log, opened } = sshSetup({ sshPassword: 'p', password: 'db' });
+    engine.opens = [authError(), 'ok'];
+    assert.equal((await sessions.connect(T)).status, 'connected');
+    assert.deepEqual(log, ['db password']);
+    assert.deepEqual(opened()[1]!.credentials, { sshPassword: 'p', password: 'db2' }, 'the SSH password is kept');
+  });
+});
 
 describe('Sessions', () => {
   test('connect once, share concurrent attempts, disconnect closes the session', async () => {

@@ -1,12 +1,14 @@
 // The connections the tree shows: `goqulient.connections` (user + workspace scope) and `.env` discovery, filtered by Workspace
-// Trust, kept current by a file watcher and a configuration listener. Passwords: settings connections use SecretStorage
-// (`goqulient.password.<id>`), env connections re-read their file at connect time and store nothing (D7, D8).
+// Trust, kept current by a file watcher and a configuration listener. Secrets: settings connections use SecretStorage
+// (`goqulient.password.<id>`, and for SSH tunnels `goqulient.sshPassword.<id>` / `goqulient.sshKeyPassphrase.<id>`), env
+// connections re-read their file at connect time and store nothing (D7, D8).
 import { posix } from 'node:path';
 import * as vscode from 'vscode';
 import { parseEnv } from './envParse.ts';
 import { envConnections, sanitizeMappings, type EnvConnection, type EnvFile, type EnvMapping } from './envProfiles.ts';
 import { mergeConnections, type Connection } from './model.ts';
 import { needsPassword, secretFingerprint, type Credentials, type ProfileJson } from './profile.ts';
+import { SSH_SECRET_LABEL, needsSshPassword, pinHostKey, sshEndpoint, sshSecretFingerprint, type SshSecret } from './ssh.ts';
 
 /** Resolves to why `profile` is invalid, or undefined when it's fine; throws when the engine can't be asked. */
 export type Validator = (profile: ProfileJson) => Promise<string | undefined>;
@@ -21,6 +23,14 @@ export interface ConnectionStoreOptions {
 
 /** Where `getCredentials` found a password, so a rejected one can be handled (see `promptPassword`). */
 export type PasswordSource = 'saved' | 'session' | 'typed' | 'none';
+
+/** The secrets a settings connection can have, by their `Credentials` name. */
+export type SecretKind = 'password' | SshSecret;
+const SECRET_KINDS: readonly SecretKind[] = ['password', 'sshPassword', 'sshKeyPassphrase'];
+const SECRET_LABEL: Record<SecretKind, string> = { password: 'Password', ...SSH_SECRET_LABEL };
+
+/** Where each secret in `credentials` came from. */
+export type SecretSources = Partial<Record<SecretKind, PasswordSource>>;
 
 interface EnvSource {
   uri: vscode.Uri;
@@ -41,6 +51,15 @@ export function passwordKey(id: string): string {
   return `goqulient.password.${id}`;
 }
 
+/** SecretStorage key of one secret of a settings connection (`passwordKey` for the database password). */
+export function secretKey(id: string, kind: SecretKind): string {
+  return `goqulient.${kind}.${id}`;
+}
+
+function fingerprintOf(profile: ProfileJson, kind: SecretKind): string {
+  return kind === 'password' ? secretFingerprint(profile) : sshSecretFingerprint(profile, kind);
+}
+
 export class ConnectionStore implements vscode.Disposable {
   private readonly options: ConnectionStoreOptions;
   private readonly changed = new vscode.EventEmitter<void>();
@@ -49,7 +68,7 @@ export class ConnectionStore implements vscode.Disposable {
   private envById = new Map<string, EnvSource>();
   private watchers: vscode.Disposable[] = [];
   private readonly disposables: vscode.Disposable[] = [];
-  /** Passwords the user chose not to save, until VS Code closes. */
+  /** Secrets the user chose not to save, until VS Code closes, by `secretKey`. */
   private readonly sessionSecrets = new Map<string, SavedSecret>();
   /** Engine verdicts by profile JSON: undefined = fine, string = why not. */
   private readonly verdicts = new Map<string, string | undefined>();
@@ -117,47 +136,86 @@ export class ConnectionStore implements vscode.Disposable {
     return (await this.credentialsWithSource(conn))?.credentials;
   }
 
-  /** `getCredentials`, plus where the password came from. */
-  async credentialsWithSource(conn: Connection): Promise<{ credentials: Credentials; source: PasswordSource } | undefined> {
-    if (conn.source === 'env') return { credentials: (await this.envConnection(conn)).credentials ?? {}, source: 'none' };
-    if (!conn.profile) throw new Error(conn.invalid ?? `“${conn.name}” can't be used.`);
-    if (!needsPassword(conn.profile)) return { credentials: {}, source: 'none' };
-    const fingerprint = secretFingerprint(conn.profile);
-    const session = this.sessionSecrets.get(conn.id);
-    if (session?.fingerprint === fingerprint) return { credentials: { password: session.password }, source: 'session' };
-    const saved = parseSecret(await this.options.secrets.get(passwordKey(conn.id)));
-    if (saved?.fingerprint === fingerprint) return { credentials: { password: saved.password }, source: 'saved' };
-    const prompt = saved ? `The saved password was for a different server (${conn.endpoint} now).` : conn.endpoint;
-    const credentials = await this.promptPassword(conn, prompt);
-    return credentials && { credentials, source: 'typed' };
+  /**
+   * `getCredentials`, plus where the database password (`source`) and each secret (`sources`) came from. Asks for the
+   * database and SSH passwords it needs and doesn't have; a key passphrase is only sent when one is known (the engine
+   * says when it needs one, see `promptSecret`).
+   */
+  async credentialsWithSource(
+    conn: Connection,
+  ): Promise<{ credentials: Credentials; source: PasswordSource; sources: SecretSources } | undefined> {
+    if (conn.source === 'env') {
+      return { credentials: (await this.envConnection(conn)).credentials ?? {}, source: 'none', sources: {} };
+    }
+    const profile = conn.profile;
+    if (!profile) throw new Error(conn.invalid ?? `“${conn.name}” can't be used.`);
+    const credentials: Credentials = {};
+    const sources: SecretSources = {};
+    const wanted: [SecretKind, boolean][] = [
+      ['sshPassword', needsSshPassword(profile)],
+      ['password', needsPassword(profile)],
+      ['sshKeyPassphrase', false],
+    ];
+    for (const [kind, required] of wanted) {
+      const known = await this.knownSecret(conn.id, profile, kind);
+      if (known) {
+        credentials[kind] = known.value;
+        sources[kind] = known.source;
+        continue;
+      }
+      if (!required) continue;
+      const stale = (await this.options.secrets.get(secretKey(conn.id, kind))) !== undefined;
+      const where = kind === 'password' ? conn.endpoint : sshEndpoint(profile);
+      const value = await this.promptSecret(conn, kind, stale ? `The saved ${SECRET_LABEL[kind].toLowerCase()} was for a different server (${where} now).` : where);
+      if (value === undefined) return undefined;
+      credentials[kind] = value;
+      sources[kind] = 'typed';
+    }
+    return { credentials, source: sources.password ?? 'none', sources };
+  }
+
+  /** A secret kept for this session or saved, if it still belongs to the profile (fingerprint). */
+  private async knownSecret(id: string, profile: ProfileJson, kind: SecretKind): Promise<{ value: string; source: PasswordSource } | undefined> {
+    const fingerprint = fingerprintOf(profile, kind);
+    const key = secretKey(id, kind);
+    const session = this.sessionSecrets.get(key);
+    if (session?.fingerprint === fingerprint) return { value: session.password, source: 'session' };
+    const saved = parseSecret(await this.options.secrets.get(key));
+    if (saved?.fingerprint === fingerprint) return { value: saved.password, source: 'saved' };
+    return undefined;
   }
 
   /** Asks for the password of a settings connection (e.g. after the server rejected one). Undefined = cancelled. */
   async promptPassword(conn: Connection, prompt: string): Promise<Credentials | undefined> {
+    const password = await this.promptSecret(conn, 'password', prompt);
+    return password === undefined ? undefined : { password };
+  }
+
+  /** Asks for one secret of a settings connection, then whether to save it or keep it until VS Code closes. */
+  async promptSecret(conn: Connection, kind: SecretKind, prompt: string): Promise<string | undefined> {
     if (!conn.profile) throw new Error(conn.invalid ?? `“${conn.name}” can't be used.`);
-    const fingerprint = secretFingerprint(conn.profile);
-    const password = await vscode.window.showInputBox({
-      title: `Password for ${conn.name}`,
-      prompt,
-      password: true,
-      ignoreFocusOut: true,
-    });
-    if (password === undefined) return undefined;
+    const title = `${SECRET_LABEL[kind]} for ${conn.name}`;
+    const value = await vscode.window.showInputBox({ title, prompt, password: true, ignoreFocusOut: true });
+    if (value === undefined) return undefined;
     const save = await vscode.window.showQuickPick(
       [
         { label: 'Save in VS Code secret storage', save: true },
         { label: 'Use until VS Code closes', save: false },
       ],
-      { title: `Password for ${conn.name}`, ignoreFocusOut: true },
+      { title, ignoreFocusOut: true },
     );
-    if (save?.save) await this.savePassword(conn.id, conn.profile, password);
-    else this.sessionSecrets.set(conn.id, { fingerprint, password });
-    return { password };
+    if (save?.save) await this.saveSecret(conn.id, conn.profile, kind, value);
+    else this.sessionSecrets.set(secretKey(conn.id, kind), { fingerprint: fingerprintOf(conn.profile, kind), password: value });
+    return value;
   }
 
   /** Forgets a password kept until VS Code closes (not the saved one). */
   forgetSessionPassword(id: string): void {
-    this.sessionSecrets.delete(id);
+    this.forgetSessionSecret(id, 'password');
+  }
+
+  forgetSessionSecret(id: string, kind: SecretKind): void {
+    this.sessionSecrets.delete(secretKey(id, kind));
   }
 
   /** Validates through the engine now (e.g. once it has started); a no-op while `canValidate` says no. */
@@ -166,14 +224,38 @@ export class ConnectionStore implements vscode.Disposable {
   }
 
   async savePassword(id: string, profile: ProfileJson, password: string): Promise<void> {
-    const secret: SavedSecret = { fingerprint: secretFingerprint(profile), password };
-    await this.options.secrets.store(passwordKey(id), JSON.stringify(secret));
-    this.sessionSecrets.delete(id);
+    await this.saveSecret(id, profile, 'password', password);
   }
 
-  async forgetPassword(id: string): Promise<void> {
-    this.sessionSecrets.delete(id);
-    await this.options.secrets.delete(passwordKey(id));
+  async saveSecret(id: string, profile: ProfileJson, kind: SecretKind, value: string): Promise<void> {
+    const secret: SavedSecret = { fingerprint: fingerprintOf(profile, kind), password: value };
+    await this.options.secrets.store(secretKey(id, kind), JSON.stringify(secret));
+    this.sessionSecrets.delete(secretKey(id, kind));
+  }
+
+  /** Forgets one secret (saved and session), or with no `kind` all of them: password, SSH password, key passphrase. */
+  async forgetPassword(id: string, kind?: SecretKind): Promise<void> {
+    for (const k of kind ? [kind] : SECRET_KINDS) {
+      this.sessionSecrets.delete(secretKey(id, k));
+      await this.options.secrets.delete(secretKey(id, k));
+    }
+  }
+
+  /**
+   * Pins `hostKey` as `ssh.trustedHostKey` of a settings connection, in the scope it came from. Every other entry stays
+   * as it is; fails when the entry moved or changed since the list was read.
+   */
+  async trustHostKey(conn: Connection, hostKey: string): Promise<void> {
+    if ((conn.source !== 'user' && conn.source !== 'workspace') || conn.index === undefined || !conn.profile) {
+      throw new Error(`“${conn.name}” isn’t a connection from settings.`);
+    }
+    const config = vscode.workspace.getConfiguration('goqulient');
+    const inspected = config.inspect<unknown>('connections');
+    const current = conn.source === 'user' ? inspected?.globalValue : inspected?.workspaceValue;
+    const next = pinHostKey(current, conn.index, { name: conn.name, kind: conn.profile.kind }, hostKey);
+    if (!next) throw new Error(`“${conn.name}” changed in the settings meanwhile; connect again.`);
+    const target = conn.source === 'user' ? vscode.ConfigurationTarget.Global : vscode.ConfigurationTarget.Workspace;
+    await config.update('connections', next, target);
   }
 
   /** Appends to user-scope `goqulient.connections`, keeping every existing entry exactly as it is. */

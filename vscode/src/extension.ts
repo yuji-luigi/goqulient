@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { registerConnectionCommands } from './connections/commands.ts';
+import { SSH_SECRET_LABEL, sshEndpoint, trustPrompt, withHostKey } from './connections/ssh.ts';
 import { ConnectionStore } from './connections/store.ts';
 import { resolveBinary } from './engine/binary.ts';
 import { EngineClient, EngineError } from './engine/client.ts';
@@ -94,7 +95,10 @@ export function activate(context: vscode.ExtensionContext): TestApi | undefined 
   return testing ? { tree, view, sessions, store, engine: client, answered } : undefined;
 }
 
-/** Credentials for `connection/open`, and one more prompt when the server rejects a password from settings. */
+/**
+ * Credentials for `connection/open`, one more prompt when the server rejects a password from settings, and for SSH
+ * tunnels the host-key trust prompt and the SSH password / key passphrase prompts.
+ */
 function connectHooks(store: ConnectionStore): ConnectHooks {
   const connection = (id: string) => {
     const conn = store.get(id);
@@ -110,7 +114,7 @@ function connectHooks(store: ConnectionStore): ConnectHooks {
       }
       if (!conn.profile || conn.invalid) throw new Error(conn.invalid ?? `“${conn.name}” can't be used.`);
       const c = await store.credentialsWithSource(conn);
-      return c && { profile: conn.profile, credentials: c.credentials, source: c.source };
+      return c && { profile: conn.profile, credentials: c.credentials, source: c.source, sources: c.sources };
     },
     async rejected(target, _message, source) {
       const conn = connection(target.id);
@@ -126,6 +130,37 @@ function connectHooks(store: ConnectionStore): ConnectHooks {
         store.forgetSessionPassword(conn.id);
       }
       return store.promptPassword(conn, `The server rejected the password for ${conn.endpoint}. Enter it again.`);
+    },
+    async sshSecret(target, secret, _message, source) {
+      const conn = connection(target.id);
+      if (conn.source === 'env' || !conn.profile) return undefined;
+      const label = SSH_SECRET_LABEL[secret];
+      if (source === 'saved') {
+        const action = await vscode.window.showWarningMessage(
+          `The saved ${label.toLowerCase()} for “${conn.name}” didn’t work.`,
+          `Enter ${label}`,
+          `Forget Saved ${label}`,
+        );
+        if (!action) return undefined;
+        if (action.startsWith('Forget')) await store.forgetPassword(conn.id, secret);
+      } else if (source) {
+        store.forgetSessionSecret(conn.id, secret);
+      }
+      const prompt =
+        secret === 'sshKeyPassphrase'
+          ? source
+            ? 'Wrong passphrase. Enter the passphrase of the SSH private key again.'
+            : 'The SSH private key is encrypted. Enter its passphrase.'
+          : `The SSH server rejected the password for ${sshEndpoint(conn.profile)}. Enter it again.`;
+      return store.promptSecret(conn, secret, prompt);
+    },
+    async trustHostKey(target, info) {
+      const conn = connection(target.id);
+      if (!conn.profile || (conn.source !== 'user' && conn.source !== 'workspace')) return undefined;
+      const { message, detail } = trustPrompt(conn.name, info);
+      const yes = 'Trust and Connect';
+      if ((await vscode.window.showWarningMessage(message, { modal: true, detail }, yes)) !== yes) return undefined;
+      return { profile: withHostKey(conn.profile, info.hostKey), save: () => store.trustHostKey(conn, info.hostKey) };
     },
   };
 }

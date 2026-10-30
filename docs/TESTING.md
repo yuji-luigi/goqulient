@@ -125,7 +125,10 @@ returns in `ExtensionMode.Test` (`tree`, `view`, `sessions`, `store`, `engine`, 
 - `goqulient.openTable` gets a `table/page` answer for each engine and its title names the connection;
 - the ER diagram gets `schema/introspect` and `er/layout` (so the webview measured the boxes);
 - Disconnect and Restart Engine leave connections idle and the next expand reconnects;
-- no item shows the test password.
+- a user-settings connection through `ssh-bastion`: the engine answers `unknownHostKey`, the store pins that key into the
+  user settings (what "Trust and Connect" does; the modal itself can't be clicked there), and expanding connects through
+  the tunnel;
+- no item shows the test password or the SSH password.
 
 It only reads. Set `GOKU_E2E_SCREENSHOTS` to keep `table.png`/`er.png` of the window and look at them: the test checks
 that the data arrives, not what is drawn.

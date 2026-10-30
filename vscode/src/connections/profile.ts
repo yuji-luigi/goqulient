@@ -25,6 +25,8 @@ export interface ProfileJson {
   user?: string;
   database?: string;
   ssl?: { mode?: SslMode; caCertificatePath?: string; clientCertificatePath?: string; clientKeyPath?: string };
+  /** SSH tunnel (`ssh.ts`); its secrets live in SecretStorage like the password. */
+  ssh?: unknown;
   targetSession?: string;
   srvHost?: string;
   uri?: string;

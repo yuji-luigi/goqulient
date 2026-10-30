@@ -1,9 +1,11 @@
-// Connection commands: add (to user settings, password into SecretStorage), forget a saved password, open settings.
+// Connection commands: add (to user settings, password into SecretStorage), forget saved passwords (the database's and
+// an SSH tunnel's), open settings.
 import { randomUUID } from 'node:crypto';
 import * as vscode from 'vscode';
 import { UrlError, pastedUrl, profileFromUrl } from './envProfiles.ts';
 import type { Connection } from './model.ts';
 import { DEFAULT_PORT, DEFAULT_USER, KINDS, KIND_LABEL, endpointSummary, needsPassword, type Kind, type ProfileJson } from './profile.ts';
+import { usesSsh } from './ssh.ts';
 import type { ConnectionStore } from './store.ts';
 
 const TITLE = 'Add GoQulient Connection';
@@ -130,7 +132,7 @@ async function addConnection(store: ConnectionStore): Promise<void> {
 async function forgetPassword(store: ConnectionStore, arg?: Connection | string): Promise<void> {
   let conn = typeof arg === 'string' ? store.get(arg) : arg;
   if (!conn) {
-    const candidates = store.list().filter((c) => c.source !== 'env' && c.profile && needsPassword(c.profile));
+    const candidates = store.list().filter((c) => c.source !== 'env' && c.profile && (needsPassword(c.profile) || usesSsh(c.profile)));
     if (!candidates.length) {
       void vscode.window.showInformationMessage('No connection from settings uses a password.');
       return;
@@ -147,5 +149,6 @@ async function forgetPassword(store: ConnectionStore, arg?: Connection | string)
     return;
   }
   await store.forgetPassword(conn.id);
-  void vscode.window.showInformationMessage(`Forgot the saved password for “${conn.name}”.`);
+  const what = conn.profile && usesSsh(conn.profile) ? 'passwords and SSH secrets' : 'password';
+  void vscode.window.showInformationMessage(`Forgot the saved ${what} for “${conn.name}”.`);
 }
